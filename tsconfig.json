@@ -1,19 +1,19 @@
 {
-	"compilerOptions": {
-		"module": "es2022",
-		"target": "es2022",
-		"noImplicitAny": false,
-		"removeComments": true,
-		"preserveConstEnums": true,
-		"sourceMap": true,
-		"outDir": "./dist",
-		"rootDir": "./src",
-		"checkJs": true,
-		"allowJs": true,
-		"jsx": "react",
-		"experimentalDecorators": true,
-		"moduleResolution": "node"
-	},
-	"include": ["src/**/*"],
-	"exclude": ["./node_modules", "dist"]
+    "compilerOptions": {
+        "module": "es2022",
+        "target": "es2022",
+        "noImplicitAny": false,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "checkJs": true,
+        "allowJs": true,
+        "jsx": "react",
+        "experimentalDecorators": true,
+        "moduleResolution": "node"
+    },
+    "include": ["src/**/*"],
+    "exclude": ["./node_modules", "dist"]
 }

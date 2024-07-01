@@ -15,10 +15,13 @@ export class Renderer {
         const offscreen = canvas.transferControlToOffscreen();
         const worker = new Worker('renderer/worker.js', { type: 'module' });
         worker.postMessage({
-            drawingSurface: offscreen,
-            width: canvas.clientWidth,
-            height: canvas.clientHeight,
-            pixelRatio: window.devicePixelRatio,
+            type: 'init',
+            payload: {
+                drawingSurface: offscreen,
+                width: canvas.clientWidth,
+                height: canvas.clientHeight,
+                pixelRatio: window.devicePixelRatio,
+            },
         }, [offscreen]);
         return renderer;
     }
