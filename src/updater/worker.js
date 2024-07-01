@@ -46,9 +46,14 @@ function moveSystem(entities) {
         players.forEach((player) => {
             if (square.owner === player.playerId) {
                 if (player.actions.forward) {
-                    square.position.x += 1;
+                    square.position.y += 2;
                 } else if (player.actions.back) {
-                    square.position.x -= 1;
+                    square.position.y -= 2;
+                }
+                if (player.actions.left) {
+                    square.position.x -= 2;
+                } else if (player.actions.right) {
+                    square.position.x += 2;
                 }
             }
         })

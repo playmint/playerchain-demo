@@ -1,16 +1,28 @@
 
 export class Network {
-    constructor() {
 
+
+    /** @type Worker */
+    worker = null;
+
+    constructor({ worker }) {
+        this.worker = worker;
+    }
+
+    updateInput(input) {
+        this.worker.postMessage({
+            type: 'updateInput',
+            payload: input,
+        }, []);
     }
 
     static async create() {
-        const renderer = new Network();
         const worker = new Worker('network/worker.js', { type: 'module' });
         worker.postMessage({
             type: 'init',
             payload: {},
         }, []);
-        return renderer;
+        const network = new Network({ worker });
+        return network;
     }
 }

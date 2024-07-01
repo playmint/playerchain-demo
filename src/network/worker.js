@@ -7,13 +7,11 @@ function init() {
     processPacket();
 }
 
+let actions = new Map();
+actions.set(200, { back: true });
+
 function processPacket() {
-
-    const actions = new Map();
-    actions.set(100, { forward: true });
-    actions.set(200, { back: true });
     updaterCh.postMessage(actions);
-
     setTimeout(processPacket, 100);
 }
 
@@ -24,5 +22,8 @@ self.onmessage = function (message) {
         case 'init':
             init();
             break;
+        case 'updateInput':
+            console.log('net resv input', payload);
+            actions.set(100, payload);
     }
 };

@@ -28,7 +28,9 @@
 	<script type="module">
 
 		import { Game } from './game/game.js';
-		await Game.create();
+		Game.create({ window })
+            .then(() => console.log('game ready'))
+            .catch(err => console.error('failed to load game:', err));
 
 	</script>
   </body>
