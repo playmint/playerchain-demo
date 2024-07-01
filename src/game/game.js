@@ -41,6 +41,7 @@ export class Game {
     }
 
     onKeyDown(event) {
+        event.preventDefault();
         switch (event.key) {
             case 'w':
                 this.inputs.forward = true;
@@ -59,6 +60,7 @@ export class Game {
     }
 
     onKeyUp(event) {
+        event.preventDefault();
         switch (event.key) {
             case 'w':
                 this.inputs.forward = false;
