@@ -14,10 +14,12 @@ function init() {
     store.entities[0].position.x = -10;
     store.entities[0].isSquare = true;
     store.entities[0].owner = 100;
+    store.entities[0].color = 0x00ff00;
 
     store.add();
     store.entities[1].position.x = 10;
     store.entities[1].isSquare = true;
+    store.entities[1].color = 0xff0000;
     store.entities[1].owner = 200;
 
     // players
@@ -73,7 +75,7 @@ self.onmessage = function (message) {
 };
 
 updaterCh.onmessage = ({ data: actions }) => {
-    console.log('[updater] recv', actions);
+    // console.log('[updater] recv', actions);
     const players = store.entities.filter((entity) => entity.isPlayer);
     players.forEach((player) => {
         const playerActions = actions.get(player.playerId);

@@ -6,7 +6,7 @@ let camera, scene, renderer, group;
 
 export function init(canvas, width, height, pixelRatio) {
     camera = new PerspectiveCamera(40, width / height, 1, 1000);
-    camera.position.z = 200;
+    camera.position.z = 50;
 
     scene = new Scene();
     scene.fog = new Fog(0x444466, 100, 400);
