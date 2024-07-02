@@ -3,17 +3,24 @@
         "module": "es2022",
         "target": "es2022",
         "noImplicitAny": false,
-        "removeComments": true,
+        "removeComments": false,
         "preserveConstEnums": true,
         "sourceMap": true,
         "outDir": "./dist",
-        "rootDir": "./src",
+        "rootDir": ".",
+        "strict": true,
+        "noEmit": true,
         "checkJs": true,
         "allowJs": true,
         "jsx": "react",
         "experimentalDecorators": true,
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
     },
-    "include": ["src/**/*"],
-    "exclude": ["./node_modules", "dist"]
+    "include": [
+        "**/*.mjs",
+        "**/*.js",
+        "**/*.ts",
+    ],
+    "exclude": ["./node_modules", "./dist"]
 }
