@@ -15,12 +15,8 @@
         "jsx": "react",
         "experimentalDecorators": true,
         "moduleResolution": "node",
-        "allowSyntheticDefaultImports": true,
+        "allowSyntheticDefaultImports": true
     },
-    "include": [
-        "**/*.mjs",
-        "**/*.js",
-        "**/*.ts",
-    ],
+    "include": ["**/*.mjs", "**/*.js", "**/*.ts"],
     "exclude": ["./node_modules", "./dist"]
 }
