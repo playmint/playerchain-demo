@@ -44,15 +44,27 @@ export class Game {
         event.preventDefault();
         switch (event.key) {
             case 'w':
+                if (this.inputs.forward) {
+                    return;
+                }
                 this.inputs.forward = true;
                 break;
             case 'a':
+                if (this.inputs.left) {
+                    return;
+                }
                 this.inputs.left = true;
                 break;
             case 's':
+                if (this.inputs.back) {
+                    return;
+                }
                 this.inputs.back = true;
                 break;
             case 'd':
+                if (this.inputs.right) {
+                    return;
+                }
                 this.inputs.right = true;
                 break;
         }
