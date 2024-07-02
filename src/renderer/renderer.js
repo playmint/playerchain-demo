@@ -1,8 +1,5 @@
-
 export class Renderer {
-    constructor() {
-
-    }
+    constructor() {}
 
     static async create() {
         const renderer = new Renderer();
@@ -14,15 +11,18 @@ export class Renderer {
 
         const offscreen = canvas.transferControlToOffscreen();
         const worker = new Worker('renderer/worker.js', { type: 'module' });
-        worker.postMessage({
-            type: 'init',
-            payload: {
-                drawingSurface: offscreen,
-                width: canvas.clientWidth,
-                height: canvas.clientHeight,
-                pixelRatio: window.devicePixelRatio,
+        worker.postMessage(
+            {
+                type: 'init',
+                payload: {
+                    drawingSurface: offscreen,
+                    width: canvas.clientWidth,
+                    height: canvas.clientHeight,
+                    pixelRatio: window.devicePixelRatio,
+                },
             },
-        }, [offscreen]);
+            [offscreen],
+        );
         return renderer;
     }
 }

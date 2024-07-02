@@ -1,13 +1,12 @@
 import { Store } from '../store/store.js';
 
-const updaterCh = new BroadcastChannel("updater");
-const rendererCh = new BroadcastChannel("renderer");
+const updaterCh = new BroadcastChannel('updater');
+const rendererCh = new BroadcastChannel('renderer');
 
 let store = new Store();
 let actions = new Map(); // keyed by playerId
 
 function init() {
-
     // squares
 
     store.add();
@@ -37,7 +36,6 @@ function init() {
     console.log('init updater');
 }
 
-
 /** @param {import("../store/store.js").Entity[]} entities  */
 function moveSystem(entities) {
     const players = entities.filter((entity) => entity.isPlayer);
@@ -56,7 +54,7 @@ function moveSystem(entities) {
                     square.position.x += 2;
                 }
             }
-        })
+        });
     });
 }
 
@@ -88,4 +86,4 @@ updaterCh.onmessage = ({ data: actions }) => {
             player.actions = playerActions;
         }
     });
-}
+};

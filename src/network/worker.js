@@ -1,6 +1,6 @@
 import { Store } from '../store/store.js';
 
-const updaterCh = new BroadcastChannel("updater");
+const updaterCh = new BroadcastChannel('updater');
 
 function init() {
     console.log('init network');

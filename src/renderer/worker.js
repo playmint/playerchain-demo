@@ -1,6 +1,17 @@
-import { Vector3, BoxGeometry, Color, Fog, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderer } from './three.js';
 import { Store } from '../store/store.js';
-const rendererCh = new BroadcastChannel("renderer");
+import {
+    BoxGeometry,
+    Color,
+    Fog,
+    Mesh,
+    MeshBasicMaterial,
+    PerspectiveCamera,
+    Scene,
+    Vector3,
+    WebGLRenderer,
+} from './three.js';
+
+const rendererCh = new BroadcastChannel('renderer');
 let store = new Store();
 let camera, scene, renderer, group;
 
@@ -11,7 +22,6 @@ export function init(canvas, width, height, pixelRatio) {
     scene = new Scene();
     scene.fog = new Fog(0x444466, 100, 400);
     scene.background = new Color(0x444466);
-
 
     renderer = new WebGLRenderer({ antialias: true, canvas: canvas });
     renderer.setPixelRatio(pixelRatio);
@@ -25,7 +35,6 @@ const objectsInTheWorld = new Map();
 /** @param {import("../store/store.js").Entity[]} entities  */
 function objectSystem(entities) {
     for (let i = 0; i < entities.length; i++) {
-
         // only care about squares
         if (!entities[i].isSquare) {
             continue;
@@ -34,7 +43,9 @@ function objectSystem(entities) {
         let obj = objectsInTheWorld.get(i);
         if (!obj) {
             const geometry = new BoxGeometry(1, 1, 1);
-            const material = new MeshBasicMaterial({ color: entities[i].color });
+            const material = new MeshBasicMaterial({
+                color: entities[i].color,
+            });
             obj = new Mesh(geometry, material);
             scene.add(obj);
             objectsInTheWorld.set(i, obj);
@@ -47,12 +58,9 @@ function objectSystem(entities) {
         );
         obj.position.lerp(target, 0.1);
     }
-
 }
 
-
 function render() {
-
     objectSystem(store.entities);
 
     renderer.render(scene, camera);
@@ -77,4 +85,4 @@ self.onmessage = function (message) {
 rendererCh.onmessage = ({ data: entities }) => {
     // console.log('[renderer] recv', entities);
     store = Store.from(entities);
-}
+};

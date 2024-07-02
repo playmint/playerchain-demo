@@ -1,19 +1,18 @@
+import { Network } from '../network/network.js';
 import { Renderer } from '../renderer/renderer.js';
 import { Updater } from '../updater/updater.js';
-import { Network } from '../network/network.js';
 
 export class Game {
-
-    /** @type Renderer */
+    /** @type Renderer? */
     renderer = null;
 
-    /** @type Updater */
+    /** @type Updater? */
     updater = null;
 
-    /** @type Network */
+    /** @type Network? */
     network = null;
 
-    /** @type Window */
+    /** @type Window? */
     window = null;
 
     inputs = {
@@ -24,12 +23,12 @@ export class Game {
     };
 
     /**
-    * @param {Object} cfg
-    * @param {Renderer} cfg.renderer
-    * @param {Updater} cfg.updater
-    * @param {Network} cfg.network
-    * @param {Window} cfg.window
-    */
+     * @param {Object} cfg
+     * @param {Renderer} cfg.renderer
+     * @param {Updater} cfg.updater
+     * @param {Network} cfg.network
+     * @param {Window} cfg.window
+     */
     constructor({ renderer, updater, network, window }) {
         this.renderer = renderer;
         this.updater = updater;
@@ -91,7 +90,7 @@ export class Game {
     }
 
     updateInputs() {
-        this.network.updateInput(this.inputs);
+        this.network?.updateInput(this.inputs);
     }
 
     static async create({ window }) {
@@ -103,4 +102,3 @@ export class Game {
         return g;
     }
 }
-

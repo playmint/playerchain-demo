@@ -1,7 +1,4 @@
-
 export class Network {
-
-
     /** @type Worker */
     worker = null;
 
@@ -10,18 +7,24 @@ export class Network {
     }
 
     updateInput(input) {
-        this.worker.postMessage({
-            type: 'updateInput',
-            payload: input,
-        }, []);
+        this.worker.postMessage(
+            {
+                type: 'updateInput',
+                payload: input,
+            },
+            [],
+        );
     }
 
     static async create() {
         const worker = new Worker('network/worker.js', { type: 'module' });
-        worker.postMessage({
-            type: 'init',
-            payload: {},
-        }, []);
+        worker.postMessage(
+            {
+                type: 'init',
+                payload: {},
+            },
+            [],
+        );
         const network = new Network({ worker });
         return network;
     }
