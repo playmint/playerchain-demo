@@ -1,31 +1,34 @@
-export class Network {
-    /** @type Worker */
-    worker = null;
+import Buffer from 'socket:buffer';
+import EventEmitter from 'socket:events';
+import { init } from './worker.js';
 
-    constructor({ worker }) {
-        this.worker = worker;
+export class Network {
+    peerId = null;
+
+    /** @type {EventEmitter?} */
+    subcluster = null;
+
+    constructor(peerId, subcluster) {
+        this.peerId = peerId;
+        this.subcluster = subcluster;
     }
 
     updateInput(input) {
-        this.worker.postMessage(
-            {
-                type: 'updateInput',
-                payload: input,
-            },
-            [],
+        this.subcluster?.emit(
+            'action',
+            Buffer.from(
+                JSON.stringify({
+                    peerId: this.peerId,
+                    action: input,
+                }),
+            ),
         );
     }
 
-    static async create() {
-        const worker = new Worker('network/worker.js', { type: 'module' });
-        worker.postMessage(
-            {
-                type: 'init',
-                payload: {},
-            },
-            [],
-        );
-        const network = new Network({ worker });
+    static async create({ signingKeys, peerId }) {
+        const subcluster = await init(signingKeys, peerId);
+
+        const network = new Network(peerId, subcluster);
         return network;
     }
 }

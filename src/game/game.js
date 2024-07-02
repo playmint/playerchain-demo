@@ -93,10 +93,10 @@ export class Game {
         this.network?.updateInput(this.inputs);
     }
 
-    static async create({ window }) {
+    static async create({ window, signingKeys, peerId }) {
         const renderer = await Renderer.create();
         const updater = await Updater.create();
-        const network = await Network.create();
+        const network = await Network.create({ signingKeys, peerId });
 
         const g = new Game({ renderer, updater, network, window });
         return g;

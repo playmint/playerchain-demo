@@ -7,30 +7,6 @@ let store = new Store();
 let actions = new Map(); // keyed by playerId
 
 function init() {
-    // squares
-
-    store.add();
-    store.entities[0].position.x = -10;
-    store.entities[0].isSquare = true;
-    store.entities[0].owner = 100;
-    store.entities[0].color = 0x00ff00;
-
-    store.add();
-    store.entities[1].position.x = 10;
-    store.entities[1].isSquare = true;
-    store.entities[1].color = 0xff0000;
-    store.entities[1].owner = 200;
-
-    // players
-
-    store.add();
-    store.entities[2].isPlayer = true;
-    store.entities[2].playerId = 100;
-
-    store.add();
-    store.entities[3].isPlayer = true;
-    store.entities[3].playerId = 200;
-
     tick();
 
     console.log('init updater');
@@ -79,6 +55,20 @@ self.onmessage = function (message) {
 
 updaterCh.onmessage = ({ data: actions }) => {
     // console.log('[updater] recv', actions);
+    for (const key of actions.keys()) {
+        if (!store.entities.some((entity) => entity.playerId === key)) {
+            const playerEntity = store.add();
+            playerEntity.isPlayer = true;
+            playerEntity.playerId = key;
+
+            const ship = store.add();
+            ship.position.x = 0;
+            ship.isSquare = true;
+            ship.owner = key;
+            ship.color = 0x00ff00;
+        }
+    }
+
     const players = store.entities.filter((entity) => entity.isPlayer);
     players.forEach((player) => {
         const playerActions = actions.get(player.playerId);

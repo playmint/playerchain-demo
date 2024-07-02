@@ -30,11 +30,34 @@
     <body>
         <canvas id="viewport" style="width: 100vw; height: 100vh"></canvas>
         <script type="module">
+            import { Buffer } from 'socket:buffer';
+            import { randomBytes } from 'socket:crypto';
+            import { Encryption } from 'socket:network';
             import { Game } from './game/game.js';
 
-            Game.create({ window })
-                .then(() => console.log('game ready'))
-                .catch((err) => console.error('failed to load game:', err));
+            const init = async () => {
+                let peerSecret = localStorage.getItem('peerSecret');
+                if (peerSecret === null) {
+                    peerSecret = randomBytes(64).toString('base64');
+                    localStorage.setItem('peerSecret', peerSecret);
+                }
+
+                const signingKeys = await Encryption.createKeyPair(peerSecret);
+
+                const peerId = await Encryption.createId(
+                    Buffer.from(signingKeys.publicKey).toString('base64'),
+                );
+
+                await Game.create({
+                    window,
+                    signingKeys,
+                    peerId,
+                });
+            };
+
+            init().catch((error) => {
+                console.error('Error initializing game: ', error);
+            });
         </script>
     </body>
 </html>

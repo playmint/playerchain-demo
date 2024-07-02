@@ -22,6 +22,8 @@ export class Store {
         const e = new Entity();
         this.entities.push(e);
         e.id = this.entities.length - 1;
+
+        return e;
     }
 
     /** @param {Entity[]} entities */
