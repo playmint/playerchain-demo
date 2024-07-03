@@ -33,6 +33,17 @@ async function build() {
         preserveTimestamps: true,
     });
 
+    // copy the three js addons this is required as there are WASM modules in
+    // there that things like GLTFLoader need to load at runtime so cannot be
+    fs.cpSync(
+        './node_modules/three/examples/jsm',
+        path.join(target, 'threeaddons'),
+        {
+            recursive: true,
+            force: true,
+        },
+    );
+
     // find all the entrypoints for the runtime
     const workerEntrypoints = globSync('./src/**/*worker.ts');
     const entryPoints = [

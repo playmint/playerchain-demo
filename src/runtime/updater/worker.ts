@@ -19,14 +19,14 @@ function moveSystem(entities) {
         players.forEach((player) => {
             if (square.owner === player.playerId) {
                 if (player.actions.forward) {
-                    square.position.y += 2;
+                    square.position.y += 5;
                 } else if (player.actions.back) {
-                    square.position.y -= 2;
+                    square.position.y -= 5;
                 }
                 if (player.actions.left) {
-                    square.position.x -= 2;
+                    square.position.x -= 5;
                 } else if (player.actions.right) {
-                    square.position.x += 2;
+                    square.position.x += 5;
                 }
             }
         });

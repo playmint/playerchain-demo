@@ -1,23 +1,39 @@
 import {
-    BoxGeometry,
     Color,
     Fog,
-    Mesh,
-    MeshBasicMaterial,
     PerspectiveCamera,
     Scene,
     Vector3,
     WebGLRenderer,
 } from 'three';
-import { Store } from '../store/index';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Store } from '../store';
+import type { Entity } from '../store';
 
 const rendererCh = new BroadcastChannel('renderer');
 let store = new Store();
 let camera, scene, renderer;
 
-export function init(canvas, width, height, pixelRatio) {
+type Assets = {
+    ship?: GLTF;
+};
+const assets: Assets = {};
+
+// GLTF loader
+const loader = new GLTFLoader();
+// const dracoLoader = new DRACOLoader();
+// dracoLoader.setDecoderPath('/threeaddons/libs/draco/');
+// loader.setDRACOLoader(dracoLoader);
+
+export async function init(canvas, width, height, pixelRatio) {
+    // load assets
+    console.log('loading assets');
+    assets.ship = await loader.loadAsync('/assets/ship2.glb');
+    console.log('assets ready');
+
     camera = new PerspectiveCamera(40, width / height, 1, 1000);
-    camera.position.z = 50;
+    camera.position.z = 100;
 
     scene = new Scene();
     scene.fog = new Fog(0x444466, 100, 400);
@@ -32,8 +48,7 @@ export function init(canvas, width, height, pixelRatio) {
 
 const objectsInTheWorld = new Map();
 
-/** @param {import("../store/store.js").Entity[]} entities  */
-function objectSystem(entities) {
+function objectSystem(entities: Entity[]) {
     for (let i = 0; i < entities.length; i++) {
         // only care about squares
         if (!entities[i].isSquare) {
@@ -42,11 +57,8 @@ function objectSystem(entities) {
 
         let obj = objectsInTheWorld.get(i);
         if (!obj) {
-            const geometry = new BoxGeometry(1, 1, 1);
-            const material = new MeshBasicMaterial({
-                color: entities[i].color,
-            });
-            obj = new Mesh(geometry, material);
+            obj = assets.ship!.scene.clone();
+            obj.rotation.x = Math.PI / 2;
             scene.add(obj);
             objectsInTheWorld.set(i, obj);
         }
@@ -56,7 +68,7 @@ function objectSystem(entities) {
             entities[i].position.y,
             entities[i].position.z,
         );
-        obj.position.lerp(target, 0.1);
+        obj.position.lerp(target, 0.3);
     }
 }
 
@@ -77,7 +89,7 @@ self.onmessage = function (message) {
                 payload.width,
                 payload.height,
                 payload.pixelRatio,
-            );
+            ).catch((err) => console.error(err));
             break;
     }
 };
