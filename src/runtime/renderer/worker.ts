@@ -1,4 +1,3 @@
-import { Store } from '../store/store.js';
 import {
     BoxGeometry,
     Color,
@@ -9,11 +8,12 @@ import {
     Scene,
     Vector3,
     WebGLRenderer,
-} from './three.js';
+} from 'three';
+import { Store } from '../store/index';
 
 const rendererCh = new BroadcastChannel('renderer');
 let store = new Store();
-let camera, scene, renderer, group;
+let camera, scene, renderer;
 
 export function init(canvas, width, height, pixelRatio) {
     camera = new PerspectiveCamera(40, width / height, 1, 1000);

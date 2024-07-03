@@ -3,12 +3,10 @@ import EventEmitter from 'socket:events';
 import { init } from './worker.js';
 
 export class Network {
-    peerId = null;
+    peerId: string;
+    subcluster: EventEmitter;
 
-    /** @type {EventEmitter?} */
-    subcluster = null;
-
-    constructor(peerId, subcluster) {
+    constructor({ peerId, subcluster }) {
         this.peerId = peerId;
         this.subcluster = subcluster;
     }
@@ -28,7 +26,7 @@ export class Network {
     static async create({ signingKeys, peerId }) {
         const subcluster = await init(signingKeys, peerId);
 
-        const network = new Network(peerId, subcluster);
+        const network = new Network({ peerId, subcluster });
         return network;
     }
 }

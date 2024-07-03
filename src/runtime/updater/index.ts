@@ -3,7 +3,9 @@ export class Updater {
 
     static async create() {
         const renderer = new Updater();
-        const worker = new Worker('updater/worker.js', { type: 'module' });
+        const worker = new Worker('/runtime/updater/worker.js', {
+            type: 'module',
+        });
         worker.postMessage(
             {
                 type: 'init',

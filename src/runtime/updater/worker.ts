@@ -1,10 +1,9 @@
-import { Store } from '../store/store.js';
+import { Store } from '../store';
 
 const updaterCh = new BroadcastChannel('updater');
 const rendererCh = new BroadcastChannel('renderer');
 
-let store = new Store();
-let actions = new Map(); // keyed by playerId
+const store = new Store();
 
 function init() {
     tick();
@@ -45,7 +44,7 @@ function tick() {
 
 self.onmessage = function (message) {
     const { data } = message;
-    const { type, payload } = data;
+    const { type } = data;
     switch (type) {
         case 'init':
             init();

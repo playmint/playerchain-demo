@@ -1,19 +1,12 @@
-import { Network } from '../network/network.js';
-import { Renderer } from '../renderer/renderer.js';
-import { Updater } from '../updater/updater.js';
+import { Network } from '../network';
+import { Renderer } from '../renderer';
+import { Updater } from '../updater';
 
 export class Game {
-    /** @type Renderer? */
-    renderer = null;
-
-    /** @type Updater? */
-    updater = null;
-
-    /** @type Network? */
-    network = null;
-
-    /** @type Window? */
-    window = null;
+    renderer: Renderer;
+    updater: Updater;
+    network: Network;
+    window: Window;
 
     inputs = {
         forward: false,
@@ -22,13 +15,6 @@ export class Game {
         right: false,
     };
 
-    /**
-     * @param {Object} cfg
-     * @param {Renderer} cfg.renderer
-     * @param {Updater} cfg.updater
-     * @param {Network} cfg.network
-     * @param {Window} cfg.window
-     */
     constructor({ renderer, updater, network, window }) {
         this.renderer = renderer;
         this.updater = updater;
@@ -93,11 +79,7 @@ export class Game {
         this.network?.updateInput(this.inputs);
     }
 
-    static async create({ window, signingKeys, peerId }) {
-        const renderer = await Renderer.create();
-        const updater = await Updater.create();
-        const network = await Network.create({ signingKeys, peerId });
-
+    static async create({ window, renderer, updater, network }) {
         const g = new Game({ renderer, updater, network, window });
         return g;
     }

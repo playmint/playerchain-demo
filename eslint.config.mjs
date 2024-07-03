@@ -3,7 +3,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-export default [
+export default tseslint.config(
     { files: ['**/*.{js,mjs,cjs,ts}'] },
     { languageOptions: { globals: globals.browser } },
     {
@@ -24,4 +24,4 @@ export default [
             '@typescript-eslint/no-unused-vars': 'warn',
         },
     },
-];
+);

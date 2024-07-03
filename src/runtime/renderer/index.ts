@@ -10,7 +10,9 @@ export class Renderer {
         }
 
         const offscreen = canvas.transferControlToOffscreen();
-        const worker = new Worker('renderer/worker.js', { type: 'module' });
+        const worker = new Worker('/runtime/renderer/worker.js', {
+            type: 'module',
+        });
         worker.postMessage(
             {
                 type: 'init',

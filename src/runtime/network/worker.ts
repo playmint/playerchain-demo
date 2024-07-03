@@ -1,10 +1,7 @@
 import Buffer from 'socket:buffer';
 import { Encryption, network } from 'socket:network';
-import { Store } from '../store/store.js';
 
-// import { Buffer } from "socket:buffer";
-
-let actions = new Map();
+const actions = new Map();
 
 const updaterCh = new BroadcastChannel('updater');
 

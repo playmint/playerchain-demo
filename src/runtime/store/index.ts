@@ -15,8 +15,7 @@ export class Entity {
 }
 
 export class Store {
-    /** @type Entity[] */
-    entities = [];
+    entities: Entity[] = [];
 
     add() {
         const e = new Entity();
