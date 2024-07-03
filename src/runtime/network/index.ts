@@ -1,32 +1,39 @@
-import Buffer from 'socket:buffer';
-import EventEmitter from 'socket:events';
-import { init } from './worker.js';
-
 export class Network {
     peerId: string;
-    subcluster: EventEmitter;
+    worker: Worker;
 
-    constructor({ peerId, subcluster }) {
+    constructor({ peerId, worker }) {
         this.peerId = peerId;
-        this.subcluster = subcluster;
+        this.worker = worker;
     }
 
     updateInput(input) {
-        this.subcluster?.emit(
-            'action',
-            Buffer.from(
-                JSON.stringify({
-                    peerId: this.peerId,
-                    action: input,
-                }),
-            ),
-        );
+        this.worker.postMessage({
+            type: 'updateInput',
+            payload: {
+                peerId: this.peerId,
+                action: input,
+            },
+        });
     }
 
     static async create({ signingKeys, peerId }) {
-        const subcluster = await init(signingKeys, peerId);
+        const worker = new Worker('/runtime/network/worker.js', {
+            type: 'module',
+        });
+        console.log('sending network init');
+        worker.postMessage(
+            {
+                type: 'init',
+                payload: {
+                    signingKeys,
+                    peerId,
+                },
+            },
+            [],
+        );
+        const network = new Network({ peerId, worker });
 
-        const network = new Network({ peerId, subcluster });
         return network;
     }
 }

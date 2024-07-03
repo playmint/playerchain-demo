@@ -1,9 +1,11 @@
 import Buffer from 'socket:buffer';
+import EventEmitter from 'socket:events';
 import { Encryption, network } from 'socket:network';
 
 const actions = new Map();
 
 const updaterCh = new BroadcastChannel('updater');
+let subcluster: EventEmitter;
 
 export async function init(signingKeys, peerId) {
     console.log('init network');
@@ -34,7 +36,7 @@ export async function init(signingKeys, peerId) {
 
     const sharedSecret = 'SOCKET_PARTY_SECRET';
     const subclusterSharedKey = await Encryption.createSharedKey(sharedSecret);
-    const subcluster = await net.subcluster({
+    subcluster = await net.subcluster({
         sharedKey: subclusterSharedKey,
     });
 
@@ -49,21 +51,19 @@ export async function init(signingKeys, peerId) {
 
         updaterCh.postMessage(actions);
     });
-
-    return subcluster;
 }
 
-// self.onmessage = function (message) {
-//     const { data } = message;
-//     const { type, payload } = data;
-//     switch (type) {
-//         case 'init':
-//             init(payload.signingKeys, payload.peerId).catch((err) => {
-//                 console.error('Failed to init network', err);
-//             });
-//             break;
-//         case 'updateInput':
-//             console.log('net resv input', payload);
-//             actions.set(100, payload);
-//     }
-// };
+self.onmessage = function (message) {
+    const { data } = message;
+    const { type, payload } = data;
+    switch (type) {
+        case 'init':
+            init(payload.signingKeys, payload.peerId).catch((err) => {
+                console.error('Failed to init network', err);
+            });
+            break;
+        case 'updateInput':
+            console.log('net resv input', payload);
+            subcluster!.emit('action', Buffer.from(JSON.stringify(payload)));
+    }
+};
