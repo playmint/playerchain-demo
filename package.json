@@ -3,6 +3,9 @@
     "version": "1.0.0",
     "description": "",
     "type": "module",
+    "engines": {
+        "node": "^20"
+    },
     "scripts": {
         "build": "cross-env SSC_ENV=prod ssc build -o --prod",
         "dev": "cross-env SSC_ENV=dev ssc build --run",
