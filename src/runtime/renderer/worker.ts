@@ -22,14 +22,15 @@ const assets: Assets = {};
 
 // GLTF loader
 const loader = new GLTFLoader();
-// const dracoLoader = new DRACOLoader();
-// dracoLoader.setDecoderPath('/threeaddons/libs/draco/');
-// loader.setDRACOLoader(dracoLoader);
+const dracoLoader = new DRACOLoader();
+// [!] this /libs dir is populated by the esbuild script at build time
+dracoLoader.setDecoderPath('/libs/draco/');
+loader.setDRACOLoader(dracoLoader);
 
 export async function init(canvas, width, height, pixelRatio) {
     // load assets
     console.log('loading assets');
-    assets.ship = await loader.loadAsync('/assets/ship2.glb');
+    assets.ship = await loader.loadAsync('/assets/ship.glb');
     console.log('assets ready');
 
     camera = new PerspectiveCamera(40, width / height, 1, 1000);
