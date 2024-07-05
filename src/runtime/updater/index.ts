@@ -1,7 +1,13 @@
 export class Updater {
     constructor() {}
 
-    static async create() {
+    static async create({
+        renderPort,
+        updaterPort,
+    }: {
+        renderPort: MessagePort;
+        updaterPort: MessagePort;
+    }) {
         const renderer = new Updater();
         const worker = new Worker('/runtime/updater/worker.js', {
             type: 'module',
@@ -9,9 +15,9 @@ export class Updater {
         worker.postMessage(
             {
                 type: 'init',
-                payload: {},
+                payload: { renderPort, updaterPort },
             },
-            [],
+            [renderPort, updaterPort],
         );
         return renderer;
     }

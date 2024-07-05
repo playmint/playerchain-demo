@@ -1,7 +1,7 @@
 export class Renderer {
     constructor() {}
 
-    static async create() {
+    static async create({ renderPort }: { renderPort: MessagePort }) {
         const renderer = new Renderer();
 
         const canvas = document.getElementById('viewport');
@@ -13,17 +13,19 @@ export class Renderer {
         const worker = new Worker('/runtime/renderer/worker.js', {
             type: 'module',
         });
+
         worker.postMessage(
             {
                 type: 'init',
                 payload: {
+                    renderPort,
                     drawingSurface: offscreen,
                     width: canvas.clientWidth,
                     height: canvas.clientHeight,
                     pixelRatio: window.devicePixelRatio,
                 },
             },
-            [offscreen],
+            [offscreen, renderPort],
         );
         return renderer;
     }

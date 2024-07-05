@@ -28,23 +28,7 @@
         </style>
     </head>
     <body>
-        <button id="launch1">Launch Player 1</button>
-        <button id="launch2">Launch Player 2</button>
-        <script type="module">
-            import application from 'socket:application';
-
-            function launch(player) {
-                application.createWindow({
-                    index: player,
-                    path: 'player.html',
-                });
-            }
-            document.getElementById('launch1').addEventListener('click', () => {
-                launch(1);
-            });
-            document.getElementById('launch2').addEventListener('click', () => {
-                launch(2);
-            });
-        </script>
+        <canvas id="viewport" style="width: 100vw; height: 100vh"></canvas>
+        <script type="module" src="index.js"></script>
     </body>
 </html>

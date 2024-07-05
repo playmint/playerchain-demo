@@ -1,31 +1,50 @@
+import application from 'socket:application';
 import { Buffer } from 'socket:buffer';
 import { randomBytes } from 'socket:crypto';
 import { Encryption } from 'socket:network';
-import { Game, Network, Renderer, Updater } from './runtime';
+import { Game, LocalNetwork, Network, Renderer, Updater } from './runtime';
 
 const init = async () => {
+    const win = await application.getCurrentWindow();
+    const playerIndex = win.index;
+
     // setup player peer
-    let peerSecret = localStorage.getItem('peerSecret');
-    if (peerSecret === null) {
-        peerSecret = randomBytes(64).toString('base64');
-        if (peerSecret === null) {
+    const peerSecretKey = `peerSecret/${playerIndex}`;
+    let peerSecretValue = localStorage.getItem(peerSecretKey);
+    if (peerSecretValue === null) {
+        peerSecretValue = randomBytes(64).toString('base64');
+        if (peerSecretValue === null) {
             throw new Error('Failed to generate peer secret');
         }
-        localStorage.setItem('peerSecret', peerSecret);
+        localStorage.setItem(peerSecretKey, peerSecretValue);
     }
-    const signingKeys = await Encryption.createKeyPair(peerSecret);
+    const signingKeys = await Encryption.createKeyPair(peerSecretValue);
     const peerId = await Encryption.createId(
         Buffer.from(signingKeys.publicKey).toString('base64'),
     );
+    console.log('THIS WINDOW IS PLAYER', peerId);
 
     // setup network
-    const network = await Network.create({ signingKeys, peerId });
 
-    // setup renderer
-    const renderer = await Renderer.create();
+    const renderUpdaterCh = new MessageChannel();
+    const updaterNetworkCh = new MessageChannel();
+
+    // const network = await Network.create({ signingKeys, peerId });
+    const network = await LocalNetwork.create({
+        peerId,
+        updaterPort: updaterNetworkCh.port1,
+    });
 
     // setup updater
-    const updater = await Updater.create();
+    const updater = await Updater.create({
+        updaterPort: updaterNetworkCh.port2,
+        renderPort: renderUpdaterCh.port2,
+    });
+
+    // setup renderer
+    const renderer = await Renderer.create({
+        renderPort: renderUpdaterCh.port1,
+    });
 
     // configure game
     await Game.create({

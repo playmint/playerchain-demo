@@ -11,7 +11,7 @@ import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Store } from '../store';
 import type { Entity } from '../store';
 
-const rendererCh = new BroadcastChannel('renderer');
+let rendererCh: MessagePort;
 let store = new Store();
 let camera, scene, renderer;
 
@@ -27,7 +27,14 @@ const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/libs/draco/');
 loader.setDRACOLoader(dracoLoader);
 
-export async function init(canvas, width, height, pixelRatio) {
+export async function init(renderPort, canvas, width, height, pixelRatio) {
+    // set up the channel
+    rendererCh = renderPort;
+    rendererCh.onmessage = ({ data: entities }) => {
+        // console.log('[renderer] recv', entities);
+        store = Store.from(entities);
+    };
+
     // load assets
     console.log('loading assets');
     assets.ship = await loader.loadAsync('/assets/ship.glb');
@@ -86,6 +93,7 @@ self.onmessage = function (message) {
     switch (type) {
         case 'init':
             init(
+                payload.renderPort,
                 payload.drawingSurface,
                 payload.width,
                 payload.height,
@@ -93,9 +101,4 @@ self.onmessage = function (message) {
             ).catch((err) => console.error(err));
             break;
     }
-};
-
-rendererCh.onmessage = ({ data: entities }) => {
-    // console.log('[renderer] recv', entities);
-    store = Store.from(entities);
 };
