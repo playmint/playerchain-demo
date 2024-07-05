@@ -1,11 +1,14 @@
 export class Entity {
     id = -1;
     position = { x: 0, y: 0, z: 0 };
+    velocity = { x: 0, y: 0 };
+    rotation = 0;
     color = 0xffffff;
-    owner = -1;
+    owner: Uint8Array = new Uint8Array(0);
     isPlayer = false;
-    playerId = -1;
+    playerId: Uint8Array = new Uint8Array(0);
     isSquare = false;
+    isCamera = false;
     actions = {
         forward: false,
         back: false,

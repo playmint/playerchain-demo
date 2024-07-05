@@ -1,7 +1,13 @@
 export class Renderer {
     constructor() {}
 
-    static async create({ renderPort }: { renderPort: MessagePort }) {
+    static async create({
+        renderPort,
+        peerId,
+    }: {
+        renderPort: MessagePort;
+        peerId: Uint8Array;
+    }) {
         const renderer = new Renderer();
 
         const canvas = document.getElementById('viewport');
@@ -23,6 +29,7 @@ export class Renderer {
                     width: canvas.clientWidth,
                     height: canvas.clientHeight,
                     pixelRatio: window.devicePixelRatio,
+                    peerId,
                 },
             },
             [offscreen, renderPort],

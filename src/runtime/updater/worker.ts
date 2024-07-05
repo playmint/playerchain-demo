@@ -1,3 +1,6 @@
+import { Clock } from 'three';
+import { moveSystem } from '../../substream/moveSystem';
+import { physicsSystem } from '../../substream/physicsSystem';
 import { Store } from '../store';
 
 let updaterCh: MessagePort;
@@ -16,7 +19,7 @@ function init({
     updaterCh = updaterPort;
 
     updaterCh.onmessage = ({ data: actions }) => {
-        // console.log('[updater] recv', actions);
+        // This shouldn't be here ideally...
         for (const key of actions.keys()) {
             if (!store.entities.some((entity) => entity.playerId === key)) {
                 const playerEntity = store.add();
@@ -45,34 +48,15 @@ function init({
     console.log('init updater');
 }
 
-/** @param {import("../store/store.js").Entity[]} entities  */
-function moveSystem(entities) {
-    const players = entities.filter((entity) => entity.isPlayer);
-    const squares = entities.filter((entity) => entity.isSquare);
-    squares.forEach((square) => {
-        players.forEach((player) => {
-            if (square.owner === player.playerId) {
-                if (player.actions.forward) {
-                    square.position.y += 5;
-                } else if (player.actions.back) {
-                    square.position.y -= 5;
-                }
-                if (player.actions.left) {
-                    square.position.x -= 5;
-                } else if (player.actions.right) {
-                    square.position.x += 5;
-                }
-            }
-        });
-    });
-}
-
 function tick() {
-    moveSystem(store.entities);
-
-    // console.log('[updater] send', store.entities);
-    rendererCh.postMessage(store.entities);
-
+    try {
+        moveSystem(store);
+        physicsSystem(store);
+        // console.log('[updater] send', store.entities);
+        rendererCh.postMessage(store.entities);
+    } catch (e) {
+        console.log('tick error: ', e);
+    }
     setTimeout(tick, 100);
 }
 

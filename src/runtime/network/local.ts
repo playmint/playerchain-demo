@@ -28,6 +28,7 @@ export class LocalNetwork {
         };
         this.fakeNetwork.postMessage(payload);
         this.onNetworkMessage({ data: payload });
+        console.log('updateInput', input);
     }
 
     static async create({ peerId, updaterPort }) {

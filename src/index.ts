@@ -44,6 +44,7 @@ const init = async () => {
     // setup renderer
     const renderer = await Renderer.create({
         renderPort: renderUpdaterCh.port1,
+        peerId,
     });
 
     // configure game
