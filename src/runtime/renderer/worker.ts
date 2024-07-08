@@ -1,5 +1,5 @@
 import {
-    Camera,
+    Clock,
     Color,
     DirectionalLight,
     Fog,
@@ -9,15 +9,12 @@ import {
     PerspectiveCamera,
     PlaneGeometry,
     Scene,
-    Vector3,
     WebGLRenderer,
 } from 'three';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Group } from '../../../build/mac/substream-dev.app/Contents/Resources/libs/tween.module';
 import { substreamCameraSystem } from '../../substream/cameraSystem';
 import { Store } from '../store';
-import type { Entity } from '../store';
 
 let rendererCh: MessagePort;
 let updateStore = new Store();
@@ -38,6 +35,10 @@ const dracoLoader = new DRACOLoader();
 // [!] this /libs dir is populated by the esbuild script at build time
 dracoLoader.setDecoderPath('/libs/draco/');
 loader.setDRACOLoader(dracoLoader);
+
+function expDecay(a: number, b: number, decay: number, deltaTime: number) {
+    return b + (a - b) * Math.exp(-decay * deltaTime);
+}
 
 export async function init(
     renderPort,
@@ -99,6 +100,7 @@ function objectSystem(
     updateStore: Store,
     renderStore: Store,
     playerId: Uint8Array,
+    deltaTime: number,
 ) {
     for (let i = 0; i < updateStore.entities.length; i++) {
         // only care about squares
@@ -112,15 +114,35 @@ function objectSystem(
             obj.add(assets.ship!.scene.clone());
             scene.add(obj);
             objectsInTheWorld.set(i, obj);
+            console.log('added obj to scene');
         }
 
-        const target = new Vector3(
-            updateStore.entities[i].position.x,
-            updateStore.entities[i].position.y,
-            updateStore.entities[i].position.z,
+        obj.rotation.z = expDecay(
+            obj.rotation.z,
+            updateStore.entities[i].rotation,
+            20,
+            deltaTime,
         );
-        obj.rotation.z = updateStore.entities[i].rotation;
-        obj.position.lerp(target, 0.3);
+
+        const decay = 3;
+        obj.position.x = expDecay(
+            obj.position.x,
+            updateStore.entities[i].position.x,
+            decay,
+            deltaTime,
+        );
+        obj.position.y = expDecay(
+            obj.position.y,
+            updateStore.entities[i].position.y,
+            decay,
+            deltaTime,
+        );
+        obj.position.z = expDecay(
+            obj.position.z,
+            updateStore.entities[i].position.z,
+            decay,
+            deltaTime,
+        );
     }
 }
 
@@ -128,9 +150,9 @@ function cameraSystem(
     updateStore: Store,
     renderStore: Store,
     playerId: Uint8Array,
+    deltaTime: number,
 ) {
     for (let i = 0; i < renderStore.entities.length; i++) {
-        // only care about squares
         if (!renderStore.entities[i].isCamera) {
             continue;
         }
@@ -138,24 +160,45 @@ function cameraSystem(
         if (!camera) {
             camera = new PerspectiveCamera(40, cWidth / cHeight, 1, 1000);
             scene.add(camera);
+            console.log('added cam to scene');
         }
 
-        const target = new Vector3(
+        const decay = 4;
+        camera.position.x = expDecay(
+            camera.position.x,
             renderStore.entities[i].position.x,
-            renderStore.entities[i].position.y,
-            renderStore.entities[i].position.z,
+            decay,
+            deltaTime,
         );
-        camera.position.lerp(target, 0.3);
+        camera.position.y = expDecay(
+            camera.position.y,
+            renderStore.entities[i].position.y,
+            decay,
+            deltaTime,
+        );
+        camera.position.z = expDecay(
+            camera.position.z,
+            renderStore.entities[i].position.z,
+            decay,
+            deltaTime,
+        );
     }
 }
 
+const clock = new Clock();
+
 function render() {
     try {
-        objectSystem(updateStore, renderStore, playerId);
-        cameraSystem(updateStore, renderStore, playerId);
+        const deltaTime = clock.getDelta();
+
+        // internal systems
+        objectSystem(updateStore, renderStore, playerId, deltaTime);
         // This is a game render system, so should be configured from game setup
-        substreamCameraSystem(updateStore, renderStore, playerId);
-        if (camera) renderer.render(scene, camera);
+        substreamCameraSystem(updateStore, renderStore, playerId, deltaTime);
+        cameraSystem(updateStore, renderStore, playerId, deltaTime);
+        if (camera) {
+            renderer.render(scene, camera);
+        }
     } catch (e) {
         console.error('render error: ', e);
     }

@@ -1,6 +1,6 @@
-import { Clock } from 'three';
 import { moveSystem } from '../../substream/moveSystem';
 import { physicsSystem } from '../../substream/physicsSystem';
+import { InputPacket } from '../network/local';
 import { Store } from '../store';
 
 let updaterCh: MessagePort;
@@ -18,46 +18,58 @@ function init({
     rendererCh = renderPort;
     updaterCh = updaterPort;
 
-    updaterCh.onmessage = ({ data: actions }) => {
-        // This shouldn't be here ideally...
-        for (const key of actions.keys()) {
-            if (!store.entities.some((entity) => entity.playerId === key)) {
-                const playerEntity = store.add();
-                playerEntity.isPlayer = true;
-                playerEntity.playerId = key;
+    updaterCh.onmessage = ({ data: actionsByRound }) => {
+        actionsByRound.forEach((actions: InputPacket[]) => {
+            if (actions) {
+                // This shouldn't be here ideally...
+                for (const { peerId } of actions) {
+                    if (
+                        !store.entities.some(
+                            (entity) => entity.playerId === peerId,
+                        )
+                    ) {
+                        const playerEntity = store.add();
+                        playerEntity.isPlayer = true;
+                        playerEntity.playerId = peerId;
 
-                const ship = store.add();
-                ship.position.x = 0;
-                ship.isSquare = true;
-                ship.owner = key;
-                ship.color = 0x00ff00;
+                        const ship = store.add();
+                        ship.position.x = 0;
+                        ship.isSquare = true;
+                        ship.owner = peerId;
+                        ship.color = 0x00ff00;
+                    }
+                }
             }
-        }
 
-        const players = store.entities.filter((entity) => entity.isPlayer);
-        players.forEach((player) => {
-            const playerActions = actions.get(player.playerId);
-            if (playerActions) {
-                player.actions = playerActions;
-            }
+            const players = store.entities.filter((entity) => entity.isPlayer);
+            players.forEach((player) => {
+                const playerActions = actions?.find(
+                    (a) => a.peerId === player.playerId,
+                );
+                if (playerActions) {
+                    player.actions = playerActions.input;
+                } else {
+                    player.actions = {
+                        forward: false,
+                        back: false,
+                        left: false,
+                        right: false,
+                    };
+                }
+            });
+
+            moveSystem(store);
+            physicsSystem(store);
+            // console.log('[updater] send', store.entities);
         });
+
+        // console.log('processed actions', actionsByRound.length);
+
+        // forward on to the renderer
+        rendererCh.postMessage(store.entities);
     };
 
-    tick();
-
     console.log('init updater');
-}
-
-function tick() {
-    try {
-        moveSystem(store);
-        physicsSystem(store);
-        // console.log('[updater] send', store.entities);
-        rendererCh.postMessage(store.entities);
-    } catch (e) {
-        console.log('tick error: ', e);
-    }
-    setTimeout(tick, 100);
 }
 
 self.onmessage = function (message) {

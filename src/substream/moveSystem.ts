@@ -4,8 +4,8 @@ export function moveSystem(store: Store) {
     const players = store.entities.filter((entity) => entity.isPlayer);
     const squares = store.entities.filter((entity) => entity.isSquare);
 
-    const accelSpeed = 0.5;
-    const rotationSpeed = (Math.PI / 180) * 10;
+    const accelSpeed = 0.3;
+    const rotationSpeed = Math.PI / 10;
 
     squares.forEach((square) => {
         players.forEach((player) => {

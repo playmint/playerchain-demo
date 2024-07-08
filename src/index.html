@@ -28,25 +28,79 @@
         </style>
     </head>
     <body>
-        <button id="launch1">Launch Player 1</button>
-        <button id="launch2">Launch Player 2</button>
+        <form id="launcher">
+            <fieldset>
+                <legend>Network</legend>
+                <label for="transport">Transport</label>
+                <select id="transport" name="transport">
+                    <option value="broadcast">broadcast</option>
+                    <option value="socket">socket</option>
+                </select>
+                <label for="consensus">Consensus</label>
+                <select id="consensus" name="consensus">
+                    <option value="lockstep">lockstep</option>
+                    <option value="none">none</option>
+                </select>
+            </fieldset>
+            <fieldset>
+                <legend>Channel</legend>
+                <label for="numPlayers">Number of players</label>
+                <select id="numPlayers" name="numPlayers">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+                <label for="channelName">Secret</label>
+                <input id="channelName" name="channelName" type="text" />
+            </fieldset>
+            <fieldset>
+                <legend>Launch</legend>
+                <button type="submit" name="launch" value="1">Join</button>
+            </fieldset>
+        </form>
         <script type="module">
             import application from 'socket:application';
 
-            function launch(player) {
-                application.createWindow({
-                    index: player,
-                    path: 'player.html',
+            let playerIndex = 0;
+
+            async function launch(params) {
+                playerIndex += 1;
+                return application.createWindow({
+                    index: playerIndex,
+                    path: `player.html?${new URLSearchParams(params).toString()}`,
                 });
             }
-            document.getElementById('launch1').addEventListener('click', () => {
-                launch(1);
-            });
-            document.getElementById('launch2').addEventListener('click', () => {
-                launch(2);
-            });
-            launch(1);
-            launch(2);
+
+            document
+                .getElementById('launcher')
+                .addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    const launchConfig = {
+                        transport: document.getElementById('transport').value,
+                        consensus: document.getElementById('consensus').value,
+                        channelName:
+                            document.getElementById('channelName').value,
+                        numPlayers: document.getElementById('numPlayers').value,
+                    };
+
+                    const instances = Number(event.submitter.value);
+                    const launching = [];
+                    for (let i = 0; i < instances; i += 1) {
+                        const win = launch(launchConfig);
+                        launching.push(win);
+                    }
+
+                    launching
+                        .then((frames) => {
+                            console.log('launched', frames);
+                        })
+                        .catch((error) => {
+                            console.error('launch error', error);
+                        });
+                });
         </script>
     </body>
 </html>
