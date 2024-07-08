@@ -40,6 +40,11 @@ export class LockstepDB implements InputDB {
         return this.store.getInputs(round);
     }
 
+    getDelta(round: number): Array<InputPacket[]> {
+        return this.store.getDelta(round);
+    }
+
+    // FIXME: is this dead now?
     isAcknowledged(round: number): boolean {
         const inputs = this.getInputs(round) ?? [];
         const ack = (inputs.length ?? 0) === this.numPlayers;
@@ -58,12 +63,11 @@ export class LockstepDB implements InputDB {
         if (Date.now() - this.lastSync < 1000) {
             return;
         }
-        (this.getInputs(round - 1) || []).forEach((input) => {
-            this.transport.sendPacket(input);
-        });
-        (this.getInputs(round - 2) || []).forEach((input) => {
-            this.transport.sendPacket(input);
-        });
+        for (let i = 0; i < 100; i++) {
+            (this.getInputs(round - i) || []).forEach((input) => {
+                this.transport.sendPacket(input);
+            });
+        }
         this.lastSync = Date.now();
     }
 }

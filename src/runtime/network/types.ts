@@ -40,4 +40,7 @@ export interface InputDB {
     isAcknowledged(round: number): boolean;
     sync(round: number): void;
     ready(): Promise<void>;
+
+    // super weird stateful function
+    getDelta(round: number): Array<InputPacket[]>;
 }

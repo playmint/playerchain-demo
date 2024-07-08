@@ -77,7 +77,7 @@ const init = async () => {
     const network = await Network.create({
         peerId,
         updaterPort: updaterNetworkCh.port1,
-        tickRate: 66,
+        tickRate: 100,
         db,
         container: window,
     });

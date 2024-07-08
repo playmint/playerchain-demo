@@ -32,9 +32,13 @@ export class BroadcastTransport implements Transport {
     }
 
     sendPacket(packet: Packet) {
+        // randomly drop packets
+        if (Math.random() < 0.5) {
+            return;
+        }
         setTimeout(
             this._send.bind(this, packet),
-            Math.floor(Math.random() * 80) + 50, // fake network delay
+            Math.floor(Math.random() * 80) + 10, // fake network delay
         );
     }
 }

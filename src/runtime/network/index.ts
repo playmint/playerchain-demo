@@ -9,7 +9,6 @@ export class Network {
     peerId: PeerId;
     updater: MessagePort;
     db: InputDB;
-    lastSentRound: number;
     tickRate: number;
     input: Input;
     round: number = 0;
@@ -31,7 +30,6 @@ export class Network {
     }) {
         this.container = container;
         this.tickRate = tickRate;
-        this.lastSentRound = -1;
         this.updater = updaterPort;
         this.db = db;
         this.peerId = peerId;
@@ -51,14 +49,11 @@ export class Network {
         return;
     }
 
-    sendActionsToUpdater(startTick: number, endTick: number) {
-        const actionsToReplay: Array<InputPacket[] | undefined> = [];
-        for (let i = startTick; i <= endTick; i++) {
-            const actions = this.db.getInputs(i);
-            actionsToReplay.push(actions);
+    sendActionsToUpdater(actionsToReplay: Array<InputPacket[]>) {
+        if (actionsToReplay.length === 0) {
+            return;
         }
         this.updater.postMessage(actionsToReplay);
-        this.lastSentRound = endTick;
     }
 
     onKeyDown(event) {
@@ -132,15 +127,13 @@ export class Network {
             return;
         }
 
-        // if we are not ready to send the next input, maybe do some
-        // work to help the others sync up
-        if (!this.db.isAcknowledged(this.round - 1)) {
-            this.db.sync(this.round);
-            return;
-        }
+        // help others catch up
+        this.db.sync(this.round);
 
-        // forward acknowledged inputs to updater
-        this.sendActionsToUpdater(this.lastSentRound + 1, this.round - 1);
+        // forward all the actions that have changed
+        // since we last called getDelta to the updater
+        const actions = this.db.getDelta(this.round - 1);
+        this.sendActionsToUpdater(actions);
 
         // send next input
         this.db.addInput({
