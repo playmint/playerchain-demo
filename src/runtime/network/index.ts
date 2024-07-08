@@ -51,13 +51,8 @@ export class Network {
         return;
     }
 
-    sendActionsToUpdater(round: number) {
+    sendActionsToUpdater(startTick: number, endTick: number) {
         const actionsToReplay: Array<InputPacket[] | undefined> = [];
-        const startTick = this.lastSentRound + 1;
-        const endTick = round;
-        if (endTick <= this.lastSentRound) {
-            return;
-        }
         for (let i = startTick; i <= endTick; i++) {
             const actions = this.db.getInputs(i);
             actionsToReplay.push(actions);
@@ -145,7 +140,7 @@ export class Network {
         }
 
         // forward acknowledged inputs to updater
-        this.sendActionsToUpdater(this.round - 1);
+        this.sendActionsToUpdater(this.lastSentRound + 1, this.round - 1);
 
         // send next input
         this.db.addInput({

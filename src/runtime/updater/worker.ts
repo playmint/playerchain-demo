@@ -1,12 +1,14 @@
 import { moveSystem } from '../../substream/moveSystem';
 import { physicsSystem } from '../../substream/physicsSystem';
-import { InputPacket } from '../network/local';
+import { InputPacket } from '../network/types';
 import { Store } from '../store';
 
 let updaterCh: MessagePort;
 let rendererCh: MessagePort;
 
-const store = new Store();
+let store = new Store();
+const storeHistory: Store[] = [];
+let lastRoundProcessed;
 
 function init({
     renderPort,
@@ -18,7 +20,32 @@ function init({
     rendererCh = renderPort;
     updaterCh = updaterPort;
 
-    updaterCh.onmessage = ({ data: actionsByRound }) => {
+    updaterCh.onmessage = ({
+        data: actionsByRound,
+    }: {
+        data: InputPacket[][];
+    }) => {
+        if (!actionsByRound[0]) {
+            console.warn('actionsByRound[0] is undefined');
+            return;
+        }
+        if (!actionsByRound[0][0]) {
+            console.warn('actionsByRound[0][0] is undefined');
+            return;
+        }
+        if (actionsByRound[0][0].round <= lastRoundProcessed) {
+            if (actionsByRound[0][0].round == 0) {
+                store = new Store();
+            } else {
+                // Go back in history
+                store = storeHistory[actionsByRound[0][0].round - 1];
+
+                if (!store) {
+                    console.warn('store not found in history');
+                    return;
+                }
+            }
+        }
         actionsByRound.forEach((actions: InputPacket[]) => {
             if (actions) {
                 // This shouldn't be here ideally...
@@ -60,6 +87,12 @@ function init({
 
             moveSystem(store);
             physicsSystem(store);
+            //backup here
+
+            storeHistory[actions[0].round] = Store.from([
+                ...structuredClone(store.entities),
+            ]);
+            lastRoundProcessed = actions[0].round;
             // console.log('[updater] send', store.entities);
         });
 
