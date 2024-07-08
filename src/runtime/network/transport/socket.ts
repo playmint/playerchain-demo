@@ -123,11 +123,11 @@ export class SocketTransport implements Transport {
             return;
         }
         this.subcluster.emit('action', Buffer.from(JSON.stringify(packet)));
-        console.log(
-            'sent packet:',
-            packet,
-            'to',
-            (this.subcluster as any).peers,
-        );
+        // console.log(
+        //     'sent packet:',
+        //     packet,
+        //     'to',
+        //     (this.subcluster as any).peers?.size ?? 0,
+        // );
     }
 }
