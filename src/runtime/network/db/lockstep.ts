@@ -16,6 +16,7 @@ export class LockstepDB implements InputDB {
         numPlayers: number;
     }) {
         this.numPlayers = numPlayers;
+        console.log(`using lockstep with ${this.numPlayers} players`);
         this.store = store;
         this.transport = transport;
         this.transport.onPacket = this.recvPacket.bind(this);
@@ -30,6 +31,7 @@ export class LockstepDB implements InputDB {
     }
 
     addInput(packet: InputPacket) {
+        console.log('added input', packet);
         this.store.addInput(packet);
         this.transport.sendPacket(packet);
     }

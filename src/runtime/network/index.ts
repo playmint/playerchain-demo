@@ -14,6 +14,7 @@ export class Network {
     input: Input;
     round: number = 0;
     container: Window;
+    lastSpam: number = 0;
 
     constructor({
         peerId,
@@ -117,18 +118,22 @@ export class Network {
         // special case for the first round because we need to wait for all players
         if (this.round === 0 && this.db.isAcknowledged(this.round)) {
             this.round++;
-        } else if (this.round === 0) {
-            // spam our input until we get an ack
-            this.db.addInput({
-                peerId: this.peerId,
-                input: {
-                    forward: false,
-                    back: false,
-                    left: false,
-                    right: false,
-                },
-                round: this.round,
-            });
+        }
+        if (this.round === 0) {
+            if (Date.now() - this.lastSpam > 1000) {
+                // spam our input until we get an ack
+                this.db.addInput({
+                    peerId: this.peerId,
+                    input: {
+                        forward: false,
+                        back: false,
+                        left: false,
+                        right: false,
+                    },
+                    round: this.round,
+                });
+                this.lastSpam = Date.now();
+            }
             return;
         }
 

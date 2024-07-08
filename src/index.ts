@@ -17,6 +17,7 @@ import { InputDB, Transport } from './runtime/network/types';
 const init = async () => {
     // extract some config from url
     const params = new URLSearchParams(window.location.search);
+
     const config = {
         transport: params.get('transport') || 'socket',
         consensus: params.get('consensus') || 'none',
