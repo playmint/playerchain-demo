@@ -22,7 +22,6 @@ const init = async () => {
         consensus: params.get('consensus') || 'none',
         numPlayers: parseInt(params.get('numPlayers') || '2', 10),
         channelName: params.get('channelName') || 'SUBSPACE_PARTY_CHANNEL',
-        address: params.get('address') || undefined,
     };
 
     // use the window index as the local player id
