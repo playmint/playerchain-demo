@@ -34,6 +34,8 @@ export class LockstepDB implements InputDB {
         console.log('added input', packet);
         this.store.addInput(packet);
         this.transport.sendPacket(packet);
+        this.transport.sendPacket(packet);
+        this.transport.sendPacket(packet);
     }
 
     getInputs(round: number): InputPacket[] | undefined {
@@ -63,11 +65,11 @@ export class LockstepDB implements InputDB {
         if (Date.now() - this.lastSync < 1000) {
             return;
         }
-        for (let i = 0; i < 100; i++) {
-            (this.getInputs(round - i) || []).forEach((input) => {
-                this.transport.sendPacket(input);
-            });
-        }
+        // for (let i = 0; i < 100; i++) {
+        //     (this.getInputs(round - i) || []).forEach((input) => {
+        //         this.transport.sendPacket(input);
+        //     });
+        // }
         this.lastSync = Date.now();
     }
 }
