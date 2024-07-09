@@ -24,23 +24,28 @@ export interface InputPacket {
     input: Input;
 }
 
+export interface InputWirePacket {
+    id: Uint8Array;
+    payload: InputPacket;
+    acks: Uint8Array[];
+}
+
 export type Packet = InputPacket;
 
 export type RoundActions = Map<PeerId, Input>;
 
 export interface Transport {
-    sendPacket(packet: Packet): void;
+    sendPacket(packet: Packet): boolean;
     onPacket?: (packet: Packet) => void;
     ready(): Promise<void>;
 }
 
 export interface InputDB {
-    addInput(packet: InputPacket): void;
+    addInput(packet: InputPacket): boolean;
     getInputs(round: number): InputPacket[] | undefined;
-    isAcknowledged(round: number): boolean;
     sync(round: number): void;
     ready(): Promise<void>;
 
     // super weird stateful function
-    getDelta(round: number): Array<InputPacket[]>;
+    getDelta(maxRound?: number): Array<InputPacket[]>;
 }

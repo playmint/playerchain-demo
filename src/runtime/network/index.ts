@@ -105,12 +105,35 @@ export class Network {
     }
 
     onLoop() {
-        // special case for the first round because we need to wait for all players
-        if (this.round === 0 && this.db.isAcknowledged(this.round)) {
-            this.round++;
+        // forward all the actions that have changed
+        // since we last called getDelta to the updater
+        const deltaActions = this.db.getDelta();
+        const actions =
+            this.round > 10 ? deltaActions.slice(0, -2) : deltaActions;
+        this.sendActionsToUpdater(deltaActions);
+
+        // fill in a bunch of empty rounds if we're behind
+        const latestDeltaRound = actions?.[actions.length - 1]?.[0]?.round;
+        if (latestDeltaRound && latestDeltaRound > this.round) {
+            for (let i = this.round; i < latestDeltaRound; i++) {
+                this.db.addInput({
+                    peerId: this.peerId,
+                    input: {
+                        forward: false,
+                        back: false,
+                        left: false,
+                        right: false,
+                    },
+                    round: i,
+                });
+            }
+            this.round = latestDeltaRound;
         }
+
+        // special case for the first round because we need to wait for all players
         if (this.round === 0) {
             if (Date.now() - this.lastSpam > 1000) {
+                console.warn(`waiting for all round=0 inputs before starting`);
                 // spam our input until we get an ack
                 this.db.addInput({
                     peerId: this.peerId,
@@ -124,26 +147,21 @@ export class Network {
                 });
                 this.lastSpam = Date.now();
             }
-            return;
         }
 
-        // help others catch up
-        this.db.sync(this.round);
-
-        // forward all the actions that have changed
-        // since we last called getDelta to the updater
-        const actions = this.db.getDelta(this.round - 1);
-        this.sendActionsToUpdater(actions);
-
         // send next input
-        this.db.addInput({
+        const ok = this.db.addInput({
             peerId: this.peerId,
             input: { ...this.input },
             round: this.round,
         });
-
-        // increment the round
-        this.round++;
+        // increment the round, if we were able to send our input
+        // or attempt sync if not
+        if (ok) {
+            this.round++;
+        } else {
+            this.db.sync(this.round);
+        }
     }
 
     loop() {

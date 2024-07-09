@@ -104,7 +104,7 @@
                         launching.push(win);
                     }
 
-                    launching
+                    Promise.all(launching)
                         .then((frames) => {
                             console.log('launched', frames);
                         })

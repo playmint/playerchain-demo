@@ -117,12 +117,13 @@ export class SocketTransport implements Transport {
         }
     }
 
-    sendPacket(packet: Packet): void {
+    sendPacket(packet: Packet): boolean {
         if (!this.subcluster) {
             console.error('attempt to use subcluster before ready');
-            return;
+            return false;
         }
         this.subcluster.emit('action', Buffer.from(JSON.stringify(packet)));
+        return true;
         // console.log(
         //     'sent packet:',
         //     packet,

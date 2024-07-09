@@ -1,3 +1,4 @@
+import { max } from 'three/examples/jsm/nodes/Nodes';
 import { InputDB, InputPacket, RoundActions } from '../types';
 
 export class MemoryDB implements InputDB {
@@ -12,11 +13,11 @@ export class MemoryDB implements InputDB {
         return Promise.resolve();
     }
 
-    addInput(packet: InputPacket) {
+    addInput(packet: InputPacket): boolean {
         const actionsForRound = this.data.get(packet.round) ?? new Map();
         if (actionsForRound.has(packet.peerId)) {
             // console.warn('duplicate input', packet);
-            return; //ignore dup
+            return true; // dup isn't a failure
         }
         actionsForRound.set(packet.peerId, packet.input);
         this.data.set(packet.round, actionsForRound);
@@ -28,13 +29,15 @@ export class MemoryDB implements InputDB {
         ) {
             this.needsReplayFromRound = packet.round;
         }
+        return true;
     }
 
-    getDelta(round: number): Array<InputPacket[]> {
-        // get all inputs since the last time that this func was called
-        // but none from rounds above $round
+    // get all inputs since the last time that this func was called
+    // but none from rounds above $round
+    getDelta(maxRound?: number): Array<InputPacket[]> {
+        maxRound = maxRound ?? Infinity;
         const rounds: Array<InputPacket[]> = [];
-        for (let i = this.needsReplayFromRound; i < round; i++) {
+        for (let i = this.needsReplayFromRound; i < maxRound; i++) {
             const actionsForRound = this.getInputs(i);
             if (!actionsForRound) {
                 break;
@@ -64,11 +67,6 @@ export class MemoryDB implements InputDB {
             .sort((a, b) => {
                 return a.peerId < b.peerId ? -1 : 1;
             });
-    }
-
-    isAcknowledged(_round: number): boolean {
-        // no concept of sync in memory db so always return true
-        return true;
     }
 
     sync(_round: number): void {

@@ -34,6 +34,11 @@ function init({
             return;
         }
         if (actionsByRound[0][0].round <= lastRoundProcessed) {
+            console.log(
+                'replaying',
+                lastRoundProcessed - actionsByRound[0][0].round,
+                'rounds',
+            );
             if (actionsByRound[0][0].round == 0) {
                 store = new Store();
             } else {

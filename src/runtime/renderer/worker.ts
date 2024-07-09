@@ -124,7 +124,7 @@ function objectSystem(
             deltaTime,
         );
 
-        const decay = 3;
+        const decay = 6;
         obj.position.x = expDecay(
             obj.position.x,
             updateStore.entities[i].position.x,

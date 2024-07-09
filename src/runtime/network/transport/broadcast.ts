@@ -31,14 +31,16 @@ export class BroadcastTransport implements Transport {
         this.onPacket(data as Packet); // FIXME: remove "as Packet"
     }
 
-    sendPacket(packet: Packet) {
+    sendPacket(packet: Packet): boolean {
         // randomly drop packets
-        if (Math.random() < 0.5) {
-            return;
+        if (Math.random() < 0.1) {
+            console.log('dropped');
+            return true;
         }
         setTimeout(
             this._send.bind(this, packet),
-            Math.floor(Math.random() * 80) + 10, // fake network delay
+            Math.floor(Math.random() * 40) + 80, // fake network delay
         );
+        return true;
     }
 }

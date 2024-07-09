@@ -70,6 +70,7 @@ const init = async () => {
                   store,
                   transport,
                   numPlayers: config.numPlayers,
+                  rollbacks: 20, // 1000/tickRate*2 ish
               })
             : store;
 
@@ -77,7 +78,7 @@ const init = async () => {
     const network = await Network.create({
         peerId,
         updaterPort: updaterNetworkCh.port1,
-        tickRate: 66,
+        tickRate: 50,
         db,
         container: window,
     });
