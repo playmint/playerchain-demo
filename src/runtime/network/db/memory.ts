@@ -1,4 +1,3 @@
-import { max } from 'three/examples/jsm/nodes/Nodes';
 import { InputDB, InputPacket, RoundActions } from '../types';
 
 export class MemoryDB implements InputDB {
