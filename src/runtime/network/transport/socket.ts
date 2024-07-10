@@ -52,6 +52,7 @@ export class SocketTransport implements Transport {
             peerId: this.peerId,
             signingKeys: this.signingKeys,
             limitExempt: true,
+            worker: false,
             // temp overrides for farms to talk to self
             // FIXME: remove this or expose it properly via config
             port: this.port,
@@ -94,32 +95,16 @@ export class SocketTransport implements Transport {
 
         // this.subcluster.on('action', this.processIncomingPacket.bind(this));
         this.subcluster.on('#join', (peer) => {
-            try {
-                console.log(
-                    '#################### JOINED SUBCLUSTER ####################',
-                );
-                console.log(
-                    `[${this.peerId}]`,
-                    peer._peer.constructor.name,
-                    peer._peer,
-                );
-                peer.on('action', this.processIncomingPacket.bind(this));
-                peer.on('#stream', (...args) => {
-                    console.log('#peer stream:', ...args);
-                });
-                peer.on('#error', (...args) => {
-                    console.log('#peer stream:', ...args);
-                });
-                peer.on('#debug', (...args) => {
-                    console.log('#peer debug:', ...args);
-                });
-                console.log(
-                    '###########################################################',
-                );
-                this.peers.push(peer);
-            } catch (err) {
-                console.error('Failed in #join handler:', err);
-            }
+            peer.on('action', this.processIncomingPacket.bind(this));
+            console.log(
+                '#################### JOINED SUBCLUSTER ####################',
+            );
+            console.log(`[${this.peerId}] gained a friend:`, peer.peerId);
+            console.log(
+                '###########################################################',
+            );
+            this.peers.push(peer);
+            peer.emit('HELO', Buffer.from('HELO'));
         });
 
         for (;;) {
@@ -128,8 +113,8 @@ export class SocketTransport implements Transport {
                 break;
             }
             console.log(`[${this.peerId}]`, 'waiting for peer');
-            this.subcluster.emit('HELO', Buffer.from('HELLO'));
-            // (this.subcluster as unknown as any).join();
+            this.subcluster.emit('HELO', Buffer.from('HELO'));
+            (this.subcluster as unknown as any).join();
             await new Promise((resolve) => setTimeout(resolve, 2000));
         }
         this.subcluster.on('#error', (...args) => {
