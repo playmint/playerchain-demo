@@ -43,7 +43,6 @@ const init = async () => {
     const peerId = await Encryption.createId(
         Buffer.from(signingKeys.publicKey).toString('base64'),
     );
-    console.log(`WINDOW ${win.index} IS PLAYER ${peerId}`);
 
     // setup network
 
@@ -56,10 +55,22 @@ const init = async () => {
         peers: [peerId],
     };
 
+    // hardcode ports so can talk to self
+    // const port = [9800, 9802, 9804, 9806, 9808][playerIndex];
+    // const address = '81.243.206.45';
+
+    console.log(`WINDOW ${win.index} IS PLAYER ${peerId}`);
+
     // pick transport
     const transport: Transport =
         config.transport === 'socket'
-            ? new SocketTransport({ channel, signingKeys, peerId })
+            ? new SocketTransport({
+                  channel,
+                  signingKeys,
+                  peerId,
+                  //   port,
+                  //   address,
+              })
             : new BroadcastTransport({ channel });
 
     // pick consensus strategy
@@ -78,7 +89,7 @@ const init = async () => {
     const network = await Network.create({
         peerId,
         updaterPort: updaterNetworkCh.port1,
-        tickRate: 50,
+        tickRate: 66,
         db,
         container: window,
     });

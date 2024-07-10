@@ -47,8 +47,8 @@ export class LockstepDB implements InputDB {
             }
             // resend the last few inputs just for good measure
             // FIXME: be smarter
-            setTimeout(() => this.transport.sendPacket(packet), 20);
-            setTimeout(() => this.transport.sendPacket(packet), 40);
+            // setTimeout(() => this.transport.sendPacket(packet), 20);
+            // setTimeout(() => this.transport.sendPacket(packet), 40);
         }
         return this.isFinal(packet.round - this.rollbacks);
     }
@@ -74,24 +74,24 @@ export class LockstepDB implements InputDB {
     // resend the last few inputs just for good measure
     // TODO: be smarter
     sync(round: number, rollbacks?: number) {
-        rollbacks =
-            typeof rollbacks === 'undefined' ? this.rollbacks : rollbacks;
-        this.store.sync(round);
-        if (Date.now() - this.lastSync < 1000) {
-            return;
-        }
-        let syncs = 0;
-        for (let i = 0; i <= rollbacks + 2; i++) {
-            (this.getInputs(round - this.rollbacks - i) || []).forEach(
-                (input) => {
-                    syncs++;
-                    setTimeout(() => {
-                        this.transport.sendPacket(input);
-                    }, 0);
-                },
-            );
-        }
-        console.log(`retransmitted ${syncs} input packets to sync`);
-        this.lastSync = Date.now();
+        // rollbacks =
+        //     typeof rollbacks === 'undefined' ? this.rollbacks : rollbacks;
+        // this.store.sync(round);
+        // if (Date.now() - this.lastSync < 30000) {
+        //     return;
+        // }
+        // let syncs = 0;
+        // for (let i = 0; i <= rollbacks * 2; i++) {
+        //     (this.getInputs(round - this.rollbacks - i) || []).forEach(
+        //         (input) => {
+        //             syncs++;
+        //             setTimeout(() => {
+        //                 this.transport.sendPacket(input);
+        //             }, 0);
+        //         },
+        //     );
+        // }
+        // console.log(`retransmitted ${syncs} input packets to sync`);
+        // this.lastSync = Date.now();
     }
 }

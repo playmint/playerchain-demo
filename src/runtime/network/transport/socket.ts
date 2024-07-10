@@ -13,6 +13,7 @@ export class SocketTransport implements Transport {
     subcluster?: EventEmitter;
     onPacket?: ((packet: Packet) => void) | undefined;
     _ready: Promise<void>;
+    peers: any[] = [];
 
     // temp
     port?: number;
@@ -59,18 +60,27 @@ export class SocketTransport implements Transport {
         });
 
         await new Promise((resolve, reject) => {
-            net.on('#ready', () => {
-                console.log('Network is kinda ready...');
-                resolve(true);
+            let resolved = false;
+            net.on('#ready', (info) => {
+                console.log('Peer ready', info);
+                if (!resolved) {
+                    resolved = true;
+                    resolve(true);
+                }
             });
 
             net.on('#error', (err) => {
                 console.error('Network failed to setup:', err);
-                reject(err);
+                if (!resolved) {
+                    resolved = true;
+                    reject(err);
+                }
             });
         });
-        // Should be ready here...
-        console.log('Network is ready!');
+
+        // net.on('#debug', (...args) => {
+        //     console.log('#network debug:', ...args);
+        // });
 
         const sharedSecret = this.channel.secret;
         const subclusterSharedKey =
@@ -82,7 +92,52 @@ export class SocketTransport implements Transport {
             throw new Error('Failed to create subcluster');
         }
 
-        this.subcluster.on('action', this.processIncomingPacket.bind(this));
+        // this.subcluster.on('action', this.processIncomingPacket.bind(this));
+        this.subcluster.on('#join', (peer) => {
+            try {
+                console.log(
+                    '#################### JOINED SUBCLUSTER ####################',
+                );
+                console.log(
+                    `[${this.peerId}]`,
+                    peer._peer.constructor.name,
+                    peer._peer,
+                );
+                peer.on('action', this.processIncomingPacket.bind(this));
+                peer.on('#stream', (...args) => {
+                    console.log('#peer stream:', ...args);
+                });
+                peer.on('#error', (...args) => {
+                    console.log('#peer stream:', ...args);
+                });
+                peer.on('#debug', (...args) => {
+                    console.log('#peer debug:', ...args);
+                });
+                console.log(
+                    '###########################################################',
+                );
+                this.peers.push(peer);
+            } catch (err) {
+                console.error('Failed in #join handler:', err);
+            }
+        });
+
+        for (;;) {
+            if (this.peers.length > 0) {
+                console.log('CONNECTED');
+                break;
+            }
+            console.log(`[${this.peerId}]`, 'waiting for peer');
+            this.subcluster.emit('HELO', Buffer.from('HELLO'));
+            // (this.subcluster as unknown as any).join();
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+        this.subcluster.on('#error', (...args) => {
+            console.log('#error', ...args);
+        });
+        this.subcluster.on('#debug', (...args) => {
+            console.log('#debug', ...args);
+        });
     }
 
     private processIncomingPacket(bytes: unknown, metadata: unknown) {
@@ -122,7 +177,18 @@ export class SocketTransport implements Transport {
             console.error('attempt to use subcluster before ready');
             return false;
         }
-        this.subcluster.emit('action', Buffer.from(JSON.stringify(packet)));
+        this.peers.forEach((peer) => {
+            try {
+                // console.log(`[${this.peerId}]`, 'DIRECT SEND >>', peer.peerId);
+                peer.emit('action', Buffer.from(JSON.stringify(packet))).catch(
+                    (err) => {
+                        console.error('DIRECT SEND FAIL', err);
+                    },
+                );
+            } catch (err) {
+                console.log('DIRECT FAIL', err);
+            }
+        });
         return true;
         // console.log(
         //     'sent packet:',

@@ -36,7 +36,7 @@ function init({
         if (actionsByRound[0][0].round <= lastRoundProcessed) {
             console.log(
                 'replaying',
-                lastRoundProcessed - actionsByRound[0][0].round,
+                lastRoundProcessed - actionsByRound[0][0].round + 1,
                 'rounds',
             );
             if (actionsByRound[0][0].round == 0) {
