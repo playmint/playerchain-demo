@@ -114,7 +114,7 @@ export class SocketTransport implements Transport {
             }
             console.log(`[${this.peerId}]`, 'waiting for peer');
             this.subcluster.emit('HELO', Buffer.from('HELO'));
-            (this.subcluster as unknown as any).join();
+            // (this.subcluster as unknown as any).join();
             await new Promise((resolve) => setTimeout(resolve, 2000));
         }
         this.subcluster.on('#error', (...args) => {
@@ -162,7 +162,16 @@ export class SocketTransport implements Transport {
             console.error('attempt to use subcluster before ready');
             return false;
         }
+        if (this.peers.length === 0) {
+            console.error('no friends to send to');
+            return false;
+        }
+
         this.peers.forEach((peer) => {
+            // assume the peer already has their own packets
+            if (packet.peerId === peer.peerId) {
+                return;
+            }
             try {
                 // console.log(`[${this.peerId}]`, 'DIRECT SEND >>', peer.peerId);
                 peer.emit('action', Buffer.from(JSON.stringify(packet))).catch(

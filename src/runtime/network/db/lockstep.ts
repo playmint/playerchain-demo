@@ -47,7 +47,8 @@ export class LockstepDB implements InputDB {
             }
             // resend the last few inputs just for good measure
             // FIXME: be smarter
-            setTimeout(() => this.transport.sendPacket(packet), 30);
+            setTimeout(() => this.transport.sendPacket(packet), 20);
+            setTimeout(() => this.transport.sendPacket(packet), 40);
         }
         return this.isFinal(packet.round - this.rollbacks);
     }
@@ -76,11 +77,11 @@ export class LockstepDB implements InputDB {
         rollbacks =
             typeof rollbacks === 'undefined' ? this.rollbacks : rollbacks;
         this.store.sync(round);
-        if (Date.now() - this.lastSync < 30000) {
+        if (Date.now() - this.lastSync < 1000) {
             return;
         }
         let syncs = 0;
-        for (let i = 0; i <= rollbacks * 2; i++) {
+        for (let i = 0; i <= rollbacks * 2 + 1; i++) {
             (this.getInputs(round - this.rollbacks - i) || []).forEach(
                 (input) => {
                     syncs++;

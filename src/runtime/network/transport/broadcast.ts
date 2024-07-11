@@ -34,7 +34,7 @@ export class BroadcastTransport implements Transport {
     sendPacket(packet: Packet): boolean {
         // randomly drop packets
         if (Math.random() < 0.1) {
-            console.log('dropped');
+            // console.log('dropped');
             return true;
         }
         setTimeout(

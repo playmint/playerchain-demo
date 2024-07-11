@@ -34,11 +34,12 @@ function init({
             return;
         }
         if (actionsByRound[0][0].round <= lastRoundProcessed) {
-            console.log(
-                'replaying',
-                lastRoundProcessed - actionsByRound[0][0].round + 1,
-                'rounds',
-            );
+            const numReplaying =
+                lastRoundProcessed - actionsByRound[0][0].round + 1;
+            if (numReplaying > 5) {
+                // warn if we are above some threshold of replays as we want to keep this low
+                console.warn(`replaying ${numReplaying} rounds`);
+            }
             if (actionsByRound[0][0].round == 0) {
                 store = new Store();
             } else {

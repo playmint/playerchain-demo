@@ -116,7 +116,7 @@ export class Network {
         const latestDeltaRound = actions?.[actions.length - 1]?.[0]?.round;
         if (latestDeltaRound && latestDeltaRound > this.round) {
             for (let i = this.round; i < latestDeltaRound; i++) {
-                this.db.addInput({
+                const ok = this.db.addInput({
                     peerId: this.peerId,
                     input: {
                         forward: false,
@@ -126,8 +126,10 @@ export class Network {
                     },
                     round: i,
                 });
+                if (ok) {
+                    this.round++;
+                }
             }
-            this.round = latestDeltaRound;
         }
 
         // special case for the first round because we need to wait for all players
