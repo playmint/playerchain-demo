@@ -23,3 +23,5 @@ build/
 # extension build artifacts
 *.o
 
+# junk
+.DS_Store
