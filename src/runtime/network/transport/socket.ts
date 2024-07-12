@@ -4,7 +4,8 @@ import { Encryption, network } from 'socket:network';
 import { Channel, Keypair, Packet, Transport } from '../types';
 import { isInputPacket } from '../utils';
 
-const CLUSTER_ID = 'SUBSTREM_GAME_CLUSTER_570C5DB1-4CC2-4753-86ED-2212A93A8E9E';
+const CLUSTER_ID =
+    'SUBSTREM_GAME_CLUSTER_570C5DB1-4CC2-4753-86ED-2212A93A8E9E_2';
 
 export class SocketTransport implements Transport {
     peerId: Uint8Array;
@@ -95,6 +96,13 @@ export class SocketTransport implements Transport {
 
         // this.subcluster.on('action', this.processIncomingPacket.bind(this));
         this.subcluster.on('#join', (peer) => {
+            const existingPeer = this.peers.find(
+                (p) => p.peerId === peer.peerId,
+            );
+            if (existingPeer) {
+                console.log('peer already exists');
+                return;
+            }
             peer.on('action', this.processIncomingPacket.bind(this));
             console.log(
                 '#################### JOINED SUBCLUSTER ####################',
