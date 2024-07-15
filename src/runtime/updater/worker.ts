@@ -1,5 +1,6 @@
 import { moveSystem } from '../../substream/moveSystem';
 import { physicsSystem } from '../../substream/physicsSystem';
+import { RealPhysicsSystem } from '../../substream/realPhysicsSystem';
 import { InputPacket } from '../network/types';
 import { Store } from '../store';
 
@@ -9,6 +10,8 @@ let rendererCh: MessagePort;
 let store = new Store();
 const storeHistory: Store[] = [];
 let lastRoundProcessed;
+
+const realPhysicsSystem = new RealPhysicsSystem();
 
 function init({
     renderPort,
@@ -45,6 +48,9 @@ function init({
             } else {
                 // Go back in history
                 store = storeHistory[actionsByRound[0][0].round - 1];
+                realPhysicsSystem.rollbackToRound(
+                    actionsByRound[0][0].round - 1,
+                );
 
                 if (!store) {
                     console.warn('store not found in history');
@@ -92,7 +98,8 @@ function init({
             });
 
             moveSystem(store);
-            physicsSystem(store);
+            // physicsSystem(store);
+            realPhysicsSystem.update(store, actions[0].round);
             //backup here
 
             storeHistory[actions[0].round] = Store.from([

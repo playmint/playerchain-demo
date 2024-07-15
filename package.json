@@ -44,6 +44,9 @@
         "typescript-eslint": "7.15.0"
     },
     "dependencies": {
+        "@dimforge/rapier2d-compat": "^0.13.1",
+        "@dimforge/rapier3d": "^0.13.1",
+        "@dimforge/rapier3d-compat": "^0.13.1",
         "three": "0.166.0"
     }
 }

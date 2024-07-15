@@ -2,7 +2,10 @@ export class Entity {
     id = -1;
     position = { x: 0, y: 0, z: 0 };
     velocity = { x: 0, y: 0 };
+    accel = 0;
+    rotationSpeed = 0;
     rotation = 0;
+    torqueImpulse = 0;
     color = 0xffffff;
     owner: Uint8Array = new Uint8Array(0);
     isPlayer = false;

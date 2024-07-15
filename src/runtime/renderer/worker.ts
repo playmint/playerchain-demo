@@ -117,12 +117,13 @@ function objectSystem(
             console.log('added obj to scene');
         }
 
-        obj.rotation.z = expDecay(
-            obj.rotation.z,
-            updateStore.entities[i].rotation,
-            20,
-            deltaTime,
-        );
+        // obj.rotation.z = expDecay(
+        //     obj.rotation.z,
+        //     updateStore.entities[i].rotation,
+        //     20,
+        //     deltaTime,
+        // );
+        obj.rotation.z = updateStore.entities[i].rotation;
 
         const decay = 6;
         obj.position.x = expDecay(

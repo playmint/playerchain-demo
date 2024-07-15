@@ -8,6 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@dimforge/rapier2d-compat':
+        specifier: ^0.13.1
+        version: 0.13.1
+      '@dimforge/rapier3d':
+        specifier: ^0.13.1
+        version: 0.13.1
+      '@dimforge/rapier3d-compat':
+        specifier: ^0.13.1
+        version: 0.13.1
       three:
         specifier: 0.166.0
         version: 0.166.0
@@ -57,9 +66,6 @@ importers:
       prettier:
         specifier: 3.3.2
         version: 3.3.2
-      stats.js:
-        specifier: 0.17.0
-        version: 0.17.0
       typescript:
         specifier: 5.5.3
         version: 5.5.3
@@ -129,6 +135,15 @@ packages:
   '@babel/types@7.24.7':
     resolution: {integrity: sha512-XEFXSlxiG5td2EJRe8vOmRbaXVgfcBlszKujvVmWIK/UpywWljQCfzAv3RQCGujWQ1RD4YYWEAqDXfuJiy8f5Q==}
     engines: {node: '>=6.9.0'}
+
+  '@dimforge/rapier2d-compat@0.13.1':
+    resolution: {integrity: sha512-n8g70IkhhpHHqg+KrRbfCc3rHnRvl2pcWHHwk6tJB/BrwywQhM6zWsBCa2sFVIqCjxv/Ese5qmaxSBICPUo0Sw==}
+
+  '@dimforge/rapier3d-compat@0.13.1':
+    resolution: {integrity: sha512-SsQ/MTH4Vvs8f62g31iVV1VOmzwNwsJl91rVzafi5B2mCrI2OsQ3VyjJOb4/tvS5VNc6OLjIDgfClcOAkW+O2A==}
+
+  '@dimforge/rapier3d@0.13.1':
+    resolution: {integrity: sha512-ITCUCqks70njfFt7S+AEynMw4mpNJLmVWkWDzePhe74YLRWbe4Pu8VOyks2hqHBeTCj2Ts7SE5xoyvg9VsyNMg==}
 
   '@esbuild/aix-ppc64@0.23.0':
     resolution: {integrity: sha512-3sG8Zwa5fMcA9bgqB8AfWPQ+HFke6uD3h1s3RIwUNK8EG7a4buxvuFTs3j1IMs2NXAk9F30C/FF4vxRgQCcmoQ==}
@@ -1370,9 +1385,6 @@ packages:
   spdx-license-ids@3.0.18:
     resolution: {integrity: sha512-xxRs31BqRYHwiMzudOrpSiHtZ8i/GeionCBDSilhYRj+9gIcI8wCZTlXZKu9vZIVqViP3dcp9qE5G6AlIaD+TQ==}
 
-  stats.js@0.17.0:
-    resolution: {integrity: sha512-hNKz8phvYLPEcRkeG1rsGmV5ChMjKDAWU7/OJJdDErPBNChQXxCo3WZurGpnWc6gZhAzEPFad1aVgyOANH1sMw==}
-
   string-argv@0.3.2:
     resolution: {integrity: sha512-aqD2Q0144Z+/RqG52NeHEkZauTAUWJO8c6yTftGJKO3Tja5tUgIfmIl6kExvhtxSDP7fXB6DvzkfMpCd/F3G+Q==}
     engines: {node: '>=0.6.19'}
@@ -1631,6 +1643,12 @@ snapshots:
       '@babel/helper-string-parser': 7.24.7
       '@babel/helper-validator-identifier': 7.24.7
       to-fast-properties: 2.0.0
+
+  '@dimforge/rapier2d-compat@0.13.1': {}
+
+  '@dimforge/rapier3d-compat@0.13.1': {}
+
+  '@dimforge/rapier3d@0.13.1': {}
 
   '@esbuild/aix-ppc64@0.23.0':
     optional: true
@@ -2915,8 +2933,6 @@ snapshots:
       spdx-license-ids: 3.0.18
 
   spdx-license-ids@3.0.18: {}
-
-  stats.js@0.17.0: {}
 
   string-argv@0.3.2: {}
 
