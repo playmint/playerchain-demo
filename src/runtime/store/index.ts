@@ -9,6 +9,8 @@ export class Entity {
     playerId: Uint8Array = new Uint8Array(0);
     isSquare = false;
     isCamera = false;
+    playAudio = false;
+    audioPitch = 1;
     actions = {
         forward: false,
         back: false,

@@ -1,5 +1,6 @@
 import { moveSystem } from '../../substream/moveSystem';
 import { physicsSystem } from '../../substream/physicsSystem';
+import { shipAudioSystem } from '../../substream/shipAudioSystem';
 import { InputPacket } from '../network/types';
 import { Store } from '../store';
 
@@ -70,6 +71,7 @@ function init({
                         ship.isSquare = true;
                         ship.owner = peerId;
                         ship.color = 0x00ff00;
+                        ship.playAudio = true;
                     }
                 }
             }
@@ -93,6 +95,7 @@ function init({
 
             moveSystem(store);
             physicsSystem(store);
+            shipAudioSystem(store);
             //backup here
 
             storeHistory[actions[0].round] = Store.from([
