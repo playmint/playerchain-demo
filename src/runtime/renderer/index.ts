@@ -2,6 +2,8 @@ import { doc } from 'prettier';
 import { text } from 'socket:mime';
 import {
     AudioListener,
+    AudioLoader,
+    BoxGeometry,
     Clock,
     Color,
     DirectionalLight,
@@ -13,6 +15,7 @@ import {
     PlaneGeometry,
     PositionalAudio,
     Scene,
+    SphereGeometry,
     WebGLRenderer,
 } from 'three';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
@@ -20,7 +23,9 @@ import { createGameUI, substreamUISystem } from '../../substream/UISystem';
 import { AudioAssets, ModelAssets } from '../../substream/assetSystem';
 import { substreamCameraSystem } from '../../substream/cameraSystem';
 import { label, substreamLabelSystem } from '../../substream/labelSystem';
-import { Store } from '../store';
+import { GeometryKind, Store } from '../store';
+
+const ENABLE_LERP = true;
 
 export class Renderer {
     private rendererCh!: MessagePort;
@@ -118,58 +123,109 @@ export class Renderer {
     }
 
     private objectSystem(deltaTime: number) {
+        // HACK: clear the scene and re-add all objects
+        // this.objectsInTheWorld.forEach((obj) => {
+        //     this.scene.remove(obj);
+        // });
+        // this.objectsInTheWorld.clear();
+
         for (let i = 0; i < this.updateStore.entities.length; i++) {
-            if (!this.updateStore.entities[i].isShip) {
+            const entity = this.updateStore.entities[i];
+            if (entity.renderer === undefined) {
                 continue;
             }
 
-            let obj = this.objectsInTheWorld.get(i);
+            let obj = this.objectsInTheWorld.get(entity.id);
             if (!obj) {
                 obj = new Object3D();
-                const model = this.models.getModelClone(
-                    this.updateStore.entities[i].model,
-                );
-                if (model) {
-                    obj.attach(model);
+                if (entity.isShip) {
+                    const model = this.models.getModelClone(
+                        this.updateStore.entities[i].model,
+                    );
+                    if (model) {
+                        obj.attach(model);
+                    }
+                } else {
+                    const geometry =
+                        entity.renderer.geometry == GeometryKind.Box
+                            ? new BoxGeometry(
+                                  entity.renderer.size.x,
+                                  entity.renderer.size.y,
+                                  1,
+                              )
+                            : new SphereGeometry(entity.renderer.size.x);
+                    obj.add(
+                        new Mesh(
+                            geometry,
+                            new MeshBasicMaterial({
+                                color: entity.renderer.color,
+                            }),
+                        ),
+                    );
                 }
+
+                obj.position.x = entity.position.x;
+                obj.position.y = entity.position.y;
+                obj.position.z = entity.position.z;
+
+                obj.rotation.z = entity.rotation;
+
                 this.scene.add(obj);
-                this.objectsInTheWorld.set(i, obj);
+                this.objectsInTheWorld.set(entity.id, obj);
+
                 console.log('added obj to scene');
             }
 
-            obj.rotation.z = this.expDecay(
-                obj.rotation.z,
-                this.updateStore.entities[i].rotation,
-                20,
-                deltaTime,
-            );
+            if (!entity.renderer.visible) {
+                // Destroy objects that are no longer visible
+                if (obj) {
+                    this.objectsInTheWorld.delete(entity.id);
+                    this.scene.remove(obj);
+                }
+                continue;
+            }
 
-            obj.children[0].rotation.x = this.expDecay(
-                obj.children[0].rotation.x,
-                this.updateStore.entities[i].rollAngle,
-                4,
-                deltaTime,
-            );
+            // FIXME: interpolation broken when lerping from -PI to 0
+            // obj.rotation.z = this.expDecay(
+            //     obj.rotation.z,
+            //     this.updateStore.entities[i].rotation,
+            //     20,
+            //     deltaTime,
+            // );
+            obj.rotation.z = entity.rotation;
 
-            const decay = 6;
-            obj.position.x = this.expDecay(
-                obj.position.x,
-                this.updateStore.entities[i].position.x,
-                decay,
-                deltaTime,
-            );
-            obj.position.y = this.expDecay(
-                obj.position.y,
-                this.updateStore.entities[i].position.y,
-                decay,
-                deltaTime,
-            );
-            obj.position.z = this.expDecay(
-                obj.position.z,
-                this.updateStore.entities[i].position.z,
-                decay,
-                deltaTime,
-            );
+            if (ENABLE_LERP) {
+                obj.children[0].rotation.x = this.expDecay(
+                    obj.children[0].rotation.x,
+                    this.updateStore.entities[i].rollAngle,
+                    4,
+                    deltaTime,
+                );
+
+                const decay = 6;
+                obj.position.x = this.expDecay(
+                    obj.position.x,
+                    entity.position.x,
+                    decay,
+                    deltaTime,
+                );
+                obj.position.y = this.expDecay(
+                    obj.position.y,
+                    entity.position.y,
+                    decay,
+                    deltaTime,
+                );
+                obj.position.z = this.expDecay(
+                    obj.position.z,
+                    entity.position.z,
+                    decay,
+                    deltaTime,
+                );
+            } else {
+                obj.position.x = entity.position.x;
+                obj.position.y = entity.position.y;
+                obj.position.z = entity.position.z;
+            }
         }
     }
 
@@ -268,7 +324,8 @@ export class Renderer {
                 labelElement = new label();
                 labelElement.labelText = this.renderStore.entities[i].labelText;
                 labelElement.textColor =
-                    this.renderStore.entities[i].owner == this.playerId
+                    this.renderStore.entities[i].owner ==
+                    this.playerId.toString()
                         ? 'yellow'
                         : 'white';
 

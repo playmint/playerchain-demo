@@ -1,5 +1,9 @@
+import { RigidBodyKind } from '../../runtime';
+import { bulletSystem } from '../../substream/bulletSystem';
+import { collisionSystem } from '../../substream/collisionSystem';
+import { mapSystem } from '../../substream/mapSystem';
 import { moveSystem } from '../../substream/moveSystem';
-import { physicsSystem } from '../../substream/physicsSystem';
+import { RealPhysicsSystem } from '../../substream/realPhysicsSystem';
 import { shipAudioSystem } from '../../substream/shipAudioSystem';
 import { InputPacket } from '../network/types';
 import { Store } from '../store';
@@ -10,6 +14,8 @@ let rendererCh: MessagePort;
 let store = new Store();
 const storeHistory: Store[] = [];
 let lastRoundProcessed;
+
+const realPhysicsSystem = new RealPhysicsSystem();
 
 function init({
     renderPort,
@@ -35,6 +41,9 @@ function init({
             return;
         }
         if (actionsByRound[0][0].round <= lastRoundProcessed) {
+            // console.log(
+            //     `rolling back to round: ${actionsByRound[0][0].round - 1}`,
+            // );
             const numReplaying =
                 lastRoundProcessed - actionsByRound[0][0].round + 1;
             if (numReplaying > 5) {
@@ -51,9 +60,18 @@ function init({
                     console.warn('store not found in history');
                     return;
                 }
+                realPhysicsSystem.rollbackToRound(
+                    actionsByRound[0][0].round - 1,
+                );
             }
         }
         actionsByRound.forEach((actions: InputPacket[]) => {
+            const roundNum = actions[0].round;
+
+            // Initialising map before players because the entity count will change after each player is added and the renderer will couple the entities to the wrong objects
+            mapSystem(store, roundNum);
+
+            // Can this ever be undefined?
             if (actions) {
                 // This shouldn't be here ideally...
                 for (const { peerId } of actions) {
@@ -63,16 +81,47 @@ function init({
                         )
                     ) {
                         const playerEntity = store.add();
+                        console.log(
+                            `added player: ${playerEntity.id} ${peerId.toString()}`,
+                        );
                         playerEntity.isPlayer = true;
                         playerEntity.playerId = peerId;
 
                         const ship = store.add();
+                        console.log(`adding ship: ${ship.id}`);
                         ship.position.x = 0;
                         ship.owner = peerId;
                         ship.isShip = true;
                         ship.audioClip = 'thrusters';
                         ship.model = 'ship';
                         ship.labelText = peerId.toString().substring(0, 6);
+
+                        // HACK: So ships don't spawn on top of each other
+                        ship.position.y =
+                            peerId.toString() ==
+                            'a2e1d7d5effc6313d8c35a1fa1695205f8c932ef57080d803a1675d7b09f7d17'
+                                ? 20
+                                : -20;
+
+                        ship.physics = {
+                            rigidBody: {
+                                kind: RigidBodyKind.Dynamic, // RigidBodyKind.KinematicVelocity
+                                collider: {
+                                    isSensor: false,
+                                    size: { x: 5, y: 5 },
+                                    checkCollisions: true,
+                                },
+                                lockRotations: true,
+                            },
+                            collisions: [],
+                        };
+
+                        ship.renderer = {
+                            visible: true,
+                            color: 0x00ff00,
+                            geometry: 0, // Not used for ship
+                            size: { x: 1, y: 1 }, // Not used for ship
+                        };
                     }
                 }
             }
@@ -90,19 +139,27 @@ function init({
                         back: false,
                         left: false,
                         right: false,
+                        fire: false,
                     };
                 }
             });
 
-            moveSystem(store);
-            physicsSystem(store);
-            shipAudioSystem(store);
-            //backup here
+            // console.log(
+            //     `processing round ${actions[0].round} actions.length: ${actions.length}`,
+            // );
 
+            moveSystem(store, roundNum);
+            bulletSystem(store);
+            realPhysicsSystem.update(store, roundNum);
+            collisionSystem(store);
+            shipAudioSystem(store);
+
+            //backup here
             storeHistory[actions[0].round] = Store.from([
                 ...structuredClone(store.entities),
             ]);
-            lastRoundProcessed = actions[0].round;
+            lastRoundProcessed = roundNum;
+            // console.log(`processed round ${roundNum}`);
             // console.log('[updater] send', store.entities);
         });
 
