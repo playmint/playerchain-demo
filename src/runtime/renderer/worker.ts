@@ -9,6 +9,7 @@ import {
     PerspectiveCamera,
     PlaneGeometry,
     Scene,
+    SphereGeometry,
     WebGLRenderer,
 } from 'three';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
@@ -104,19 +105,36 @@ function objectSystem(
 ) {
     for (let i = 0; i < updateStore.entities.length; i++) {
         // only care about squares
-        if (!updateStore.entities[i].isSquare) {
+        if (
+            !updateStore.entities[i].isSquare &&
+            !updateStore.entities[i].isBullet
+        ) {
             continue;
         }
 
         let obj = objectsInTheWorld.get(i);
         if (!obj) {
             obj = new Object3D();
-            obj.add(assets.ship!.scene.clone());
+            if (updateStore.entities[i].isSquare) {
+                obj.add(assets.ship!.scene.clone());
+            } else {
+                obj.add(
+                    new Mesh(
+                        new SphereGeometry(0.1),
+                        new MeshBasicMaterial({ color: 0xff0000 }),
+                    ),
+                );
+            }
             scene.add(obj);
+            obj.position.x = updateStore.entities[i].position.x;
+            obj.position.y = updateStore.entities[i].position.y;
+            obj.position.z = updateStore.entities[i].position.z;
+
             objectsInTheWorld.set(i, obj);
             console.log('added obj to scene');
         }
 
+        // FIXME: Currently glitches when rotation loops from -PI to 0
         // obj.rotation.z = expDecay(
         //     obj.rotation.z,
         //     updateStore.entities[i].rotation,

@@ -38,7 +38,7 @@ export class RealPhysicsSystem {
         for (let i = 0; i < store.entities.length; i++) {
             // only care about squares
             const entity = store.entities[i];
-            if (!entity.isSquare) {
+            if (!entity.isSquare && !entity.isBullet) {
                 continue;
             }
 
@@ -53,24 +53,54 @@ export class RealPhysicsSystem {
             if (!rigidBody) {
                 // Create a dynamic rigid-body.
                 // TODO: Rigid body to be entity
-                console.log(
-                    `Creating rigid body for entity id: ${entity.id} at idx: ${i}`,
-                );
-                const rigidBodyDesc =
-                    RAPIER.RigidBodyDesc.dynamic().setTranslation(
-                        0.0,
-                        entity.id * 10,
+
+                if (entity.isSquare) {
+                    const rigidBodyDesc =
+                        RAPIER.RigidBodyDesc.dynamic().setTranslation(
+                            0.0,
+                            entity.id * 10,
+                        );
+                    rigidBody = this.world.createRigidBody(rigidBodyDesc);
+
+                    // Create a cuboid collider attached to the dynamic rigidBody.
+                    const colliderDesc = RAPIER.ColliderDesc.cuboid(1, 1);
+                    this.world.createCollider(colliderDesc, rigidBody);
+
+                    this.rigidBodyHandles.set(entity.id, rigidBody.handle);
+                } else {
+                    // Is bullet
+                    const rigidBodyDesc =
+                        RAPIER.RigidBodyDesc.kinematicVelocityBased().setTranslation(
+                            entity.position.x,
+                            entity.position.y,
+                        );
+                    rigidBody = this.world.createRigidBody(rigidBodyDesc);
+
+                    // Create a cuboid collider attached to the dynamic rigidBody.
+                    const colliderDesc = RAPIER.ColliderDesc.cuboid(1, 1)
+                        .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS)
+                        .setActiveCollisionTypes(
+                            RAPIER.ActiveCollisionTypes.DEFAULT |
+                                RAPIER.ActiveCollisionTypes.DYNAMIC_DYNAMIC,
+                        );
+
+                    const collider = this.world.createCollider(
+                        colliderDesc,
+                        rigidBody,
                     );
-                rigidBody = this.world.createRigidBody(rigidBodyDesc);
+                    collider.setSensor(true);
 
-                // Create a cuboid collider attached to the dynamic rigidBody.
-                const colliderDesc = RAPIER.ColliderDesc.cuboid(1, 1);
-                const collider = this.world.createCollider(
-                    colliderDesc,
-                    rigidBody,
-                );
+                    // set the velocity
+                    rigidBody.setLinvel(
+                        {
+                            x: Math.cos(entity.rotation) * 100,
+                            y: Math.sin(entity.rotation) * 100,
+                        },
+                        true,
+                    );
 
-                this.rigidBodyHandles.set(entity.id, rigidBody.handle);
+                    this.rigidBodyHandles.set(entity.id, rigidBody.handle);
+                }
             }
 
             rigidBody.applyTorqueImpulse(entity.torqueImpulse, true);
@@ -80,7 +110,7 @@ export class RealPhysicsSystem {
             // rigidBody.setRotation(rotation, true);
 
             if (entity.accel != 0) {
-                // FIXME: Does this maintain determinism as math function exists outside of physics engine?
+                // FIXME: This doesn't maintain determinism as Math functions are not cross-platform deterministic operations
                 const rotation = rigidBody.rotation();
                 rigidBody.applyImpulse(
                     {
@@ -99,7 +129,7 @@ export class RealPhysicsSystem {
         for (let i = 0; i < store.entities.length; i++) {
             // only care about squares
             const entity = store.entities[i];
-            if (!entity.isSquare) {
+            if (!entity.isSquare && !entity.isBullet) {
                 continue;
             }
 
@@ -119,6 +149,20 @@ export class RealPhysicsSystem {
                     rigidBodyHandle,
                 );
                 continue;
+            }
+
+            // if (entity.isBullet) {
+            //     const collider = rigidBody.collider(0);
+            //     this.world.contactPairsWith(collider, (otherCollider) => {
+            //         console.log('Bullet Collision with', otherCollider.handle);
+            //     });
+            // }
+
+            if (entity.isSquare) {
+                const collider = rigidBody.collider(0);
+                this.world.contactPairsWith(collider, (otherCollider) => {
+                    console.log('Ship Collision with', otherCollider.handle);
+                });
             }
 
             const position = rigidBody.translation();

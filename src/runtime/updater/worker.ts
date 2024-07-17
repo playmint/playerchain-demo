@@ -1,3 +1,4 @@
+import { bulletSystem } from '../../substream/bulletSystem';
 import { moveSystem } from '../../substream/moveSystem';
 import { physicsSystem } from '../../substream/physicsSystem';
 import { RealPhysicsSystem } from '../../substream/realPhysicsSystem';
@@ -93,11 +94,13 @@ function init({
                         back: false,
                         left: false,
                         right: false,
+                        fire: false,
                     };
                 }
             });
 
             moveSystem(store);
+            bulletSystem(store);
             // physicsSystem(store);
             realPhysicsSystem.update(store, actions[0].round);
             //backup here

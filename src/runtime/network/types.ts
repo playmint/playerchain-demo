@@ -16,6 +16,7 @@ export interface Input {
     back: boolean;
     left: boolean;
     right: boolean;
+    fire: boolean;
 }
 
 export interface InputPacket {

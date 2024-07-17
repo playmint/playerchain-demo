@@ -1,3 +1,4 @@
+import def from 'socket:latica';
 import { Input, InputDB, InputPacket, PeerId } from './types';
 
 export { BroadcastTransport } from './transport/broadcast';
@@ -38,6 +39,7 @@ export class Network {
             back: false,
             left: false,
             right: false,
+            fire: false,
         };
         container.addEventListener('keydown', this.onKeyDown.bind(this));
         container.addEventListener('keyup', this.onKeyUp.bind(this));
@@ -83,6 +85,12 @@ export class Network {
                 }
                 this.input.right = true;
                 break;
+            case ' ':
+                if (this.input.fire) {
+                    return;
+                }
+                this.input.fire = true;
+                break;
         }
     }
 
@@ -100,6 +108,9 @@ export class Network {
                 break;
             case 'd':
                 this.input.right = false;
+                break;
+            case ' ':
+                this.input.fire = false;
                 break;
         }
     }
@@ -123,6 +134,7 @@ export class Network {
                         back: false,
                         left: false,
                         right: false,
+                        fire: false,
                     },
                     round: i,
                 });
@@ -144,6 +156,7 @@ export class Network {
                         back: false,
                         left: false,
                         right: false,
+                        fire: false,
                     },
                     round: this.round,
                 });

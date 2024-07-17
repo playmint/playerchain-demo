@@ -12,11 +12,13 @@ export class Entity {
     playerId: Uint8Array = new Uint8Array(0);
     isSquare = false;
     isCamera = false;
+    isBullet = false;
     actions = {
         forward: false,
         back: false,
         left: false,
         right: false,
+        fire: false,
     };
 }
 
