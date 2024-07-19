@@ -4,9 +4,9 @@ export class Entity {
     velocity = { x: 0, y: 0 };
     rotation = 0;
     color = 0xffffff;
-    owner: Uint8Array = new Uint8Array(0);
+    owner: string = '';
     isPlayer = false;
-    playerId: Uint8Array = new Uint8Array(0);
+    playerId: string = '';
     isSquare = false;
     isCamera = false;
     playAudio = false;

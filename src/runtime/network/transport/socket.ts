@@ -1,6 +1,7 @@
 import Buffer from 'socket:buffer';
 import EventEmitter from 'socket:events';
 import { Encryption, network } from 'socket:network';
+import { MessageEncoder } from '../messages';
 import { Channel, Keypair, Packet, Transport } from '../types';
 import { isInputPacket } from '../utils';
 
@@ -15,6 +16,8 @@ export class SocketTransport implements Transport {
     onPacket?: ((packet: Packet) => void) | undefined;
     _ready: Promise<void>;
     peers: any[] = [];
+    numPlayers: number;
+    enc: MessageEncoder;
 
     // temp
     port?: number;
@@ -26,20 +29,25 @@ export class SocketTransport implements Transport {
         signingKeys,
         port,
         address,
+        numPlayers,
+        enc,
     }: {
         peerId: Uint8Array;
         channel: Channel;
-        signingKeys: Keypair;
         port?: number;
         address?: string;
+        signingKeys: Keypair;
+        numPlayers: number;
+        enc: MessageEncoder;
     }) {
         console.log('using socket transport:', channel.name);
         this.signingKeys = signingKeys;
         this.peerId = peerId;
         this.channel = channel;
-        this._ready = this.init();
         this.port = port;
         this.address = address;
+        this.numPlayers = numPlayers;
+        (this.enc = enc), (this._ready = this.init());
     }
 
     async ready(): Promise<void> {
@@ -87,15 +95,20 @@ export class SocketTransport implements Transport {
         const sharedSecret = this.channel.secret;
         const subclusterSharedKey =
             await Encryption.createSharedKey(sharedSecret);
-        this.subcluster = await net.subcluster({
+        const subcluster = (this.subcluster = await net.subcluster({
             sharedKey: subclusterSharedKey,
-        });
-        if (!this.subcluster) {
+        }));
+        if (!subcluster) {
             throw new Error('Failed to create subcluster');
         }
 
-        // this.subcluster.on('action', this.processIncomingPacket.bind(this));
-        this.subcluster.on('#join', (peer) => {
+        // horible hack for key exchange
+        // just keep annoucing our public key
+        setInterval(() => {
+            subcluster.emit('key', this.signingKeys.publicKey);
+        }, 5000);
+
+        subcluster.on('#join', (peer) => {
             const existingPeer = this.peers.find(
                 (p) => p.peerId === peer.peerId,
             );
@@ -103,7 +116,13 @@ export class SocketTransport implements Transport {
                 console.log('peer already exists');
                 return;
             }
-            peer.on('action', this.processIncomingPacket.bind(this));
+            this.peers.push(peer);
+            peer.on('key', (key) => {
+                this.enc.keys.set(Buffer.from(peer.peerId).toString(), key);
+            });
+            peer.on('action', (b, metadata) => {
+                this.processIncomingPacket(b, metadata);
+            });
             console.log(
                 '#################### JOINED SUBCLUSTER ####################',
             );
@@ -111,29 +130,30 @@ export class SocketTransport implements Transport {
             console.log(
                 '###########################################################',
             );
-            this.peers.push(peer);
-            peer.emit('HELO', Buffer.from('HELO'));
+            peer.emit('key', this.signingKeys.publicKey);
         });
 
         for (;;) {
-            if (this.peers.length > 0) {
+            if (this.enc.keys.size == this.numPlayers) {
                 console.log('CONNECTED');
                 break;
             }
-            console.log(`[${this.peerId}]`, 'waiting for peer');
-            this.subcluster.emit('HELO', Buffer.from('HELO'));
+            console.log(
+                `[${this.peerId}]`,
+                `waiting for all ${this.numPlayers} public keys`,
+            );
             // (this.subcluster as unknown as any).join();
             await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-        this.subcluster.on('#error', (...args) => {
+        subcluster.on('#error', (...args) => {
             console.log('#error', ...args);
         });
-        this.subcluster.on('#debug', (...args) => {
+        subcluster.on('#debug', (...args) => {
             console.log('#debug', ...args);
         });
     }
 
-    private processIncomingPacket(bytes: unknown, metadata: unknown) {
+    private processIncomingPacket(buf: Buffer, metadata: unknown) {
         if (typeof metadata !== 'object' || metadata === null) {
             console.warn(
                 'recv invalid metadata: expected object got:',
@@ -145,12 +165,8 @@ export class SocketTransport implements Transport {
             console.warn('recv unverified packet', metadata);
             return;
         }
-        if (typeof bytes !== 'object' || bytes === null) {
-            console.warn('recv invalid bytes: expected object got:', bytes);
-            return;
-        }
         try {
-            const data = JSON.parse(Buffer.from(bytes).toString());
+            const { msg: data } = this.enc.decode(buf);
             if (!isInputPacket(data)) {
                 console.warn('recv invalid packet', data);
                 return;
@@ -161,11 +177,11 @@ export class SocketTransport implements Transport {
             }
             this.onPacket(data);
         } catch (err) {
-            console.error('failed to parse packet', bytes, err);
+            console.error('failed to parse packet', buf, err);
         }
     }
 
-    sendPacket(packet: Packet): boolean {
+    sendPacket(buf: Buffer): boolean {
         if (!this.subcluster) {
             console.error('attempt to use subcluster before ready');
             return false;
@@ -176,17 +192,11 @@ export class SocketTransport implements Transport {
         }
 
         this.peers.forEach((peer) => {
-            // assume the peer already has their own packets
-            if (packet.peerId === peer.peerId) {
-                return;
-            }
             try {
                 // console.log(`[${this.peerId}]`, 'DIRECT SEND >>', peer.peerId);
-                peer.emit('action', Buffer.from(JSON.stringify(packet))).catch(
-                    (err) => {
-                        console.error('DIRECT SEND FAIL', err);
-                    },
-                );
+                peer.emit('action', buf).catch((err) => {
+                    console.error('DIRECT SEND FAIL', err);
+                });
             } catch (err) {
                 console.log('DIRECT FAIL', err);
             }

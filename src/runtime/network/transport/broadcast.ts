@@ -1,45 +1,99 @@
-import { Channel, Packet, Transport } from '../types';
+import Buffer from 'socket:buffer';
+import { MessageEncoder } from '../messages';
+import { Channel, Keypair, Packet, Transport } from '../types';
 import { isInputPacket } from '../utils';
 
 export class BroadcastTransport implements Transport {
     ch: BroadcastChannel;
     onPacket?: (packet: Packet) => void;
+    numPlayers: number;
+    enc: MessageEncoder;
+    peerId: string;
+    signingKeys: Keypair;
+    _ready: Promise<void>;
 
-    constructor({ channel }: { channel: Channel }) {
+    constructor({
+        channel,
+        numPlayers,
+        peerId,
+        signingKeys,
+        enc,
+    }: {
+        channel: Channel;
+        peerId: Uint8Array;
+        signingKeys: Keypair;
+        numPlayers: number;
+        enc: MessageEncoder;
+    }) {
         console.log('using broadcast transport:', channel.name);
         this.ch = new BroadcastChannel(channel.name);
         this.ch.onmessage = this.processIncomingPacket.bind(this);
+        this.numPlayers = numPlayers;
+        this.signingKeys = signingKeys;
+        this.enc = enc;
+        this.peerId = Buffer.from(peerId).toString();
+        this._ready = this.init();
     }
 
-    async ready(): Promise<void> {
+    async init(): Promise<void> {
+        setInterval(() => {
+            this.ch.postMessage({
+                name: 'key',
+                key: this.signingKeys.publicKey,
+                peerId: this.peerId,
+            });
+        }, 1000);
+
+        for (;;) {
+            if (this.enc.keys.size == this.numPlayers) {
+                console.log('CONNECTED');
+                break;
+            }
+            console.log(
+                'waiting for keys',
+                this.enc.keys.size,
+                this.numPlayers,
+            );
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
         return;
     }
 
-    private _send(packet: Packet): void {
-        this.ch.postMessage(packet);
+    async ready(): Promise<void> {
+        return this._ready;
+    }
+
+    private _send(o: unknown): void {
+        this.ch.postMessage(o);
     }
 
     private processIncomingPacket({ data }: MessageEvent) {
-        if (!isInputPacket(data)) {
-            console.warn('recv invalid packet', data);
+        const { name, buf, key, peerId } = data;
+        if (name === 'key') {
+            this.enc.keys.set(peerId, key);
+            return;
+        }
+
+        const { msg } = this.enc.decode(buf);
+        if (!isInputPacket(msg)) {
+            console.warn('recv invalid packet', msg);
             return;
         }
         if (!this.onPacket) {
-            console.warn('recv packet but no handler', data);
+            console.warn('recv packet but no handler', msg);
             return;
         }
-        this.onPacket(data as Packet); // FIXME: remove "as Packet"
+        this.onPacket(msg); // FIXME: remove "as Packet"
     }
 
-    sendPacket(packet: Packet): boolean {
+    sendPacket(buf: Buffer): boolean {
         // randomly drop packets
-        if (Math.random() < 0.1) {
-            // console.log('dropped');
-            return true;
-        }
+        // if (Math.random() < 0.1) {
+        //     return true;
+        // }
         setTimeout(
-            this._send.bind(this, packet),
-            Math.floor(Math.random() * 40) + 80, // fake network delay
+            this._send.bind(this, { name: 'action', buf }),
+            Math.floor(Math.random() * 40), // fake network delay
         );
         return true;
     }

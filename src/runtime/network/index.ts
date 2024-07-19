@@ -4,6 +4,7 @@ export { BroadcastTransport } from './transport/broadcast';
 export { SocketTransport } from './transport/socket';
 export { LockstepDB } from './db/lockstep';
 export { MemoryDB } from './db/memory';
+export * from './messages';
 
 export class Network {
     peerId: PeerId;
