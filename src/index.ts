@@ -7,6 +7,7 @@ import {
     Game,
     LockstepDB,
     MemoryDB,
+    MessageEncoder,
     Network,
     Renderer,
     SocketTransport,
@@ -61,6 +62,13 @@ const init = async () => {
 
     console.log(`WINDOW ${win.index} IS PLAYER ${peerId}`);
 
+    const keys = new Map<string, Uint8Array>();
+    keys.set(Buffer.from(peerId).toString(), signingKeys.publicKey);
+    const enc = new MessageEncoder({
+        keys,
+        sk: signingKeys.privateKey,
+    });
+
     // pick transport
     const transport: Transport =
         config.transport === 'socket'
@@ -68,20 +76,28 @@ const init = async () => {
                   channel,
                   signingKeys,
                   peerId,
-                  //   port,
-                  //   address,
+                  numPlayers: config.numPlayers,
+                  enc,
               })
-            : new BroadcastTransport({ channel });
+            : new BroadcastTransport({
+                  enc,
+                  channel,
+                  signingKeys,
+                  peerId,
+                  numPlayers: config.numPlayers,
+              });
 
     // pick consensus strategy
     const store = new MemoryDB();
     const db: InputDB =
         config.consensus === 'lockstep'
             ? new LockstepDB({
+                  enc,
                   store,
                   transport,
                   numPlayers: config.numPlayers,
                   rollbacks: 20, // 1000/tickRate*2 ish
+                  peerId,
               })
             : store;
 

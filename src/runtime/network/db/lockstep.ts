@@ -1,29 +1,39 @@
+import Buffer from 'socket:buffer';
+import { MessageEncoder, MessageKind } from '../messages';
 import { InputDB, InputPacket, Transport } from '../types';
 
 export class LockstepDB implements InputDB {
+    peerId: string;
     store: InputDB;
     transport: Transport;
     numPlayers: number;
     lastSync = 0;
     rollbacks: number;
+    enc: MessageEncoder;
 
     constructor({
+        peerId,
         store,
         transport,
         numPlayers,
         rollbacks,
+        enc,
     }: {
+        peerId: Uint8Array;
         store: InputDB;
         transport: Transport;
         numPlayers: number;
         rollbacks?: number;
+        enc: MessageEncoder;
     }) {
+        this.peerId = Buffer.from(peerId).toString();
         this.rollbacks = rollbacks ?? 1;
         this.numPlayers = numPlayers;
         console.log(`using lockstep with ${this.numPlayers} players`);
         this.store = store;
         this.transport = transport;
         this.transport.onPacket = this.recvPacket.bind(this);
+        this.enc = enc;
     }
 
     async ready(): Promise<void> {
@@ -37,7 +47,12 @@ export class LockstepDB implements InputDB {
     addInput(packet: InputPacket): boolean {
         let ok = this.store.addInput(packet);
         if (ok) {
-            ok = this.transport.sendPacket(packet);
+            const buf = this.enc.encode({
+                kind: MessageKind.INPUT,
+                ...packet,
+                peerId: Buffer.from(packet.peerId).toString(),
+            });
+            ok = this.transport.sendPacket(buf);
             if (!ok) {
                 console.warn(
                     'addInput: send failed',
@@ -47,8 +62,7 @@ export class LockstepDB implements InputDB {
             }
             // resend the last few inputs just for good measure
             // FIXME: be smarter
-            setTimeout(() => this.transport.sendPacket(packet), 20);
-            setTimeout(() => this.transport.sendPacket(packet), 40);
+            setTimeout(() => this.transport.sendPacket(buf), 30);
         }
         return this.isFinal(packet.round - this.rollbacks);
     }
@@ -82,14 +96,19 @@ export class LockstepDB implements InputDB {
         }
         let syncs = 0;
         for (let i = 0; i <= rollbacks * 2 + 1; i++) {
-            (this.getInputs(round - this.rollbacks - i) || []).forEach(
-                (input) => {
+            (this.getInputs(round - this.rollbacks - i) || [])
+                .filter((input) => input.peerId == this.peerId)
+                .forEach((input) => {
                     syncs++;
                     setTimeout(() => {
-                        this.transport.sendPacket(input);
+                        const buf = this.enc.encode({
+                            kind: MessageKind.INPUT,
+                            ...input,
+                            peerId: Buffer.from(input.peerId).toString(),
+                        });
+                        this.transport.sendPacket(buf);
                     }, 0);
-                },
-            );
+                });
         }
         console.log(`retransmitted ${syncs} input packets to sync`);
         this.lastSync = Date.now();

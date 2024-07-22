@@ -1,3 +1,5 @@
+import Buffer from 'socket:buffer';
+
 // map of peerId to actions
 export type PeerId = Uint8Array;
 
@@ -19,7 +21,7 @@ export interface Input {
 }
 
 export interface InputPacket {
-    peerId: PeerId;
+    peerId: string;
     round: number;
     input: Input;
 }
@@ -35,7 +37,7 @@ export type Packet = InputPacket;
 export type RoundActions = Map<PeerId, Input>;
 
 export interface Transport {
-    sendPacket(packet: Packet): boolean;
+    sendPacket(buf: Buffer): boolean;
     onPacket?: (packet: Packet) => void;
     ready(): Promise<void>;
 }
