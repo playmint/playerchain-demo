@@ -16,10 +16,13 @@ export function moveSystem(store: Store) {
                 } else if (player.actions.back) {
                     accel -= accelSpeed;
                 }
+                square.rollAngle = 0;
                 if (player.actions.left) {
                     square.rotation += rotationSpeed;
+                    square.rollAngle = 0.785398; // 45 degrees in radians
                 } else if (player.actions.right) {
                     square.rotation -= rotationSpeed;
+                    square.rollAngle = -0.785398;
                 }
 
                 square.velocity.x += Math.cos(square.rotation) * accel;
