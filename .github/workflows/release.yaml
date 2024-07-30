@@ -1,0 +1,50 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - 'v*'
+
+permissions:
+    contents: write
+
+jobs:
+    mac_build:
+        name: macOS build
+        runs-on: macOS-14
+        timeout-minutes: 15
+
+        steps:
+            - name: checkout socket
+              uses: actions/checkout@v3
+              with:
+                  repository: '@playmint/socket'
+                  ref: 'playmint-main'
+                  path: 'socket'
+            - name: install node
+              uses: actions/setup-node@v3.6.0
+              with:
+                  node-version: 20.x
+            - name: install deps
+              run: |
+                  brew install automake pnpm
+            - name: build ssc
+              working-directory: './socket'
+              run: |
+                  VERBOSE=1 ./bin/install.sh
+                  ./bin/ci_version_check.sh
+              env:
+                  VERBOSE: '1'
+                  NO_ANDROID: '1'
+                  CI: 'true'
+                  SSC_ANDROID_CI: 'false'
+            - name: checkout app
+              uses: actions/checkout@v3
+              path: './app'
+            - name: build app
+              working-directory: './app'
+              run: |
+                  ssc --version
+                  pnpm install
+                  pnpm run build
+                  ls build/**/*
