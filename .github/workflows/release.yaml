@@ -79,7 +79,7 @@ jobs:
 
     win_build:
         name: windows build
-        runs-on: windows11-x64
+        runs-on: windows-2022
         timeout-minutes: 30
 
         steps:
@@ -112,8 +112,6 @@ jobs:
             - name: build ssc
               working-directory: './socket'
               run: |
-                  mkdir -p tmp
-                  mkdir -p /tmp
                   ./bin/install.ps1 -verbose -yesdeps
                   echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
                   echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
