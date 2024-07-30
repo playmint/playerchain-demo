@@ -46,6 +46,7 @@ jobs:
               env:
                   VERBOSE: '1'
                   NO_ANDROID: '1'
+                  NO_IOS: '1'
                   CI: 'true'
                   SSC_ANDROID_CI: 'false'
             - name: checkout app
