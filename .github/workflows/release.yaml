@@ -19,7 +19,7 @@ jobs:
             - name: checkout socket
               uses: actions/checkout@v3
               with:
-                  repository: '@playmint/socket'
+                  repository: 'playmint/socket'
                   ref: 'playmint-main'
                   path: 'socket'
             - name: install node
