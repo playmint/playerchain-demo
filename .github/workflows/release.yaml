@@ -1,10 +1,8 @@
 name: Release
 
 on:
-    workflow_dispatch:
-    push:
-        tags:
-            - 'v*'
+    release:
+        types: [published]
 
 env:
     SSC_BRANCH: 'playmint-next'
@@ -16,6 +14,7 @@ jobs:
     mac_build:
         name: macOS build
         runs-on: macOS-14
+        needs: [create_release]
         timeout-minutes: 30
 
         steps:
@@ -59,6 +58,7 @@ jobs:
             - name: checkout app
               uses: actions/checkout@v3
               with:
+                  ref: '${{ github.event.release.target_commitish }}'
                   path: './app'
             - name: build app
               working-directory: './app'
@@ -67,3 +67,12 @@ jobs:
                   pnpm install
                   pnpm run build
                   ls build/**/*
+            - name: Upload Release Asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: '${{ github.event.release.upload_url }}'
+                  asset_path: './app/build/mac/substream.zip'
+                  asset_name: 'substream-macos-arm64.zip'
+                  asset_content_type: 'application/zip'
