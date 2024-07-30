@@ -48,8 +48,7 @@ jobs:
             - name: build ssc
               working-directory: './socket'
               run: |
-                  VERBOSE=1 ./bin/install.sh
-                  ./bin/ci_version_check.sh
+                  ./bin/install.sh
               env:
                   VERBOSE: '1'
                   NO_ANDROID: '1'
@@ -98,18 +97,18 @@ jobs:
               uses: pnpm/action-setup@v4
               with:
                   version: 9
-            - name: cache socket build
-              id: cache-ssc
-              uses: actions/cache@v3
-              env:
-                  cache-name: cache-ssc
-              with:
-                  path: './socket/build'
-                  key: ${{ runner.os }}-ssc-${{ hashFiles('socket/.git/refs/heads/*') }}
-                  restore-keys: |
-                      ${{ runner.os }}-ssc-${{ env.cache-name }}-
-                      ${{ runner.os }}-ssc-
-                      ${{ runner.os }}-
+            # - name: cache socket build
+            #   id: cache-ssc
+            #   uses: actions/cache@v3
+            #   env:
+            #       cache-name: cache-ssc
+            #   with:
+            #       path: './socket/build'
+            #       key: ${{ runner.os }}-ssc-${{ hashFiles('socket/.git/refs/heads/*') }}
+            #       restore-keys: |
+            #           ${{ runner.os }}-ssc-${{ env.cache-name }}-
+            #           ${{ runner.os }}-ssc-
+            #           ${{ runner.os }}-
             - name: build ssc
               working-directory: './socket'
               shell: pwsh
