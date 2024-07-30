@@ -5,7 +5,7 @@ on:
         types: [published]
 
 env:
-    SSC_REPO: 'socketsupply'
+    SSC_REPO: 'socketsupply/socket'
     SSC_BRANCH: 'rc'
     APP_NAME: 'substream'
 
