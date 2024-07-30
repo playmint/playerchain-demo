@@ -111,8 +111,13 @@ jobs:
                       ${{ runner.os }}-
             - name: build ssc
               working-directory: './socket'
+              shell: pwsh
               run: |
                   ./bin/install.ps1 -verbose -yesdeps
+            - name: ssc env
+              working-directory: './socket'
+              shell: pwsh
+              run: |
                   echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
                   echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
               env:
