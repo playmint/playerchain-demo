@@ -5,7 +5,8 @@ on:
         types: [published]
 
 env:
-    SSC_BRANCH: 'playmint-next'
+    SSC_REPO: 'socketsupply'
+    SSC_BRANCH: 'rc'
     APP_NAME: 'substream'
 
 permissions:
@@ -21,7 +22,7 @@ jobs:
             - name: checkout socket
               uses: actions/checkout@v3
               with:
-                  repository: 'playmint/socket'
+                  repository: ${{ env.SSC_REPO }}
                   ref: '${{ env.SSC_BRANCH }}'
                   path: 'socket'
             - name: install node
@@ -86,7 +87,7 @@ jobs:
             - name: checkout socket
               uses: actions/checkout@v3
               with:
-                  repository: 'playmint/socket'
+                  repository: ${{ env.SSC_REPO }}
                   ref: '${{ env.SSC_BRANCH }}'
                   path: 'socket'
             - name: install node
@@ -114,6 +115,10 @@ jobs:
               shell: pwsh
               run: |
                   ./bin/install.ps1 -verbose -yesdeps
+              env:
+                  NO_ANDROID: '1'
+                  SSC_ANDROID_CI: 'false'
+                  CI: 'true'
             - name: ssc env
               working-directory: './socket'
               shell: pwsh
