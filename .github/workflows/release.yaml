@@ -112,7 +112,7 @@ jobs:
             - name: build ssc
               working-directory: './socket'
               run: |
-                  ./bin/install.ps1 -verbose
+                  yes | ./bin/install.ps1 -verbose
                   echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
                   echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
               env:
