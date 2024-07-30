@@ -97,9 +97,6 @@ jobs:
               uses: pnpm/action-setup@v4
               with:
                   version: 9
-            - name: install deps
-              run: |
-                  brew install automake pnpm libtool
             - name: cache socket build
               id: cache-ssc
               uses: actions/cache@v3
