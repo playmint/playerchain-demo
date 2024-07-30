@@ -12,7 +12,7 @@ permissions:
 
 jobs:
     mac_build:
-        name: macOS build
+        name: macos build
         runs-on: macOS-14
         timeout-minutes: 30
 
@@ -75,3 +75,57 @@ jobs:
                   asset_path: './app/build/mac/substream.zip'
                   asset_name: 'substream-macos-arm64.zip'
                   asset_content_type: 'application/zip'
+
+    win_build:
+        name: windows build
+        runs-on: windows-2022
+        timeout-minutes: 30
+
+        steps:
+            - name: checkout socket
+              uses: actions/checkout@v3
+              with:
+                  repository: 'playmint/socket'
+                  ref: '${{ env.SSC_BRANCH }}'
+                  path: 'socket'
+            - name: install node
+              uses: actions/setup-node@v3.6.0
+              with:
+                  node-version: 20.x
+            - name: cache socket build
+              id: cache-ssc
+              uses: actions/cache@v3
+              env:
+                  cache-name: cache-ssc
+              with:
+                  path: './socket/build'
+                  key: ${{ runner.os }}-ssc-${{ hashFiles('socket/.git/refs/heads/${{ env.SSC_BRANCH }}') }}
+                  restore-keys: |
+                      ${{ runner.os }}-ssc-${{ env.cache-name }}-
+                      ${{ runner.os }}-ssc-
+                      ${{ runner.os }}-
+            - name: build ssc
+              working-directory: './socket'
+              run: |
+                  ./bin/install.ps1 -verbose
+                  echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
+                  echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
+                  ./bin/ci_version_check.ps1
+              env:
+                  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+            - name: build app
+              working-directory: './app'
+              run: |
+                  ssc --version
+                  pnpm install
+                  pnpm run build
+                  ls build/**/*
+            - name: Upload Release Asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: '${{ github.event.release.upload_url }}'
+                  asset_path: './app/build/win/substream.appx'
+                  asset_name: 'substream-win-amd64.appx'
+                  asset_content_type: 'application/appx'
