@@ -97,6 +97,9 @@ jobs:
               uses: pnpm/action-setup@v4
               with:
                   version: 9
+            - name: install deps
+              run: |
+                  brew install automake pnpm libtool
             - name: cache socket build
               id: cache-ssc
               uses: actions/cache@v3
@@ -112,7 +115,7 @@ jobs:
             - name: build ssc
               working-directory: './socket'
               run: |
-                  yes | ./bin/install.ps1 -verbose
+                  ./bin/install.ps1 -verbose -yesdeps
                   echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
                   echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
               env:
