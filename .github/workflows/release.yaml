@@ -14,7 +14,6 @@ jobs:
     mac_build:
         name: macOS build
         runs-on: macOS-14
-        needs: [create_release]
         timeout-minutes: 30
 
         steps:
