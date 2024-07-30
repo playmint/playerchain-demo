@@ -28,7 +28,7 @@ jobs:
                   node-version: 20.x
             - name: install deps
               run: |
-                  brew install automake pnpm
+                  brew install automake pnpm libtool
             - name: build ssc
               working-directory: './socket'
               run: |
