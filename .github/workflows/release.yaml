@@ -17,7 +17,6 @@ jobs:
         name: macos build
         runs-on: macOS-14
         timeout-minutes: 30
-
         steps:
             - name: checkout socket
               uses: actions/checkout@v3
@@ -77,11 +76,71 @@ jobs:
                   asset_name: '${{ env.APP_NAME }}-macos-arm64.zip'
                   asset_content_type: 'application/zip'
 
+    linux_build:
+        name: linux build
+        timeout-minutes: 30
+        steps:
+            - name: checkout socket
+              uses: actions/checkout@v3
+              with:
+                  repository: ${{ env.SSC_REPO }}
+                  ref: '${{ env.SSC_BRANCH }}'
+            - name: install node
+              uses: actions/setup-node@v3.6.0
+              with:
+                  node-version: 20.x
+            - name: install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - name: cache socket build
+              id: cache-ssc
+              uses: actions/cache@v3
+              env:
+                  cache-name: cache-ssc
+              with:
+                  path: './socket/build'
+                  key: ${{ runner.os }}-ssc-${{ hashFiles('socket/.git/refs/heads/*') }}
+                  restore-keys: |
+                      ${{ runner.os }}-ssc-${{ env.cache-name }}-
+                      ${{ runner.os }}-ssc-
+                      ${{ runner.os }}-
+            - name: build ssc
+              working-directory: './socket'
+              run: |
+                  ./bin/install.sh
+              env:
+                  VERBOSE: '1'
+                  NO_ANDROID: '1'
+                  NO_IOS: '1'
+                  CI: 'true'
+                  SSC_ANDROID_CI: 'false'
+            - name: checkout app
+              uses: actions/checkout@v3
+              with:
+                  ref: '${{ github.event.release.target_commitish }}'
+                  path: './app'
+            - name: build app
+              working-directory: './app'
+              run: |
+                  ssc --version
+                  pnpm install
+                  pnpm run build
+                  ls build/**/*
+            - name: Upload Release Asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: '${{ github.event.release.upload_url }}'
+                  asset_path: './app/build/linux/${{ env.APP_NAME }}.zip'
+                  asset_name: '${{ env.APP_NAME }}-linux-x64.zip'
+                  asset_content_type: 'application/zip'
+
     win_build:
         name: windows build
         runs-on: windows-2022
         timeout-minutes: 30
-
         steps:
             - name: checkout socket
               uses: actions/checkout@v3
@@ -97,9 +156,9 @@ jobs:
               uses: pnpm/action-setup@v4
               with:
                   version: 9
-            - uses: fbactions/setup-winsdk@v2
-              with:
-                  winsdk-build-version: 22621
+            ##############################
+            # disabled as ssc build  fails ... wait til 0.6 released
+            ###################################
             # - name: cache socket build
             #   id: cache-ssc
             #   uses: actions/cache@v3
@@ -112,37 +171,37 @@ jobs:
             #           ${{ runner.os }}-ssc-${{ env.cache-name }}-
             #           ${{ runner.os }}-ssc-
             #           ${{ runner.os }}-
-            - name: build ssc
-              working-directory: './socket'
-              shell: pwsh
-              run: |
-                  ./bin/install.ps1 -verbose -yesdeps
-              env:
-                  NO_ANDROID: '1'
-                  SSC_ANDROID_CI: 'false'
-                  CI: 'true'
-                  WindowsSDKVersion: '10.0.22621.0'
-            - name: ssc env
-              working-directory: './socket'
-              shell: pwsh
-              run: |
-                  echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
-                  echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
-              env:
-                  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-            - name: build app
-              working-directory: './app'
-              run: |
-                  ssc --version
-                  pnpm install
-                  pnpm run build
-                  ls build/**/*
-            - name: Upload Release Asset
-              uses: actions/upload-release-asset@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  upload_url: '${{ github.event.release.upload_url }}'
-                  asset_path: './app/build/win/${{ env.APP_NAME }}.appx'
-                  asset_name: '${{ env.APP_NAME }}-win-x64.appx'
-                  asset_content_type: 'application/appx'
+            # - name: build ssc
+            #   working-directory: './socket'
+            #   shell: pwsh
+            #   run: |
+            #       ./bin/install.ps1 -verbose -yesdeps
+            #   env:
+            #       NO_ANDROID: '1'
+            #       SSC_ANDROID_CI: 'false'
+            #       CI: 'true'
+            #       WindowsSDKVersion: '10.0.22621.0'
+            # - name: ssc env
+            #   working-directory: './socket'
+            #   shell: pwsh
+            #   run: |
+            #       echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
+            #       echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
+            #   env:
+            #       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+            # - name: build app
+            #   working-directory: './app'
+            #   run: |
+            #       ssc --version
+            #       pnpm install
+            #       pnpm run build
+            #       ls build/**/*
+            # - name: Upload Release Asset
+            #   uses: actions/upload-release-asset@v1
+            #   env:
+            #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            #   with:
+            #       upload_url: '${{ github.event.release.upload_url }}'
+            #       asset_path: './app/build/win/${{ env.APP_NAME }}.appx'
+            #       asset_name: '${{ env.APP_NAME }}-win-x64.appx'
+            #       asset_content_type: 'application/appx'
