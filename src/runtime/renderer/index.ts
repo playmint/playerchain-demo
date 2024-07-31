@@ -1,3 +1,5 @@
+import { doc } from 'prettier';
+import { text } from 'socket:mime';
 import {
     AudioListener,
     AudioLoader,
@@ -16,7 +18,10 @@ import {
 } from 'three';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { createGameUI, substreamUISystem } from '../../substream/UISystem';
 import { substreamCameraSystem } from '../../substream/cameraSystem';
+import { label, substreamLabelSystem } from '../../substream/labelSystem';
 import { Store } from '../store';
 
 export class Renderer {
@@ -24,15 +29,20 @@ export class Renderer {
     private updateStore = new Store();
     private renderStore = new Store();
     private camera!: PerspectiveCamera;
+    private uiCreated: boolean = false;
     private listener!: AudioListener;
     private scene!: Scene;
     private renderer!: WebGLRenderer;
+    private labelRenderer!: CSS2DRenderer;
     private playerId!: Uint8Array;
     private cWidth!: number;
     private cHeight!: number;
     private clock = new Clock();
     private objectsInTheWorld = new Map();
+    private labelsInWorld = new Map();
+    private uiElementsInWorld = new Map();
     private assets: { ship?: GLTF; shipAudio?: AudioBuffer } = {};
+    private isMuted: boolean = false;
 
     constructor() {}
 
@@ -91,6 +101,13 @@ export class Renderer {
         this.renderer.setSize(this.cWidth, this.cHeight, false);
         console.log('init renderer');
 
+        this.labelRenderer = new CSS2DRenderer();
+        this.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.labelRenderer.domElement.style.position = 'absolute';
+        this.labelRenderer.domElement.style.top = '0px';
+        document.body.appendChild(this.labelRenderer.domElement);
+        console.log('init labelRenderer');
+
         const light = new DirectionalLight(0xffffff, 1);
         light.position.set(1, 1, 1).normalize();
         this.scene.add(light);
@@ -128,6 +145,13 @@ export class Renderer {
                 obj.rotation.z,
                 this.updateStore.entities[i].rotation,
                 20,
+                deltaTime,
+            );
+
+            obj.children[0].rotation.z = this.expDecay(
+                obj.children[0].rotation.z,
+                this.updateStore.entities[i].rollAngle,
+                4,
                 deltaTime,
             );
 
@@ -173,6 +197,12 @@ export class Renderer {
                 }
 
                 if (sound) {
+                    if (this.isMuted) {
+                        sound.stop();
+                    } else if (!sound.isPlaying) {
+                        sound.play();
+                    }
+
                     sound.setPlaybackRate(
                         this.updateStore.entities[i].audioPitch,
                     );
@@ -223,6 +253,67 @@ export class Renderer {
         }
     }
 
+    private labelSystem(deltaTime: number) {
+        for (let i = 0; i < this.renderStore.entities.length; i++) {
+            if (this.renderStore.entities[i].labelText == '') {
+                continue;
+            }
+
+            let labelElement = this.labelsInWorld.get(i);
+
+            if (!labelElement) {
+                const index = this.updateStore.entities.findIndex(
+                    (entity) =>
+                        entity.owner === this.renderStore.entities[i].owner,
+                );
+                const obj = this.objectsInTheWorld.get(index);
+
+                labelElement = new label();
+                labelElement.labelText = this.renderStore.entities[i].labelText;
+                labelElement.textColor =
+                    this.renderStore.entities[i].owner == this.playerId
+                        ? 'yellow'
+                        : 'white';
+
+                labelElement.getUIElement();
+                obj.add(labelElement.css2dObject);
+
+                this.labelsInWorld.set(i, labelElement);
+                console.log(
+                    'added label: ',
+                    this.renderStore.entities[i].labelText,
+                    ', to obj: ',
+                    index,
+                );
+            }
+        }
+    }
+
+    private uiSystem() {
+        if (!this.uiCreated) {
+            createGameUI(this.renderStore);
+            this.uiCreated = true;
+        }
+        for (let i = 0; i < this.renderStore.entities.length; i++) {
+            if (!this.renderStore.entities[i].isUI) {
+                continue;
+            }
+
+            let uiElement = this.uiElementsInWorld.get(i);
+            if (!uiElement) {
+                uiElement = this.renderStore.entities[i].UIElement;
+                uiElement.getUIElement();
+                this.uiElementsInWorld.set(i, uiElement);
+                console.log('added uiElement to scene');
+            }
+        }
+    }
+
+    public toggleMute() {
+        this.isMuted = !this.isMuted;
+        console.log('toggled mute: ', this.isMuted);
+    }
+
     private render() {
         try {
             const deltaTime = this.clock.getDelta();
@@ -240,8 +331,27 @@ export class Renderer {
 
             this.audioSystem(deltaTime);
 
+            substreamLabelSystem(
+                this.updateStore,
+                this.renderStore,
+                this.playerId,
+                deltaTime,
+            );
+            this.labelSystem(deltaTime);
+
+            substreamUISystem(
+                this.updateStore,
+                this.renderStore,
+                this.playerId,
+                this,
+                deltaTime,
+            );
+
+            this.uiSystem();
+
             if (this.camera) {
                 this.renderer.render(this.scene, this.camera);
+                this.labelRenderer.render(this.scene, this.camera); // render labels on top of the main scene
             }
         } catch (e) {
             console.error('render error: ', e);

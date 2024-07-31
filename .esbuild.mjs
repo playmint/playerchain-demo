@@ -26,6 +26,7 @@ async function build() {
     // include the html file
     fs.copyFileSync('./src/index.html', path.join(target, 'index.html'));
     fs.copyFileSync('./src/player.html', path.join(target, 'player.html'));
+    fs.copyFileSync('./src/UIStyles.css', path.join(target, 'UIStyles.css'));
 
     // copy the static assets
     fs.cpSync('./assets', path.join(target, 'assets'), {

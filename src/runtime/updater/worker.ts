@@ -72,6 +72,7 @@ function init({
                         ship.owner = peerId;
                         ship.color = 0x00ff00;
                         ship.playAudio = true;
+                        ship.labelText = peerId.toString().substring(0, 6);
                     }
                 }
             }
