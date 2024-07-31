@@ -29,6 +29,7 @@ export class Renderer {
     private updateStore = new Store();
     private renderStore = new Store();
     private camera!: PerspectiveCamera;
+    private uiCreated: boolean = false;
     private listener!: AudioListener;
     private scene!: Scene;
     private renderer!: WebGLRenderer;
@@ -117,9 +118,6 @@ export class Renderer {
         );
         grid.position.z = -1;
         this.scene.add(grid);
-
-        // Add UI:
-        createGameUI(this.renderStore);
 
         this.render();
     }
@@ -292,6 +290,10 @@ export class Renderer {
     }
 
     private uiSystem() {
+        if (!this.uiCreated) {
+            createGameUI(this.renderStore);
+            this.uiCreated = true;
+        }
         for (let i = 0; i < this.renderStore.entities.length; i++) {
             if (!this.renderStore.entities[i].isUI) {
                 continue;
