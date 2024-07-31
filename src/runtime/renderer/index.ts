@@ -15,9 +15,9 @@ import {
     Scene,
     WebGLRenderer,
 } from 'three';
-import { AudioAssets, ModelAssets } from '../../substream/assetSystem';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { createGameUI, substreamUISystem } from '../../substream/UISystem';
+import { AudioAssets, ModelAssets } from '../../substream/assetSystem';
 import { substreamCameraSystem } from '../../substream/cameraSystem';
 import { label, substreamLabelSystem } from '../../substream/labelSystem';
 import { Store } from '../store';
@@ -38,6 +38,7 @@ export class Renderer {
     private clock = new Clock();
     private objectsInTheWorld = new Map();
     private labelsInWorld = new Map();
+    private uiElementsInWorld = new Map();
     private models!: ModelAssets;
     private audio!: AudioAssets;
     private isMuted: boolean = false;
@@ -143,8 +144,8 @@ export class Renderer {
                 deltaTime,
             );
 
-            obj.children[0].rotation.z = this.expDecay(
-                obj.children[0].rotation.z,
+            obj.children[0].rotation.x = this.expDecay(
+                obj.children[0].rotation.x,
                 this.updateStore.entities[i].rollAngle,
                 4,
                 deltaTime,

@@ -71,6 +71,7 @@ function init({
                         ship.owner = peerId;
                         ship.isShip = true;
                         ship.audioClip = 'thrusters';
+                        ship.model = 'ship';
                         ship.labelText = peerId.toString().substring(0, 6);
                     }
                 }
