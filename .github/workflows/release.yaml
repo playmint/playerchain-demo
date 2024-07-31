@@ -97,6 +97,9 @@ jobs:
               uses: pnpm/action-setup@v4
               with:
                   version: 9
+            - uses: fbactions/setup-winsdk@v2
+              with:
+                  winsdk-build-version: 22621
             # - name: cache socket build
             #   id: cache-ssc
             #   uses: actions/cache@v3
