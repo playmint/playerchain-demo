@@ -121,6 +121,7 @@ jobs:
                   NO_ANDROID: '1'
                   SSC_ANDROID_CI: 'false'
                   CI: 'true'
+                  WindowsSDKVersion: '10.0.20348.0'
             - name: ssc env
               working-directory: './socket'
               shell: pwsh
