@@ -18,6 +18,27 @@ jobs:
         runs-on: macOS-14
         timeout-minutes: 30
         steps:
+            - name: configure certs
+              env:
+                  BUILD_CERTIFICATE_BASE64: ${{ secrets.SUBSTREAM_APPLE_SIGNING_CERT }}
+                  KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+              run: |
+                  # create variables
+                  CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.cer
+                  KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+                  # import certificate and provisioning profile from secrets
+                  echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+                  # create temporary keychain
+                  security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+                  security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+                  security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+                  # import certificate to keychain
+                  security import $CERTIFICATE_PATH -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+                  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+                  security find-identity -v -p codesigning $KEYCHAIN_PATH
             - name: checkout socket
               uses: actions/checkout@v3
               with:
@@ -64,7 +85,7 @@ jobs:
               run: |
                   ssc --version
                   pnpm install
-                  pnpm run build
+                  pnpm run build:macos
                   ls build/**/*
             - name: Upload Release Asset
               uses: actions/upload-release-asset@v1

@@ -8,6 +8,7 @@
     },
     "scripts": {
         "build": "cross-env SSC_ENV=prod ssc build -o --prod -p",
+        "build:macos": "cross-env SSC_ENV=prod ssc build -o --prod -p -c",
         "dev": "cross-env SSC_ENV=dev ssc build --run",
         "test": "cross-env SSC_ENV=test ssc build --run --test tests/index.js --headless",
         "fix:eslint": "eslint --fix ./src",
