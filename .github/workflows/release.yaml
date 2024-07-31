@@ -20,19 +20,20 @@ jobs:
         steps:
             - name: configure certs
               env:
-                  DEVELOPER_CERTIFICATE_BASE64: ${{ secrets.SUBSTREAM_APPLE_SIGNING_CERT }}
+                  CERTIFICATE_BASE64: ${{ secrets.SUBSTREAM_APPLE_SIGNING_CERT }}
                   KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+                  P12_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
               run: |
                   # create variables
-                  CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.cer
+                  CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
                   KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
 
                   # import certificate and provisioning profile from secrets
-                  if [[ -z "$DEVELOPER_CERTIFICATE_BASE64" ]]; then
+                  if [[ -z "$CERTIFICATE_BASE64" ]]; then
                       echo "No certificate provided"
                       exit 1
                   fi
-                  echo -n "$DEVELOPER_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+                  echo -n "$CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
 
                   # create temporary keychain
                   if [[ -z "$KEYCHAIN_PASSWORD" ]]; then
@@ -44,7 +45,8 @@ jobs:
                   security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
                   # import certificate to keychain
-                  security import $CERTIFICATE_PATH -k $KEYCHAIN_PATH
+                  security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+                  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
                   security find-identity -v -p codesigning $KEYCHAIN_PATH
 
             - name: checkout socket
