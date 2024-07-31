@@ -13,8 +13,8 @@ permissions:
     contents: write
 
 jobs:
-    mac_build:
-        name: macos build
+    macos:
+        name: macos
         runs-on: macOS-14
         timeout-minutes: 30
         steps:
@@ -76,9 +76,10 @@ jobs:
                   asset_name: '${{ env.APP_NAME }}-macos-arm64.zip'
                   asset_content_type: 'application/zip'
 
-    linux_build:
-        name: linux build
+    linux:
+        name: linux
         timeout-minutes: 30
+        runs-on: ubuntu-22.04
         steps:
             - name: checkout socket
               uses: actions/checkout@v3
@@ -137,8 +138,8 @@ jobs:
                   asset_name: '${{ env.APP_NAME }}-linux-x64.zip'
                   asset_content_type: 'application/zip'
 
-    win_build:
-        name: windows build
+    windows:
+        name: windows
         runs-on: windows-2022
         timeout-minutes: 30
         steps:
