@@ -68,10 +68,9 @@ function init({
 
                         const ship = store.add();
                         ship.position.x = 0;
-                        ship.isSquare = true;
                         ship.owner = peerId;
-                        ship.color = 0x00ff00;
-                        ship.playAudio = true;
+                        ship.isShip = true;
+                        ship.audioClip = 'thrusters';
                         ship.labelText = peerId.toString().substring(0, 6);
                     }
                 }

@@ -35,6 +35,13 @@ async function build() {
         preserveTimestamps: true,
     });
 
+    // copy the static assets
+    fs.cpSync('./data', path.join(target, 'data'), {
+        recursive: true,
+        force: true,
+        preserveTimestamps: true,
+    });
+
     // copy any libraries that are needed at runtime from node_modules
     fs.cpSync(
         './node_modules/three/examples/jsm/libs',

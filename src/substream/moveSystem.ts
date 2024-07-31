@@ -2,12 +2,12 @@ import { Store } from '../runtime';
 
 export function moveSystem(store: Store) {
     const players = store.entities.filter((entity) => entity.isPlayer);
-    const squares = store.entities.filter((entity) => entity.isSquare);
+    const ships = store.entities.filter((entity) => entity.isShip);
 
     const accelSpeed = 0.3;
     const rotationSpeed = Math.PI / 10;
 
-    squares.forEach((square) => {
+    ships.forEach((square) => {
         players.forEach((player) => {
             if (square.owner === player.playerId) {
                 let accel = 0;

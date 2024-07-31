@@ -12,14 +12,14 @@ export function substreamCameraSystem(
     deltaTime: number,
 ) {
     //console.log('entities: ', store.entities);
-    const ship = updateStore.entities.find(
-        (entity) => entity.isSquare && entity.owner === peerId,
+    const playerShip = updateStore.entities.find(
+        (entity) => entity.isShip && entity.owner === peerId,
     );
     let camera = renderStore.entities
         .filter((entity) => entity.isCamera)
         .find(() => true);
 
-    if (!ship) {
+    if (!playerShip) {
         return;
     }
 
@@ -29,10 +29,14 @@ export function substreamCameraSystem(
         console.log('added camera');
     }
 
-    camera.position.x = ship.position.x;
-    camera.position.y = ship.position.y;
+    const lookAhead = 1; //  Set to 1 to center player in screen. >1 to look ahead. <1 to lag behind.
 
-    const vec = new Vector2(ship.velocity.x, ship.velocity.y);
+    camera.position.x =
+        playerShip.position.x + playerShip.velocity.x * lookAhead;
+    camera.position.y =
+        playerShip.position.y + playerShip.velocity.y * lookAhead;
+
+    const vec = new Vector2(playerShip.velocity.x, playerShip.velocity.y);
     camera.position.z = expDecay(
         camera.position.z,
         Math.min(100 + vec.length() * 2, 130),
