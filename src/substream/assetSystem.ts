@@ -28,10 +28,16 @@ export class ModelAssets {
         dracoLoader.setDecoderPath('/libs/draco/');
         loader.setDRACOLoader(dracoLoader);
 
-        this.modelCollection.models.forEach(async (model) => {
-            model.gltf = await loader.loadAsync(model.path);
-            model.gltf.scene.scale.set(model.scale, model.scale, model.scale);
-        });
+        await Promise.all(
+            this.modelCollection.models.map(async (model) => {
+                model.gltf = await loader.loadAsync(model.path);
+                model.gltf.scene.scale.set(
+                    model.scale,
+                    model.scale,
+                    model.scale,
+                );
+            }),
+        );
 
         console.log('models ready');
     }
@@ -68,9 +74,11 @@ export class AudioAssets {
         ) as AudioCollection;
 
         const loader = new AudioLoader();
-        this.audioCollection.audioClips.forEach(async (audio) => {
-            audio.clip = await loader.loadAsync(audio.path);
-        });
+        await Promise.all(
+            this.audioCollection.audioClips.map(async (audio) => {
+                audio.clip = await loader.loadAsync(audio.path);
+            }),
+        );
 
         console.log('audio clips loaded');
     }
