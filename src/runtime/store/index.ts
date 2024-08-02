@@ -6,17 +6,20 @@ export class Entity {
     velocity = { x: 0, y: 0 };
     rotation = 0;
     rollAngle = 0;
-    color = 0xffffff;
+
+    model: string = '';
+    audioClip: string = '';
+    audioPitch = 1;
+
     owner: string = '';
-    isPlayer = false;
     playerId: string = '';
-    isSquare = false;
+    isPlayer = false;
     isCamera = false;
     isUI = false;
     UIElement!: uiElement;
 
-    playAudio = false;
-    audioPitch = 1;
+    isShip = false;
+
     labelText: string = '';
 
     actions = {

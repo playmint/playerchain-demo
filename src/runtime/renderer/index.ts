@@ -2,7 +2,6 @@ import { doc } from 'prettier';
 import { text } from 'socket:mime';
 import {
     AudioListener,
-    AudioLoader,
     Clock,
     Color,
     DirectionalLight,
@@ -16,10 +15,9 @@ import {
     Scene,
     WebGLRenderer,
 } from 'three';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { createGameUI, substreamUISystem } from '../../substream/UISystem';
+import { AudioAssets, ModelAssets } from '../../substream/assetSystem';
 import { substreamCameraSystem } from '../../substream/cameraSystem';
 import { label, substreamLabelSystem } from '../../substream/labelSystem';
 import { Store } from '../store';
@@ -41,7 +39,8 @@ export class Renderer {
     private objectsInTheWorld = new Map();
     private labelsInWorld = new Map();
     private uiElementsInWorld = new Map();
-    private assets: { ship?: GLTF; shipAudio?: AudioBuffer } = {};
+    private models!: ModelAssets;
+    private audio!: AudioAssets;
     private isMuted: boolean = false;
 
     constructor() {}
@@ -78,19 +77,11 @@ export class Renderer {
         };
 
         // load assets
-        console.log('loading assets');
-        const loader = new GLTFLoader();
-        const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('/libs/draco/');
-        loader.setDRACOLoader(dracoLoader);
+        this.models = new ModelAssets();
+        await this.models.loadModels();
 
-        this.assets.ship = await loader.loadAsync('/assets/ship.glb');
-        this.assets.ship.scene.rotation.x = Math.PI / 2;
-        this.assets.ship.scene.rotation.y = Math.PI / -2;
-        console.log('assets ready');
-
-        const audioLoader = new AudioLoader();
-        this.assets.shipAudio = await audioLoader.loadAsync('/assets/ufo.mp3');
+        this.audio = new AudioAssets();
+        await this.audio.loadAudio();
 
         this.scene = new Scene();
         this.scene.fog = new Fog(0x444466, 100, 400);
@@ -128,14 +119,19 @@ export class Renderer {
 
     private objectSystem(deltaTime: number) {
         for (let i = 0; i < this.updateStore.entities.length; i++) {
-            if (!this.updateStore.entities[i].isSquare) {
+            if (!this.updateStore.entities[i].isShip) {
                 continue;
             }
 
             let obj = this.objectsInTheWorld.get(i);
             if (!obj) {
                 obj = new Object3D();
-                obj.add(this.assets.ship!.scene.clone());
+                const model = this.models.getModelClone(
+                    this.updateStore.entities[i].model,
+                );
+                if (model) {
+                    obj.attach(model);
+                }
                 this.scene.add(obj);
                 this.objectsInTheWorld.set(i, obj);
                 console.log('added obj to scene');
@@ -148,8 +144,8 @@ export class Renderer {
                 deltaTime,
             );
 
-            obj.children[0].rotation.z = this.expDecay(
-                obj.children[0].rotation.z,
+            obj.children[0].rotation.x = this.expDecay(
+                obj.children[0].rotation.x,
                 this.updateStore.entities[i].rollAngle,
                 4,
                 deltaTime,
@@ -180,17 +176,18 @@ export class Renderer {
     private audioSystem(deltaTime: number) {
         for (let i = 0; i < this.updateStore.entities.length; i++) {
             const obj = this.objectsInTheWorld.get(i);
-            if (obj && this.updateStore.entities[i].playAudio) {
+            if (obj && this.updateStore.entities[i].audioClip != '') {
                 let sound = obj?.getObjectByName(
-                    'shipAudio',
+                    this.updateStore.entities[i].audioClip,
                 ) as PositionalAudio;
                 if (!sound) {
-                    sound = new PositionalAudio(this.listener);
-                    sound.setBuffer(this.assets.shipAudio!);
-                    sound.setRefDistance(10);
-                    sound.setLoop(true);
-                    sound.setVolume(0.5);
-                    sound.name = 'shipAudio';
+                    const clip = this.audio.getAudio(
+                        this.updateStore.entities[i].audioClip,
+                        this.listener,
+                    );
+                    if (clip) {
+                        sound = clip;
+                    }
                     obj.add(sound);
                     sound.play();
                     console.log('added audio to obj');
