@@ -1,7 +1,7 @@
 import Buffer from 'socket:buffer';
 
 // map of peerId to actions
-export type PeerId = Uint8Array;
+export type PeerId = string; //Uint8Array;
 
 export interface Channel {
     name: string;
@@ -18,6 +18,7 @@ export interface Input {
     back: boolean;
     left: boolean;
     right: boolean;
+    fire: boolean;
 }
 
 export interface InputPacket {
