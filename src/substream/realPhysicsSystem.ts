@@ -80,10 +80,12 @@ export class RealPhysicsSystem {
         const physicsEntities = store.entities.filter(
             (entity) => entity.physics !== undefined,
         );
-
+        const date = new Date();
         // Do physics manipulation (add bodies, apply forces, etc)
         for (let i = 0; i < physicsEntities.length; i++) {
             const entity = physicsEntities[i];
+
+            entity.lastUpdated = date.getTime();
 
             let rigidBody: RigidBody | undefined = undefined;
 
@@ -160,6 +162,9 @@ export class RealPhysicsSystem {
         for (let s = 0; s < STEPS_PER_ROUND; s++) {
             for (let i = 0; i < physicsEntities.length; i++) {
                 const entity = physicsEntities[i];
+
+                entity.prevPosition.x = entity.position.x;
+                entity.prevPosition.y = entity.position.y;
 
                 if (entity.physics!.rigidBody.kind === RigidBodyKind.None) {
                     continue;

@@ -129,6 +129,9 @@ export class Renderer {
         // });
         // this.objectsInTheWorld.clear();
 
+        const date = new Date();
+        const currentTime = date.getTime();
+
         for (let i = 0; i < this.updateStore.entities.length; i++) {
             const entity = this.updateStore.entities[i];
             if (entity.renderer === undefined) {
@@ -202,25 +205,21 @@ export class Renderer {
                     deltaTime,
                 );
 
-                const decay = 6;
-                obj.position.x = this.expDecay(
-                    obj.position.x,
-                    entity.position.x,
-                    decay,
-                    deltaTime,
-                );
-                obj.position.y = this.expDecay(
-                    obj.position.y,
-                    entity.position.y,
-                    decay,
-                    deltaTime,
-                );
-                obj.position.z = this.expDecay(
-                    obj.position.z,
-                    entity.position.z,
-                    decay,
-                    deltaTime,
-                );
+                const timeSinceLastUpdate =
+                    (currentTime - entity.lastUpdated) / 67; // 67ms is the general update rate
+
+                obj.position.x =
+                    entity.prevPosition.x +
+                    timeSinceLastUpdate *
+                        (entity.position.x - entity.prevPosition.x);
+                obj.position.y =
+                    entity.prevPosition.y +
+                    timeSinceLastUpdate *
+                        (entity.position.y - entity.prevPosition.y);
+                obj.position.z =
+                    entity.prevPosition.z +
+                    timeSinceLastUpdate *
+                        (entity.position.z - entity.prevPosition.z);
             } else {
                 obj.position.x = entity.position.x;
                 obj.position.y = entity.position.y;

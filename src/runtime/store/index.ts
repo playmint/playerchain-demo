@@ -3,6 +3,8 @@ import { uiElement } from '../../substream/UISystem';
 export class Entity {
     id = -1;
     position = { x: 0, y: 0, z: 0 };
+    prevPosition = { x: 0, y: 0, z: 0 };
+    lastUpdated = 0;
     velocity = { x: 0, y: 0 };
     force = { x: 0, y: 0 };
     rotation = 0;
