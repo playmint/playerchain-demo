@@ -54,7 +54,7 @@ export class Updater {
                 console.log('Execution failed:', vm.dump(result.error));
                 result.error.dispose();
             } else {
-                // console.log('Success:', vm.dump(result.value));
+                renderPort.postMessage(vm.dump(result.value));
                 result.value.dispose();
             }
         };

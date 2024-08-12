@@ -1,10 +1,13 @@
 import { Store } from '../runtime';
 
 export function physicsSystem(store: Store) {
-    const squares = store.entities.filter((entity) => entity.isShip);
+    const ships = store.entities.filter((entity) => entity.isShip);
 
-    squares.forEach((square) => {
-        square.position.x += square.velocity.x;
-        square.position.y += square.velocity.y;
+    ships.forEach((ship) => {
+        ship.prevPosition.x = ship.position.x;
+        ship.prevPosition.y = ship.position.y;
+
+        ship.position.x += ship.velocity.x;
+        ship.position.y += ship.velocity.y;
     });
 }

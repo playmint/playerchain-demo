@@ -25,7 +25,7 @@ import { substreamCameraSystem } from '../../substream/cameraSystem';
 import { label, substreamLabelSystem } from '../../substream/labelSystem';
 import { GeometryKind, Store } from '../store';
 
-const ENABLE_LERP = true;
+const ENABLE_LERP = false;
 
 export class Renderer {
     private rendererCh!: MessagePort;
@@ -140,13 +140,17 @@ export class Renderer {
 
             let obj = this.objectsInTheWorld.get(entity.id);
             if (!obj) {
+                console.log('creating new object for entity: ', entity.id);
                 obj = new Object3D();
                 if (entity.isShip) {
+                    console.log('creating ship');
                     const model = this.models.getModelClone(
                         this.updateStore.entities[i].model,
                     );
                     if (model) {
                         obj.attach(model);
+                    } else {
+                        console.error('model not found: ', entity.model);
                     }
                 } else {
                     const geometry =
