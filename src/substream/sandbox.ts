@@ -3,6 +3,7 @@ import { fakeSystem } from './fakeSystem';
 
 function update(actionsByRoundJSON?: string) {
     if (!actionsByRoundJSON) {
+        console.log('actionsByRoundJSON is undefined');
         return;
     }
 

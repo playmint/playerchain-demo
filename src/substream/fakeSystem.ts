@@ -4,5 +4,6 @@ let counter = 0;
 
 export function fakeSystem(actionsByRound: InputPacket[][]) {
     counter++;
+    // console.log('fakeSystem called', counter);
     return counter;
 }
