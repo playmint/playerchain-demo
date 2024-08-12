@@ -47,6 +47,7 @@
     },
     "dependencies": {
         "@dimforge/rapier2d-compat": "^0.13.1",
+        "quickjs-emscripten": "^0.29.2",
         "three": "0.166.0"
     }
 }

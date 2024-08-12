@@ -23,6 +23,15 @@ async function build() {
         logLevel: 'debug',
     };
 
+    // build the sandbox
+    const sandboxBuildRuntime = await esbuild.context({
+        ...options,
+        entryPoints: ['./src/substream/sandbox.ts'],
+    });
+    await sandboxBuildRuntime.rebuild();
+
+    // fs.copyFileSync('./src/sandbox.js', path.join(target, 'sandbox.js'));
+
     // include the html file
     fs.copyFileSync('./src/index.html', path.join(target, 'index.html'));
     fs.copyFileSync('./src/player.html', path.join(target, 'player.html'));
@@ -46,6 +55,16 @@ async function build() {
     fs.cpSync(
         './node_modules/three/examples/jsm/libs',
         path.join(target, 'libs'),
+        {
+            recursive: true,
+            force: true,
+        },
+    );
+
+    // copy quickJS wasm module
+    fs.cpSync(
+        'node_modules/.pnpm/@jitl+quickjs-wasmfile-release-sync@0.29.2/node_modules/@jitl/quickjs-wasmfile-release-sync/dist',
+        path.join(target),
         {
             recursive: true,
             force: true,
