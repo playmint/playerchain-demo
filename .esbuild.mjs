@@ -25,12 +25,16 @@ async function build() {
 
     // build the sandbox
     const sandboxBuildRuntime = await esbuild.context({
-        ...options,
-        entryPoints: ['./src/substream/sandbox.ts'],
+        outdir: path.join(target, 'sandbox'),
+        format: 'esm',
+        bundle: true,
+        minify: false,
+        sourcemap: false,
+        external: ['socket:*'],
+        logLevel: 'debug',
+        entryPoints: ['./src/substream/sandbox/index.ts'],
     });
     await sandboxBuildRuntime.rebuild();
-
-    // fs.copyFileSync('./src/sandbox.js', path.join(target, 'sandbox.js'));
 
     // include the html file
     fs.copyFileSync('./src/index.html', path.join(target, 'index.html'));

@@ -1,30 +1,22 @@
-import { InputPacket } from '../runtime/network/types';
-import { RigidBodyKind, Store } from '../runtime/store';
-import { moveSystem } from './moveSystem';
-import { physicsSystem } from './physicsSystem';
-import { shipAudioSystem } from './shipAudioSystem';
+import { InputPacket } from '../../runtime/network/types';
+import { RigidBodyKind, Store } from '../../runtime/store';
+import { bulletSystem } from '../bulletSystem';
+import { moveSystem } from '../moveSystem';
+import { physicsSystem } from '../physicsSystem';
+import { shipAudioSystem } from '../shipAudioSystem';
 
+const MAX_ROLLBACK_ROUNDS = 100;
 let store = new Store();
-const storeHistory: Store[] = [];
-let lastRoundProcessed;
+const storeHistory: Store[] = new Array(MAX_ROLLBACK_ROUNDS);
+let lastRoundProcessed: number = 0;
 
-function update(actionsByRoundJSON?: string) {
-    if (!actionsByRoundJSON) {
-        console.log('actionsByRoundJSON is undefined');
-        return;
-    }
-
-    const actionsByRound = JSON.parse(actionsByRoundJSON) as InputPacket[][];
-    return _update(actionsByRound);
-}
-
-function _update(actionsByRound: InputPacket[][]) {
+function update(actionsByRound: InputPacket[][]) {
     if (actionsByRound[0][0].round <= lastRoundProcessed) {
-        // console.log(
-        //     `rolling back to round: ${actionsByRound[0][0].round - 1}`,
-        // );
         const numReplaying =
             lastRoundProcessed - actionsByRound[0][0].round + 1;
+        // console.log(
+        //     `rolling back to round: ${actionsByRound[0][0].round - 1} numReplaying: ${numReplaying}`,
+        // );
         if (numReplaying > 5) {
             // warn if we are above some threshold of replays as we want to keep this low
             console.warn(`replaying ${numReplaying} rounds`);
@@ -33,7 +25,10 @@ function _update(actionsByRound: InputPacket[][]) {
             store = new Store();
         } else {
             // Go back in history
-            store = storeHistory[actionsByRound[0][0].round - 1];
+            store =
+                storeHistory[
+                    (actionsByRound[0][0].round - 1) % MAX_ROLLBACK_ROUNDS
+                ];
 
             if (!store) {
                 console.warn('store not found in history');
@@ -66,13 +61,6 @@ function _update(actionsByRound: InputPacket[][]) {
                     ship.audioClip = 'thrusters';
                     ship.model = 'ship';
                     ship.labelText = peerId.toString().substring(0, 6);
-
-                    // HACK: So ships don't spawn on top of each other
-                    ship.position.y =
-                        peerId.toString() ==
-                        'a2e1d7d5effc6313d8c35a1fa1695205f8c932ef57080d803a1675d7b09f7d17'
-                            ? 20
-                            : -20;
 
                     ship.physics = {
                         rigidBody: {
@@ -118,16 +106,20 @@ function _update(actionsByRound: InputPacket[][]) {
         // Execute systems
         moveSystem(store, roundNum);
         physicsSystem(store);
+        bulletSystem(store);
         shipAudioSystem(store);
 
+        // NOTE: BOTTLENECK
         //backup here
-        storeHistory[actions[0].round] = Store.from([
-            ...JSON.parse(JSON.stringify(store.entities)), // lazy deep copy as we don't have structureClone
-        ]);
+        // storeHistory[actions[0].round % MAX_ROLLBACK_ROUNDS] = Store.from([
+        //     ...JSON.parse(JSON.stringify(store.entities)), // lazy deep copy as we don't have structureClone
+        // ]);
         lastRoundProcessed = roundNum;
     });
 
     return store.entities;
 }
 
-update();
+// Referencing update so the compiler/bundler doesn't optimise the function away. Export keyword only works with modules and I had
+// trouble gettting quickJS's module support to work.
+console.log(update);

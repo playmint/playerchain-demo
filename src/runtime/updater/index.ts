@@ -4,6 +4,8 @@ import { InputPacket } from '../network/types';
 export class Updater {
     constructor() {}
 
+    public prevEntities: any;
+
     static async create({
         renderPort,
         updaterPort,
@@ -15,23 +17,33 @@ export class Updater {
 
         console.log('Creating QuickJS context');
 
-        const sandbox = await (await fetch('/sandbox.js')).text();
+        const sandboxBundle = await (await fetch('/sandbox/index.js')).text();
 
         const QuickJS = await getQuickJS();
-        const vm = QuickJS.newContext();
+        const runtime = QuickJS.newRuntime();
+        const vm = runtime.newContext();
 
         const consoleHandle = this.getConsoleHandle(vm);
         vm.setProp(vm.global, 'console', consoleHandle);
+        consoleHandle.dispose();
 
-        const sandboxInitResult = vm.evalCode(sandbox, 'sandbox.js');
+        const sandboxInitResult = vm.evalCode(sandboxBundle, 'index.js');
 
         if (sandboxInitResult.error) {
-            console.log('Execution failed:', vm.dump(sandboxInitResult.error));
+            console.log(
+                'Bundle eval failed:',
+                vm.dump(sandboxInitResult.error),
+            );
             sandboxInitResult.error.dispose();
         } else {
-            console.log('Success:', vm.dump(sandboxInitResult.value));
+            console.log(
+                'Bundle eval Success:',
+                vm.dump(sandboxInitResult.value),
+            );
             sandboxInitResult.value.dispose();
         }
+
+        let _prevEntities: any;
 
         updaterPort.onmessage = ({
             data: actionsByRound,
@@ -47,19 +59,34 @@ export class Updater {
                 return;
             }
 
-            const actionsByRoundJSON = JSON.stringify(actionsByRound);
-            const result = vm.evalCode(`update('${actionsByRoundJSON}');`);
+            console.time('updateLogic');
+
+            console.time('evalCode');
+            const result = vm.evalCode(
+                `update(${JSON.stringify(actionsByRound)});`,
+            );
+            console.timeEnd('evalCode');
 
             if (result.error) {
-                console.log('Execution failed:', vm.dump(result.error));
+                console.log('Update eval failed:', vm.dump(result.error));
                 result.error.dispose();
             } else {
-                renderPort.postMessage(vm.dump(result.value));
-                result.value.dispose();
-            }
-        };
+                console.time('dump');
+                const entities = vm.dump(result.value);
+                _prevEntities = entities;
+                console.timeEnd('dump');
 
-        // vm.dispose();
+                result.value.dispose();
+
+                console.timeEnd('updateLogic');
+                // renderPort.postMessage(entities);
+            }
+
+            // const mem = QuickJS.getWasmMemory();
+            // const used = mem.buffer.byteLength;
+            // console.log(`Memory used: ${used / 1024 / 1024} MB`);
+            // console.log(runtime.dumpMemoryUsage());
+        };
 
         return instance;
     }
@@ -72,24 +99,42 @@ export class Updater {
             console.log(...nativeArgs);
         });
         vm.setProp(consoleHandle, 'log', logHandle);
+        logHandle.dispose();
 
         const warnHandle = vm.newFunction('warn', (...args) => {
             const nativeArgs = args.map(vm.dump);
             console.warn(...nativeArgs);
         });
         vm.setProp(consoleHandle, 'warn', warnHandle);
+        warnHandle.dispose();
 
         const errorHandle = vm.newFunction('error', (...args) => {
             const nativeArgs = args.map(vm.dump);
             console.error(...nativeArgs);
         });
         vm.setProp(consoleHandle, 'error', errorHandle);
+        errorHandle.dispose();
 
         const debugHandle = vm.newFunction('debug', (...args) => {
             const nativeArgs = args.map(vm.dump);
             console.debug(...nativeArgs);
         });
         vm.setProp(consoleHandle, 'debug', debugHandle);
+        debugHandle.dispose();
+
+        const timeHandle = vm.newFunction('time', (...args) => {
+            const nativeArgs = args.map(vm.dump);
+            console.time(...nativeArgs);
+        });
+        vm.setProp(consoleHandle, 'time', timeHandle);
+        timeHandle.dispose();
+
+        const timeEndHandle = vm.newFunction('timeEnd', (...args) => {
+            const nativeArgs = args.map(vm.dump);
+            console.timeEnd(...nativeArgs);
+        });
+        vm.setProp(consoleHandle, 'timeEnd', timeEndHandle);
+        timeEndHandle.dispose();
 
         return consoleHandle;
     }

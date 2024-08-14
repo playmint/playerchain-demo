@@ -1,34 +1,18 @@
-import { GeometryKind, RigidBodyKind, Store } from '../runtime';
+import { Store } from '../runtime';
 
-const BULLET_SPEED = 4;
-const BULLET_SPAWN_OFFSET = 3;
+enum GeometryKind {
+    Box,
+    Sphere,
+}
+
 const BULLET_SIZE = 0.5;
 
 export function bulletSystem(store: Store) {
-    // const players = store.entities.filter((entity) => entity.isPlayer);
-    const shooters = store.entities.filter(
-        (entity) => entity.isShip && entity.shootBullet,
-    );
-
-    shooters.forEach((shooter) => {
+    for (let i = 0; i < 10; i++) {
         const bullet = store.add();
-        // console.log(`shot fired by entity: ${shooter.id} bullet: ${bullet.id}`);
         bullet.isBullet = true;
-        bullet.position.x =
-            shooter.position.x +
-            Math.cos(shooter.rotation) * BULLET_SPAWN_OFFSET;
-        bullet.position.y =
-            shooter.position.y +
-            Math.sin(shooter.rotation) * BULLET_SPAWN_OFFSET;
-
-        // Takes into account the shooter's velocity which might be handy for slow moving projectiles like bombs
-        // bullet.velocity.x =
-        //     shooter.velocity.x + Math.cos(shooter.rotation) * BULLET_SPEED;
-        // bullet.velocity.y =
-        //     shooter.velocity.y + Math.sin(shooter.rotation) * BULLET_SPEED;
-
-        bullet.velocity.x = Math.cos(shooter.rotation) * BULLET_SPEED;
-        bullet.velocity.y = Math.sin(shooter.rotation) * BULLET_SPEED;
+        bullet.position.x = Math.floor(Math.random() * 100);
+        bullet.position.y = Math.floor(Math.random() * 100);
 
         bullet.renderer = {
             visible: true,
@@ -37,17 +21,17 @@ export function bulletSystem(store: Store) {
             size: { x: BULLET_SIZE, y: BULLET_SIZE },
         };
 
-        bullet.physics = {
-            rigidBody: {
-                kind: RigidBodyKind.KinematicVelocity,
-                collider: {
-                    isSensor: true,
-                    size: { x: BULLET_SIZE, y: BULLET_SIZE },
-                    checkCollisions: false,
-                },
-                lockRotations: true,
-            },
-            collisions: [],
-        };
-    });
+        // bullet.physics = {
+        //     rigidBody: {
+        //         kind: RigidBodyKind.KinematicVelocity,
+        //         collider: {
+        //             isSensor: true,
+        //             size: { x: BULLET_SIZE, y: BULLET_SIZE },
+        //             checkCollisions: false,
+        //         },
+        //         lockRotations: true,
+        //     },
+        //     collisions: [],
+        // };
+    }
 }
