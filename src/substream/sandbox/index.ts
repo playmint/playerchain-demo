@@ -1,18 +1,15 @@
-import { createDes, createSer } from 'seqproto';
+import { createSer } from 'seqproto';
 import { InputPacket } from '../../runtime/network/types';
 import { RigidBodyKind, Store } from '../../runtime/store';
-import { deserializeEntity, serializeEntity } from '../Serializer';
+import { serializeEntity } from '../Serializer';
 import { bulletSystem } from '../bulletSystem';
 import { moveSystem } from '../moveSystem';
 import { physicsSystem } from '../physicsSystem';
 import { shipAudioSystem } from '../shipAudioSystem';
 
-// globalThis['TextEncoder'] = TextEncoder;
-const test = new TextEncoder();
-
-const MAX_ROLLBACK_ROUNDS = 100;
+const MAX_ROLLBACK_ROUNDS = 50;
 let store = new Store();
-const storeHistory: Store[] = new Array(MAX_ROLLBACK_ROUNDS);
+const storeHistory: ArrayBuffer[] = new Array(MAX_ROLLBACK_ROUNDS);
 let lastRoundProcessed: number = 0;
 
 function update(actionsByRound: InputPacket[][]) {
@@ -22,23 +19,36 @@ function update(actionsByRound: InputPacket[][]) {
         // console.log(
         //     `rolling back to round: ${actionsByRound[0][0].round - 1} numReplaying: ${numReplaying}`,
         // );
+
         if (numReplaying > 5) {
             // warn if we are above some threshold of replays as we want to keep this low
             console.warn(`replaying ${numReplaying} rounds`);
         }
+
+        if (numReplaying > MAX_ROLLBACK_ROUNDS) {
+            console.warn(`replaying too many rounds ${numReplaying}`);
+            return;
+        }
+
         if (actionsByRound[0][0].round == 0) {
             store = new Store();
         } else {
-            // Go back in history
-            store =
+            const serialisedEntities =
                 storeHistory[
                     (actionsByRound[0][0].round - 1) % MAX_ROLLBACK_ROUNDS
                 ];
 
-            if (!store) {
-                console.warn('store not found in history');
+            if (!serialisedEntities) {
+                console.error(
+                    `serialisedEntities is undefined for round: ${
+                        actionsByRound[0][0].round - 1
+                    }`,
+                );
                 return;
             }
+
+            // Go back in history
+            store = Store.fromArrayBuffer(serialisedEntities);
         }
     }
     actionsByRound.forEach((actions: InputPacket[]) => {
@@ -111,58 +121,22 @@ function update(actionsByRound: InputPacket[][]) {
         // Execute systems
         moveSystem(store, roundNum);
         physicsSystem(store);
-        bulletSystem(store);
+        // bulletSystem(store);
         shipAudioSystem(store);
 
-        // NOTE: BOTTLENECK
+        const ser = createSer();
+        ser.serializeUInt32(store.entities.length);
+        store.entities.forEach((entity) => {
+            serializeEntity(ser, entity);
+        });
+
         //backup here
-        // storeHistory[actions[0].round % MAX_ROLLBACK_ROUNDS] = Store.from([
-        //     ...JSON.parse(JSON.stringify(store.entities)), // lazy deep copy as we don't have structureClone
-        // ]);
+        storeHistory[roundNum % MAX_ROLLBACK_ROUNDS] = ser.getBuffer();
+
         lastRoundProcessed = roundNum;
     });
 
-    const ser = createSer();
-    ser.serializeUInt32(store.entities.length);
-    store.entities.forEach((entity) => {
-        serializeEntity(ser, entity);
-    });
-
-    // DEBUG: Deserialise the entities to check the round trip
-    // const des = createDes(ser.getBuffer());
-    // const entitiesLen = des.deserializeUInt32();
-    // console.log('sandbox: entitiesLen', entitiesLen);
-    // for (let i = 0; i < entitiesLen; i++) {
-    //     const entity = deserializeEntity(des);
-    //     console.log('sandbox: entity', i, entity.id);
-    // }
-
-    // testSerDes();
-    // testTextEncoder();
-
-    return ser.getBuffer();
-}
-
-function testSerDes() {
-    const ser = createSer();
-    ser.serializeUInt32(123);
-    try {
-        ser.serializeString('hello');
-    } catch (e) {
-        console.error('sandbox: string serialise error:', e);
-    }
-
-    const des = createDes(ser.getBuffer());
-    console.log('sandbox: UInt32:', des.deserializeUInt32());
-    console.log('sandbox: String:', des.deserializeString());
-}
-
-function testTextEncoder() {
-    const encoder = new TextEncoder();
-    console.log('sandbox: encoder:', encoder.encodeInto);
-    const text = 'hello';
-    const buffer = encoder.encode(text);
-    console.log('sandbox: text:', text, 'buffer:', buffer.length);
+    return storeHistory[lastRoundProcessed % MAX_ROLLBACK_ROUNDS];
 }
 
 // Referencing update so the compiler/bundler doesn't optimise the function away. Export keyword only works with modules and I had

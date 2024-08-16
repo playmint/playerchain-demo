@@ -1,3 +1,5 @@
+import { createDes } from 'seqproto';
+import { deserializeEntity } from '../../substream/Serializer';
 import { uiElement } from '../../substream/UISystem';
 
 export class Entity {
@@ -93,6 +95,22 @@ export class Store {
     static from(entities) {
         const store = new Store();
         store.entities = entities;
+        return store;
+    }
+
+    static fromArrayBuffer(buffer: ArrayBuffer) {
+        const store = new Store();
+
+        const des = createDes(buffer);
+        const entitiesLen = des.deserializeUInt32();
+        const entities = new Array(entitiesLen);
+        for (let i = 0; i < entitiesLen; i++) {
+            const entity = deserializeEntity(des);
+            entities[i] = entity;
+        }
+
+        store.entities = entities;
+
         return store;
     }
 }

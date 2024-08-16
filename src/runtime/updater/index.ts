@@ -4,11 +4,10 @@ import { createDes, createSer } from 'seqproto';
 import { deserializeEntity } from '../../substream/Serializer';
 import { InputPacket } from '../network/types';
 import { Entity } from '../store';
+import { Store } from '../store';
 
 export class Updater {
     constructor() {}
-
-    public prevEntities: any;
 
     static async create({
         renderPort,
@@ -79,6 +78,7 @@ export class Updater {
             if (result.error) {
                 console.log('Update eval failed:', vm.dump(result.error));
                 result.error.dispose();
+                console.timeEnd('updateLogic');
             } else {
                 // console.time('dump');
                 // const entitiesSerialised = vm.dump(result.value);
@@ -98,27 +98,17 @@ export class Updater {
 
                 // Deserialize the entities
                 console.time('entity deserialise');
-                const des = createDes(newBuffer);
-                const entitiesLen = des.deserializeUInt32();
-                const entities = new Array(entitiesLen);
-                for (let i = 0; i < entitiesLen; i++) {
-                    const entity = deserializeEntity(des);
-                    entities[i] = entity;
-                }
+                const store = Store.fromArrayBuffer(newBuffer);
                 console.timeEnd('entity deserialise');
 
-                result.value.dispose();
+                // Cleanup quickJS handles
                 lifetime.dispose();
+                result.value.dispose();
 
-                renderPort.postMessage(entities);
+                console.timeEnd('updateLogic');
+
+                renderPort.postMessage(store.entities);
             }
-
-            console.timeEnd('updateLogic');
-
-            // const ser = createSer();
-            // ser.serializeString('hello');
-            // const des = createDes(ser.getBuffer());
-            // console.log('test string:', des.deserializeString());
         };
 
         return instance;

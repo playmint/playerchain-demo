@@ -13,10 +13,15 @@ export function serializeEntity(ser: Ser, entity: any) {
     ser.serializeFloat32(entity.rotation);
     ser.serializeFloat32(entity.rollAngle);
 
+    ser.serializeFloat32(entity.velocity.x);
+    ser.serializeFloat32(entity.velocity.y);
+
     ser.serializeString(entity.owner);
     ser.serializeString(entity.playerId);
 
     ser.serializeString(entity.model);
+    ser.serializeString(entity.audioClip);
+    ser.serializeFloat32(entity.audioPitch);
 
     // Renderer
     ser.serializeBoolean(!!entity.renderer);
@@ -45,10 +50,17 @@ export function deserializeEntity(des: Des): Entity {
     entity.rotation = des.deserializeFloat32();
     entity.rollAngle = des.deserializeFloat32();
 
+    entity.velocity = {
+        x: des.deserializeFloat32(),
+        y: des.deserializeFloat32(),
+    };
+
     entity.owner = des.deserializeString();
     entity.playerId = des.deserializeString();
 
     entity.model = des.deserializeString();
+    entity.audioClip = des.deserializeString();
+    entity.audioPitch = des.deserializeFloat32();
 
     // Renderer
     const hasRenderer = des.deserializeBoolean();
