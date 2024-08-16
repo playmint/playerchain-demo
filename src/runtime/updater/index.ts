@@ -1,5 +1,9 @@
-import { QuickJSContext, getQuickJS } from 'quickjs-emscripten';
+import { Lifetime, QuickJSContext, getQuickJS } from 'quickjs-emscripten';
+import type { Des, Ser } from 'seqproto';
+import { createDes, createSer } from 'seqproto';
+import { deserializeEntity } from '../../substream/Serializer';
 import { InputPacket } from '../network/types';
+import { Entity } from '../store';
 
 export class Updater {
     constructor() {}
@@ -17,6 +21,7 @@ export class Updater {
 
         console.log('Creating QuickJS context');
 
+        const polyfills = await (await fetch('/text.min.js')).text();
         const sandboxBundle = await (await fetch('/sandbox/index.js')).text();
 
         const QuickJS = await getQuickJS();
@@ -27,7 +32,10 @@ export class Updater {
         vm.setProp(vm.global, 'console', consoleHandle);
         consoleHandle.dispose();
 
-        const sandboxInitResult = vm.evalCode(sandboxBundle, 'index.js');
+        const sandboxInitResult = vm.evalCode(
+            polyfills + sandboxBundle,
+            'index.js',
+        );
 
         if (sandboxInitResult.error) {
             console.log(
@@ -35,6 +43,7 @@ export class Updater {
                 vm.dump(sandboxInitResult.error),
             );
             sandboxInitResult.error.dispose();
+            return;
         } else {
             console.log(
                 'Bundle eval Success:',
@@ -42,8 +51,6 @@ export class Updater {
             );
             sandboxInitResult.value.dispose();
         }
-
-        let _prevEntities: any;
 
         updaterPort.onmessage = ({
             data: actionsByRound,
@@ -71,16 +78,40 @@ export class Updater {
                 console.log('Update eval failed:', vm.dump(result.error));
                 result.error.dispose();
             } else {
-                console.time('dump');
-                const entities = vm.dump(result.value);
-                _prevEntities = entities;
-                console.timeEnd('dump');
+                // console.time('dump');
+                // const entitiesSerialised = vm.dump(result.value);
+                // // result.value.dispose();
+                // console.timeEnd('dump');
+
+                console.time('getArrayBuffer');
+                const lifetime = vm.getArrayBuffer(result.value);
+                console.timeEnd('getArrayBuffer');
+
+                console.time('slice');
+                const originalBuffer = lifetime.value.buffer;
+                const start = lifetime.value.byteOffset;
+                const length = lifetime.value.length;
+                const newBuffer = originalBuffer.slice(start, start + length);
+                console.timeEnd('slice');
+
+                // Deserialize the entities
+                console.time('entity deserialise');
+                const des = createDes(newBuffer);
+                const entitiesLen = des.deserializeUInt32();
+                const entities = new Array(entitiesLen);
+                for (let i = 0; i < entitiesLen; i++) {
+                    const entity = deserializeEntity(des);
+                    entities[i] = entity;
+                }
+                console.timeEnd('entity deserialise');
 
                 result.value.dispose();
+                lifetime.dispose();
 
-                console.timeEnd('updateLogic');
-                // renderPort.postMessage(entities);
+                renderPort.postMessage(entities);
             }
+
+            console.timeEnd('updateLogic');
 
             // const mem = QuickJS.getWasmMemory();
             // const used = mem.buffer.byteLength;

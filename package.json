@@ -47,7 +47,9 @@
     },
     "dependencies": {
         "@dimforge/rapier2d-compat": "^0.13.1",
+        "fast-text-encoding": "^1.0.6",
         "quickjs-emscripten": "^0.29.2",
+        "seqproto": "^0.2.3",
         "three": "0.166.0"
     }
 }

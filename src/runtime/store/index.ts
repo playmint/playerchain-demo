@@ -61,7 +61,6 @@ export interface RendererComponent {
     color: number;
     size: { x: number; y: number };
     geometry: GeometryKind;
-    isInitialised?: boolean;
 }
 
 export enum RigidBodyKind {

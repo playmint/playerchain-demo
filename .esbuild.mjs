@@ -36,6 +36,12 @@ async function build() {
     });
     await sandboxBuildRuntime.rebuild();
 
+    // include the TextEncoder polyfill
+    fs.copyFileSync(
+        './node_modules/fast-text-encoding/text.min.js',
+        path.join(target, 'text.min.js'),
+    );
+
     // include the html file
     fs.copyFileSync('./src/index.html', path.join(target, 'index.html'));
     fs.copyFileSync('./src/player.html', path.join(target, 'player.html'));

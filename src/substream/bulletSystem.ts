@@ -8,7 +8,7 @@ enum GeometryKind {
 const BULLET_SIZE = 0.5;
 
 export function bulletSystem(store: Store) {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 1; i++) {
         const bullet = store.add();
         bullet.isBullet = true;
         bullet.position.x = Math.floor(Math.random() * 100);

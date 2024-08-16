@@ -1,9 +1,14 @@
+import { createDes, createSer } from 'seqproto';
 import { InputPacket } from '../../runtime/network/types';
 import { RigidBodyKind, Store } from '../../runtime/store';
+import { deserializeEntity, serializeEntity } from '../Serializer';
 import { bulletSystem } from '../bulletSystem';
 import { moveSystem } from '../moveSystem';
 import { physicsSystem } from '../physicsSystem';
 import { shipAudioSystem } from '../shipAudioSystem';
+
+// globalThis['TextEncoder'] = TextEncoder;
+const test = new TextEncoder();
 
 const MAX_ROLLBACK_ROUNDS = 100;
 let store = new Store();
@@ -117,7 +122,22 @@ function update(actionsByRound: InputPacket[][]) {
         lastRoundProcessed = roundNum;
     });
 
-    return store.entities;
+    const ser = createSer();
+    ser.serializeUInt32(store.entities.length);
+    store.entities.forEach((entity) => {
+        serializeEntity(ser, entity);
+    });
+
+    // DEBUG: Deserialise the entities to check the round trip
+    // const des = createDes(ser.getBuffer());
+    // const entitiesLen = des.deserializeUInt32();
+    // console.log('sandbox: entitiesLen', entitiesLen);
+    // for (let i = 0; i < entitiesLen; i++) {
+    //     const entity = deserializeEntity(des);
+    //     console.log('sandbox: entity', i, entity.id);
+    // }
+
+    return ser.getBuffer();
 }
 
 // Referencing update so the compiler/bundler doesn't optimise the function away. Export keyword only works with modules and I had
