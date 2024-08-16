@@ -1,4 +1,4 @@
-import { Lifetime, QuickJSContext, getQuickJS } from 'quickjs-emscripten';
+import { QuickJSContext, getQuickJS } from 'quickjs-emscripten';
 import type { Des, Ser } from 'seqproto';
 import { createDes, createSer } from 'seqproto';
 import { deserializeEntity } from '../../substream/Serializer';
@@ -21,7 +21,9 @@ export class Updater {
 
         console.log('Creating QuickJS context');
 
-        const polyfills = await (await fetch('/text.min.js')).text();
+        const textEncoderPolyfill = await (
+            await fetch('/EncoderDecoderTogether.min.js')
+        ).text();
         const sandboxBundle = await (await fetch('/sandbox/index.js')).text();
 
         const QuickJS = await getQuickJS();
@@ -33,7 +35,7 @@ export class Updater {
         consoleHandle.dispose();
 
         const sandboxInitResult = vm.evalCode(
-            polyfills + sandboxBundle,
+            textEncoderPolyfill + sandboxBundle,
             'index.js',
         );
 
@@ -113,10 +115,10 @@ export class Updater {
 
             console.timeEnd('updateLogic');
 
-            // const mem = QuickJS.getWasmMemory();
-            // const used = mem.buffer.byteLength;
-            // console.log(`Memory used: ${used / 1024 / 1024} MB`);
-            // console.log(runtime.dumpMemoryUsage());
+            // const ser = createSer();
+            // ser.serializeString('hello');
+            // const des = createDes(ser.getBuffer());
+            // console.log('test string:', des.deserializeString());
         };
 
         return instance;

@@ -137,7 +137,32 @@ function update(actionsByRound: InputPacket[][]) {
     //     console.log('sandbox: entity', i, entity.id);
     // }
 
+    // testSerDes();
+    // testTextEncoder();
+
     return ser.getBuffer();
+}
+
+function testSerDes() {
+    const ser = createSer();
+    ser.serializeUInt32(123);
+    try {
+        ser.serializeString('hello');
+    } catch (e) {
+        console.error('sandbox: string serialise error:', e);
+    }
+
+    const des = createDes(ser.getBuffer());
+    console.log('sandbox: UInt32:', des.deserializeUInt32());
+    console.log('sandbox: String:', des.deserializeString());
+}
+
+function testTextEncoder() {
+    const encoder = new TextEncoder();
+    console.log('sandbox: encoder:', encoder.encodeInto);
+    const text = 'hello';
+    const buffer = encoder.encode(text);
+    console.log('sandbox: text:', text, 'buffer:', buffer.length);
 }
 
 // Referencing update so the compiler/bundler doesn't optimise the function away. Export keyword only works with modules and I had

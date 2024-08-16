@@ -11,9 +11,9 @@ importers:
       '@dimforge/rapier2d-compat':
         specifier: ^0.13.1
         version: 0.13.1
-      fast-text-encoding:
-        specifier: ^1.0.6
-        version: 1.0.6
+      fastestsmallesttextencoderdecoder-encodeinto:
+        specifier: ^1.0.22
+        version: 1.0.22
       quickjs-emscripten:
         specifier: ^0.29.2
         version: 0.29.2
@@ -799,8 +799,8 @@ packages:
   fast-levenshtein@2.0.6:
     resolution: {integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==}
 
-  fast-text-encoding@1.0.6:
-    resolution: {integrity: sha512-VhXlQgj9ioXCqGstD37E/HBeqEGV/qOD/kmbVG8h5xKBYvM1L3lR1Zn4555cQ8GkYbJa8aJSipLPndE1k6zK2w==}
+  fastestsmallesttextencoderdecoder-encodeinto@1.0.22:
+    resolution: {integrity: sha512-csOz3cwJjZY75QcPHnY+v6cKWeofYCmhtLVYaurjcRn5vaNXoYe1Leo1ZkiZIxZp796+J5Z+TtmeMbbfYBfiiQ==}
 
   fastq@1.17.1:
     resolution: {integrity: sha512-sRVD3lWVIXWg6By68ZN7vho9a1pQcN/WBFaAAsDDFzlJjvoGx0P8z7V1t72grFJfJhu3YPZBuu25f7Kaw2jN1w==}
@@ -2443,7 +2443,7 @@ snapshots:
 
   fast-levenshtein@2.0.6: {}
 
-  fast-text-encoding@1.0.6: {}
+  fastestsmallesttextencoderdecoder-encodeinto@1.0.22: {}
 
   fastq@1.17.1:
     dependencies:

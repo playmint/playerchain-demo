@@ -84,7 +84,7 @@ export class Store {
         this.entities.push(e);
         e.id = this.entities.length - 1;
 
-        console.log('added entity', e.id);
+        // console.log('added entity', e.id);
 
         return e;
     }
