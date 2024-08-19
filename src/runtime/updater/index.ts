@@ -80,26 +80,21 @@ export class Updater {
                 result.error.dispose();
                 console.timeEnd('updateLogic');
             } else {
-                // console.time('dump');
-                // const entitiesSerialised = vm.dump(result.value);
-                // // result.value.dispose();
-                // console.timeEnd('dump');
-
-                console.time('getArrayBuffer');
+                // console.time('getArrayBuffer');
                 const lifetime = vm.getArrayBuffer(result.value);
-                console.timeEnd('getArrayBuffer');
+                // console.timeEnd('getArrayBuffer');
 
-                console.time('slice');
+                // console.time('slice');
                 const originalBuffer = lifetime.value.buffer;
                 const start = lifetime.value.byteOffset;
                 const length = lifetime.value.length;
                 const newBuffer = originalBuffer.slice(start, start + length);
-                console.timeEnd('slice');
+                // console.timeEnd('slice');
 
                 // Deserialize the entities
-                console.time('entity deserialise');
+                // console.time('entity deserialise');
                 const store = Store.fromArrayBuffer(newBuffer);
-                console.timeEnd('entity deserialise');
+                // console.timeEnd('entity deserialise');
 
                 // Cleanup quickJS handles
                 lifetime.dispose();

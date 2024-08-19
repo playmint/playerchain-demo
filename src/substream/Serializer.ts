@@ -1,10 +1,11 @@
 import { Des, Ser } from 'seqproto';
 import { Entity } from '../runtime/store';
 
-export function serializeEntity(ser: Ser, entity: any) {
+export function serializeEntity(ser: Ser, entity: Entity) {
+    ser.serializeUInt32(entity.id);
+
     ser.serializeBoolean(entity.isShip);
     ser.serializeBoolean(entity.isPlayer);
-    ser.serializeUInt32(entity.id);
 
     ser.serializeFloat32(entity.position.x);
     ser.serializeFloat32(entity.position.y);
@@ -36,10 +37,10 @@ export function serializeEntity(ser: Ser, entity: any) {
 
 export function deserializeEntity(des: Des): Entity {
     const entity = new Entity();
+    entity.id = des.deserializeUInt32();
 
     entity.isShip = des.deserializeBoolean();
     entity.isPlayer = des.deserializeBoolean();
-    entity.id = des.deserializeUInt32();
 
     entity.position = {
         x: des.deserializeFloat32(),

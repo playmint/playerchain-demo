@@ -121,7 +121,7 @@ function update(actionsByRound: InputPacket[][]) {
         // Execute systems
         moveSystem(store, roundNum);
         physicsSystem(store);
-        // bulletSystem(store);
+        bulletSystem(store);
         shipAudioSystem(store);
 
         const ser = createSer();
