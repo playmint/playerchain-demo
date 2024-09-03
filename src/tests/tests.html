@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Mocha Tests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css" />
+    <script src="https://unpkg.com/mocha/mocha.js"></script>
+    <style>
+        #mocha * {
+            font-family: 'Recursive Variable', sans-serif !important;
+        }
+
+        #mocha-stats {
+            top: 2.5rem;
+        }
+
+        #mocha h1 {
+            font-size: 1rem;
+        }
+
+        body {
+            font-size: 16px;
+            font-family: 'Recursive Variable', sans-serif;
+            background-color: #242424;
+            color: white;
+            height: 100vh;
+            overflow: auto;
+        }
+
+        .progress-text,
+        .progress-text em {
+            color: white !important;
+        }
+
+        body {
+            display: block !important;
+        }
+
+        #mocha .test.pass .duration {
+            color: #000;
+        }
+
+        #mocha pre {
+            width: 100%;
+        }
+
+        #mocha .test.fail pre {
+            color: white;
+        }
+
+        #mocha .test .html-error {
+            color: white;
+        }
+
+        #mocha-stats em {
+            color: white;
+        }
+
+        #mocha-stats canvas {
+            filter: invert(1);
+        }
+
+        .titlebar {
+            color: white;
+            text-align: center;
+            font-size: 1rem;
+            padding: 3px;
+            width: 100vw;
+            --app-region: drag;
+            -webkit-app-region: drag;
+            user-select: none;
+            background-color: #323232;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="titlebar">Tests</div>
+    <div id="mocha"></div>
+    <script type="module">
+        import application from 'socket:application';
+        globalThis.application = application;
+        if (import.meta.env.MODE === "test") {
+            const timeout = 1000 * 60 * 10;
+            console.log(`running tests in headless mode, timeout=${timeout}`);
+            setTimeout(() => {
+                console.log("aboring tests due to timeout");
+                console.log("SSC_TEST_FAIL");
+                globalThis.application.exit(1);
+            }, timeout);
+        }
+    </script>
+    <script class="mocha-init">
+        mocha.setup({
+            ui: 'qunit',
+            allowUncaught: false,
+            asyncOnly: true,
+            bail: false,
+            checkLeaks: false,
+            // dryRun: true,
+            failZero: true,
+            // forbidOnly: true,
+            // forbidPending: true,
+            // global: ['MyLib'],
+            retries: 3,
+            //   rootHooks: { beforeEach(done) { ... done();} },
+            slow: 2000,
+            timeout: 1000 * 10,
+        });
+
+    </script>
+    <script src="tests.ts" type="module"></script>
+    <script class="mocha-exec" type="module">
+
+        // when tests are running from pnpm test, we use a test harness that
+        // wraps the process to print to the console and exit with the correct
+        // status only enable this when MODE==test so that we can run the tests
+        // from the app too via the Developer->Tests menu
+        if (import.meta.env.MODE === "test") {
+            const {
+                EVENT_TEST_PASS,
+                EVENT_TEST_FAIL,
+                EVENT_RUN_END,
+            } = Mocha.Runner.constants;
+
+            const Base = Mocha.reporters.Base;
+
+            function ConsoleErrorReporter(runner, options) {
+                Base.call(this, runner, options);
+
+                runner.on(EVENT_TEST_PASS, function (test) {
+                    console.log(`PASS: %s\n`, test.fullTitle());
+                });
+
+                runner.on(EVENT_TEST_FAIL, function (test, err) {
+                    console.log(`FAIL: %s... %s\n`, test.fullTitle(), err.message);
+                });
+
+                runner.on(EVENT_RUN_END, function () {
+                    if (runner.stats.failures > 0) {
+                        console.log(`${runner.stats.failures} failures`);
+                        console.log("SSC_TEST_FAIL");
+                        setTimeout(() => {
+                            globalThis.application.exit(1);
+                        }, 10);
+                    } else {
+                        console.log("SSC_TEST_PASS");
+                        setTimeout(() => {
+                            globalThis.application.exit(0);
+                        }, 10);
+                    }
+                });
+            }
+
+            mocha.reporter(ConsoleErrorReporter);
+        }
+
+        // start the tests
+        mocha.run();
+
+    </script>
+</body>
+
+</html>

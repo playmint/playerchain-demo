@@ -1,0 +1,32 @@
+:root {
+    --gui-bg-color: #323233;
+    --gui-titlebar-bg-color: var(--gui-bg-color);
+}
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+}
+
+.titlebar {
+    -webkit-app-region: drag;
+    --app-region: drag;
+    background-color: var(--gui-titlebar-bg-color);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1em;
+    padding: 0.5em 1em;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: default;
+}

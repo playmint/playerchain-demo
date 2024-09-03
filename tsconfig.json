@@ -1,0 +1,41 @@
+{
+    "compilerOptions": {
+        "module": "es2022",
+        "target": "es2022",
+        "lib": ["es2022", "dom"],
+        "composite": true,
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+        "useDefineForClassFields": true,
+        "skipLibCheck": true,
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "allowUnreachableCode": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "moduleDetection": "force",
+        "noEmit": true,
+        "jsx": "react-jsx",
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": false,
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "outDir": "./dist",
+        "rootDir": ".",
+        "strict": true,
+        "checkJs": true,
+        "allowJs": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true
+    },
+    "include": [
+        "./eslint.config.mjs",
+        "./prettier.config.mjs",
+        "./scripts/*.mjs",
+        "./src/**/*",
+        "./*.ts"
+    ],
+    "exclude": ["dist", "build", "node_modules"]
+}

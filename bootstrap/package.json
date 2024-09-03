@@ -1,0 +1,17 @@
+{
+  "name": "bootstrap",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "cli.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cbor-x": "^1.6.0",
+    "dexie": "^4.0.8",
+    "fake-indexeddb": "^6.0.0",
+    "libsodium-wrappers": "^0.7.15",
+    "lru-cache": "^11.0.0"
+  }
+}
