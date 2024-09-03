@@ -1,9 +1,0 @@
-{
-    "models": [
-        {
-            "name": "ship",
-            "path": "assets/ship.glb",
-            "scale": 1
-        }
-    ]
-}
