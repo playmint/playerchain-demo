@@ -71,6 +71,7 @@ export default system<ShooterSchema>(
 
             // fire if can
             if (
+                entity.active[player.ship] &&
                 hasInput(player.input, Input.Fire) &&
                 stats.shootTimer[player.ship] === 0
             ) {

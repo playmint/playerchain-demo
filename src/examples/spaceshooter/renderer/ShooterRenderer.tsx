@@ -1,9 +1,12 @@
-import { useGLTF } from '@react-three/drei';
+import { PositionalAudio, useGLTF } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useState } from 'react';
 import { EntityId, World } from '../../../runtime/ecs';
 import { RendererProps } from '../../../runtime/game';
 import { ModelType, ShooterSchema } from '../../spaceshooter';
+import backgroundMusic from '../assets/BGM.mp3?url';
+import { assetPath } from '../utils/RenderUtils';
+import AudioControls from './AudioControls';
 import BulletEntity from './BulletEntity';
 import PlayerCam from './PlayerCam';
 import PlayerHUD from './PlayerHUD';
@@ -31,7 +34,7 @@ function ModelEntity({
     }
 }
 
-const GameView = memo(function GameView({
+const ModelEntities = memo(function ModelEntities({
     world,
     peerId,
 }: {
@@ -74,11 +77,18 @@ export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
     return (
         <>
             <Canvas resize={CANVAS_RESIZE}>
-                <GameView
+                <ModelEntities
                     world={world}
                     peerId={peerId}
                     changeMe={world.entities}
                 />
+                <PositionalAudio
+                    autoplay={true}
+                    url={assetPath(backgroundMusic)}
+                    distance={50000}
+                    loop={true}
+                />
+                <AudioControls />
             </Canvas>
             <PlayerHUD world={world} peerId={peerId} />
         </>

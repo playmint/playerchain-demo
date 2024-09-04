@@ -4,6 +4,7 @@ import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
+import { useSettings } from '../hooks/use-settings';
 import { SimulationProvider } from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import { PacketLace } from './PacketLace';
@@ -37,6 +38,13 @@ export function ChannelView({
             console.error('request-fullscreen-err:', err);
         });
     }, []);
+
+    const { muted } = useSettings();
+    const toggleMuted = useCallback(() => {
+        db.settings
+            .update(1, { muted: !muted })
+            .catch((err) => console.error('togglemutederr', err));
+    }, [db, muted]);
 
     // get channel data
 
@@ -119,6 +127,19 @@ export function ChannelView({
                             className={theme.materialSymbolsOutlined}
                         >
                             fullscreen
+                        </span>
+                        <span
+                            style={{
+                                pointerEvents: 'auto',
+                                position: 'absolute',
+                                top: '1rem',
+                                right: '1rem',
+                                color: '#555',
+                            }}
+                            onClick={toggleMuted}
+                            className={theme.materialSymbolsOutlined}
+                        >
+                            volume_mute
                         </span>
                     </div>
                 </div>

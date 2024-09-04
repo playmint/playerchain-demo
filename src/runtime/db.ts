@@ -60,6 +60,14 @@ export type NetworkInfo = {
     ready?: boolean; // network said it was ready
 };
 
+// does this really belong here?
+// should probably be part of the Game interface somehow
+export type PlayerSettings = {
+    id: 1;
+    name?: string;
+    muted?: boolean;
+};
+
 export type StoredMessage = Message & { arrived: number };
 
 export type DB = Dexie & {
@@ -69,6 +77,7 @@ export type DB = Dexie & {
     state: EntityTable<SerializedState>;
     peers: EntityTable<PeerInfo, 'peerId'>;
     network: EntityTable<NetworkInfo, 'id'>;
+    settings: EntityTable<PlayerSettings, 'id'>;
 };
 
 export function open(name: string): DB {
@@ -82,6 +91,7 @@ export function open(name: string): DB {
         missing: 'sig',
         state: '[channel+tag+round]',
         network: 'id',
+        settings: 'id',
     });
 
     return db;

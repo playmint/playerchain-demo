@@ -1,9 +1,18 @@
-import { Clone, Html, useGLTF } from '@react-three/drei';
+import { Clone, Html, PositionalAudio, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo, useEffect, useRef } from 'react';
-import { Color, Group, Mesh, Object3DEventMap, Vector3 } from 'three';
+import {
+    Color,
+    Group,
+    Mesh,
+    Object3DEventMap,
+    PositionalAudio as PositionalAudioImpl,
+    Vector3,
+} from 'three';
 import { World } from '../../../runtime/ecs';
 import { Input, ShooterSchema, hasInput } from '../../spaceshooter';
+import sfxDestroy from '../assets/Destroy.mp3?url';
+import sfxThrust from '../assets/Thrust_Loop.mp3?url';
 import shipGLTF from '../assets/ship.glb?url';
 import fxExplodeData from '../effects/FXExplode';
 import fxRespawnData from '../effects/FXRespawn';
@@ -34,6 +43,8 @@ export default memo(function ShipEntity({
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
     const explosionRef = useParticleEffect(groupRef, fxExplodeData, [0, 0, 0]);
+    const explosionSfxRef = useRef<PositionalAudioImpl>(null!);
+    const thrustSfxRef = useRef<PositionalAudioImpl>(null!);
     const respawnRef = useParticleEffect(groupRef, fxRespawnData, [0, 0, 0]);
     const shootRef = useParticleEffect(shipRef, fxShootData, [0, 0, 0]);
     const labelRef = useRef<HTMLDivElement>(null!);
@@ -124,6 +135,9 @@ export default memo(function ShipEntity({
             thrustRef.current.particleSystems.forEach((particleObj) => {
                 if (thrusting) {
                     particleObj.start();
+                    if (!thrustSfxRef.current.isPlaying) {
+                        thrustSfxRef.current.play();
+                    }
                     // const rotation = parentObj.children[0].rotation.z;
                     particleObj.setRotation(ship.rotation.z);
                     // Calculate the position based on the angle and offset
@@ -135,6 +149,7 @@ export default memo(function ShipEntity({
                         pos.y * Math.cos(shipRef.current.rotation.z);
                 } else {
                     particleObj.stop();
+                    thrustSfxRef.current.stop();
                 }
                 particleObj.update(deltaTime / 2);
             });
@@ -148,6 +163,8 @@ export default memo(function ShipEntity({
                     const pos = new Vector3(0, 0, 0);
                     particleObj.setPosition(pos);
                     particleObj.start();
+                    // make noise too
+                    explosionSfxRef.current.play();
                 } else if (
                     particleObj.isPlaying &&
                     world.components.entity.data.generation[eid] !==
@@ -178,7 +195,7 @@ export default memo(function ShipEntity({
             });
         }
 
-        // run shoot effect if shooting
+        // run shoot vfx if shooting
         if (shootRef.current) {
             const shooting = hasInput(player.input, Input.Fire);
             shootRef.current.particleSystems.forEach((particleObj) => {
@@ -219,6 +236,18 @@ export default memo(function ShipEntity({
             <Html ref={labelRef} style={{ fontSize: 11 }}>
                 {owner?.name}
             </Html>
+            <PositionalAudio
+                ref={explosionSfxRef}
+                url={assetPath(sfxDestroy)}
+                distance={5}
+                loop={false}
+            />
+            <PositionalAudio
+                ref={thrustSfxRef}
+                url={assetPath(sfxThrust)}
+                distance={500}
+                loop={false}
+            />
         </group>
     );
 });
