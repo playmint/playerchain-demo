@@ -21,7 +21,9 @@ export const DatabaseProvider = ({
         if (!dbname) {
             return;
         }
-        setDatabase(database.open(dbname));
+        const d = database.open(dbname);
+        setDatabase(d);
+        (window as any).db = d; // for debugging
     }, [dbname]);
 
     // connect client to transport

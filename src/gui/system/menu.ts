@@ -102,8 +102,8 @@ const menu: Menu[] = [
                 shortcut: '',
                 handler: async () => {
                     const w = window as any;
-                    if (w._client) {
-                        await w._client.db.state.clear();
+                    if (w.db) {
+                        await w.db.state.clear();
                     }
                 },
             },

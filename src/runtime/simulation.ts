@@ -343,7 +343,7 @@ export class Simulation {
                 `,
             );
             // write the state to the store
-            // await this.db.state.bulkPut(checkpoints);
+            await this.db.state.bulkPut(checkpoints);
         }
         return state;
     }
