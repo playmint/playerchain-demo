@@ -66,35 +66,37 @@ export default system<ShooterSchema>(
                 });
             }
 
-            // calc thurst for input
-            const thrust = hasInput(player.input, Input.Forward)
-                ? SHIP_THRUST_RATE
-                : hasInput(player.input, Input.Back)
-                  ? -SHIP_THRUST_RATE
-                  : 0;
+            if (entity.active[player.ship]) {
+                // calc thurst for input
+                const thrust = hasInput(player.input, Input.Forward)
+                    ? SHIP_THRUST_RATE
+                    : hasInput(player.input, Input.Back)
+                      ? -SHIP_THRUST_RATE
+                      : 0;
 
-            // apply ship rotation
-            if (hasInput(player.input, Input.Left)) {
-                // RollAngle.rollAngle[ents[i]] = Math.fround(0.785398);
-                rotation.z[player.ship] = Math.fround(
-                    rotation.z[player.ship] + SHIP_ROTATION_RATE * deltaTime,
+                // apply ship rotation
+                if (hasInput(player.input, Input.Left)) {
+                    rotation.z[player.ship] = Math.fround(
+                        rotation.z[player.ship] +
+                            SHIP_ROTATION_RATE * deltaTime,
+                    );
+                } else if (hasInput(player.input, Input.Right)) {
+                    rotation.z[player.ship] = Math.fround(
+                        rotation.z[player.ship] -
+                            SHIP_ROTATION_RATE * deltaTime,
+                    );
+                }
+
+                // apply thrust in direction
+                velocity.x[player.ship] = Math.fround(
+                    velocity.x[player.ship] +
+                        Math.cos(rotation.z[player.ship]) * thrust * deltaTime,
                 );
-            } else if (hasInput(player.input, Input.Right)) {
-                // RollAngle.rollAngle[ents[i]] = Math.fround(-0.785398); // 45 degrees in radians
-                rotation.z[player.ship] = Math.fround(
-                    rotation.z[player.ship] - SHIP_ROTATION_RATE * deltaTime,
+                velocity.y[player.ship] = Math.fround(
+                    velocity.y[player.ship] +
+                        Math.sin(rotation.z[player.ship]) * thrust * deltaTime,
                 );
             }
-
-            // apply thrust in direction
-            velocity.x[player.ship] = Math.fround(
-                velocity.x[player.ship] +
-                    Math.cos(rotation.z[player.ship]) * thrust * deltaTime,
-            );
-            velocity.y[player.ship] = Math.fround(
-                velocity.y[player.ship] +
-                    Math.sin(rotation.z[player.ship]) * thrust * deltaTime,
-            );
         }
     },
 );

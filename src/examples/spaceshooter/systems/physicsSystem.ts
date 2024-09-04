@@ -33,6 +33,11 @@ export default system<ShooterSchema>(
                     collider.collisionEntity[eid] = 0; // reset collision flag
                 }
 
+                // skip inactive entities
+                if (!entity.active[eid]) {
+                    continue;
+                }
+
                 // set position based on velocity
                 position.x[eid] = Math.fround(
                     position.x[eid] + (velocity.x[eid] * deltaTime) / steps,

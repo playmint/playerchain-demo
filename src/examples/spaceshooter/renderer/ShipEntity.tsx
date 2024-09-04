@@ -143,15 +143,10 @@ export default memo(function ShipEntity({
             const exploding = prevHealthRef.current > 0 && health <= 0;
             explosionRef.current.particleSystems.forEach((particleObj) => {
                 if (exploding && !particleObj.isPlaying) {
-                    const pos = new Vector3(
-                        group.position.x,
-                        group.position.y,
-                        group.position.z,
-                    );
+                    const pos = new Vector3(0, 0, 0);
                     particleObj.setPosition(pos);
                     particleObj.start();
                 } else if (
-                    !exploding &&
                     particleObj.isPlaying &&
                     world.components.entity.data.generation[eid] !==
                         ship.__generation
