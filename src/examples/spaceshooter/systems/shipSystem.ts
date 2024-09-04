@@ -11,6 +11,7 @@ import {
 export const SHIP_THRUST_RATE = 50;
 export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 1);
 export const SHIP_RESPAWN_RADIUS = 400;
+export const SHIP_MAX_VELOCITY = 70;
 
 export default system<ShooterSchema>(
     ({
@@ -24,7 +25,6 @@ export default system<ShooterSchema>(
         collider,
         stats,
         entity,
-        lerp,
         velocity,
         deltaTime,
     }) => {
@@ -41,14 +41,12 @@ export default system<ShooterSchema>(
                     collider,
                     stats,
                     entity,
-                    lerp,
                 });
             }
 
             // reset ship stats
             stats.hasExploded[player.ship] = 0;
             stats.hasRespawned[player.ship] = 0;
-            stats.hasShot[player.ship] = 0;
 
             // respawn ship if requested or if it's the first spawn generation
             if (
@@ -110,7 +108,6 @@ function addShip({
     collider,
     stats,
     entity,
-    lerp,
 }: Pick<
     SystemArgs<ShooterSchema>,
     | 'addEntity'
@@ -121,7 +118,6 @@ function addShip({
     | 'collider'
     | 'stats'
     | 'entity'
-    | 'lerp'
 >): EntityId {
     const eid = addEntity();
     addTag(eid, Tags.IsShip);
@@ -135,16 +131,13 @@ function addShip({
     collider.radius[eid] = 3;
     physics.applyRotation[eid] = 0;
     physics.drag[eid] = 0.01;
-    physics.maxVelocity[eid] = 70;
     physics.bounciness[eid] = 0.25;
     stats.health[eid] = 100;
     stats.deathTimer[eid] = 200;
-    stats.hasShot[eid] = 0;
     stats.hasExploded[eid] = 0;
     stats.hasRespawned[eid] = 0;
     entity.generation[eid] = 0;
     // stats.initialSpawn[eid] = 1;
-    lerp.rotation[eid] = 1;
 
     // Pool 20 bullets:
     for (let i = 0; i < 20; i++) {
@@ -194,7 +187,6 @@ function addBullet(
     collider.radius[eid] = 0.9;
     physics.applyRotation[eid] = 1;
     physics.drag[eid] = 0;
-    physics.maxVelocity[eid] = 150;
     physics.isTrigger[eid] = 1;
     physics.bounciness[eid] = 1;
     stats.damage[eid] = 34;

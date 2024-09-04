@@ -1,9 +1,10 @@
 import { system } from '../../../runtime/ecs';
 import { Input, ShooterSchema, Tags, hasInput } from '../../spaceshooter';
 
-const BULLET_SPEED = 50;
-const BULLET_LIFETIME = 35;
-const SHIP_SHOOT_COOLOFF = 2;
+export const BULLET_SPEED = 100;
+export const BULLET_LIFETIME = 35;
+export const BULLET_MAX_VELOCITY = 150;
+export const SHIP_SHOOT_COOLOFF = 2;
 
 export default system<ShooterSchema>(
     ({
@@ -15,16 +16,13 @@ export default system<ShooterSchema>(
         entity,
         velocity,
         position,
-        audio,
         deltaTime,
     }) => {
         const bullets = query(Tags.IsBullet);
 
         // check bullet collisions
         for (const bullet of bullets) {
-            // reset bullet flags
-            audio.play[bullet] = 0;
-
+            // skip inactive entities
             if (!entity.active[bullet]) {
                 continue;
             }
@@ -57,6 +55,7 @@ export default system<ShooterSchema>(
 
         // for each player, fire bullets
         for (const player of players) {
+            // skip invalid
             if (!player.ship) {
                 return;
             }
@@ -85,7 +84,6 @@ export default system<ShooterSchema>(
                     console.log('no bullets');
                     continue;
                 }
-                stats.hasShot[player.ship] = 1;
                 stats.shootTimer[player.ship] = SHIP_SHOOT_COOLOFF;
                 position.x[bullet] = position.x[player.ship];
                 position.y[bullet] = position.y[player.ship];

@@ -98,7 +98,6 @@ export const schema = {
         physics: {
             applyRotation: Type.f32,
             drag: Type.f32,
-            maxVelocity: Type.f32,
             isTrigger: Type.u8,
             bounciness: Type.f32,
         },
@@ -109,18 +108,9 @@ export const schema = {
             damage: Type.u8,
             health: Type.u8,
             shootTimer: Type.u8,
-            hasShot: Type.u8,
             hasExploded: Type.u8,
             hasRespawned: Type.u8,
             deathTimer: Type.u8,
-        },
-        lerp: {
-            rotation: Type.u8,
-        },
-        audio: {
-            // not sure this should exist in simulation state
-            clip: Type.u8, // enum of audio clips
-            play: Type.u8,
         },
     },
 };

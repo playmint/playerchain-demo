@@ -9,10 +9,13 @@ import {
     intersectCircleRectangle,
     reflectVector,
 } from '../utils/PhysicsUtils';
+import { BULLET_MAX_VELOCITY } from './bulletSystem';
+import { SHIP_MAX_VELOCITY } from './shipSystem';
 
 export default system<ShooterSchema>(
     ({
         query,
+        hasTag,
         rotation,
         physics,
         collider,
@@ -45,22 +48,24 @@ export default system<ShooterSchema>(
                 position.y[eid] = Math.fround(
                     position.y[eid] + (velocity.y[eid] * deltaTime) / steps,
                 );
-                if (Number.isNaN(position.x[eid])) {
-                    throw new Error('BANG');
-                }
                 const velocityMagnitude = Math.sqrt(
                     velocity.x[eid] ** 2 + velocity.y[eid] ** 2,
                 );
-                if (velocityMagnitude > physics.maxVelocity[eid]) {
+                const maxVelocity = hasTag(eid, Tags.IsBullet)
+                    ? BULLET_MAX_VELOCITY
+                    : hasTag(eid, Tags.IsShip)
+                      ? SHIP_MAX_VELOCITY
+                      : 10;
+                if (velocityMagnitude > maxVelocity) {
                     const normalizedvelocity = NormalizeVector2({
                         x: velocity.x[eid],
                         y: velocity.y[eid],
                     });
                     velocity.x[eid] = Math.fround(
-                        normalizedvelocity.x * physics.maxVelocity[eid],
+                        normalizedvelocity.x * maxVelocity,
                     );
                     velocity.y[eid] = Math.fround(
-                        normalizedvelocity.y * physics.maxVelocity[eid],
+                        normalizedvelocity.y * maxVelocity,
                     );
                 }
 

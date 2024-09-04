@@ -1,12 +1,13 @@
 import { Clone, Html, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo, useEffect, useRef } from 'react';
-import { Color, Group, Mesh, Vector3 } from 'three';
+import { Color, Group, Mesh, Object3DEventMap, Vector3 } from 'three';
 import { World } from '../../../runtime/ecs';
 import { Input, ShooterSchema, hasInput } from '../../spaceshooter';
 import shipGLTF from '../assets/ship.glb?url';
 import fxExplodeData from '../effects/FXExplode';
 import fxRespawnData from '../effects/FXRespawn';
+import fxShootData from '../effects/FXShoot';
 import fxThrusterData from '../effects/FXThruster';
 import {
     EntityObject3D,
@@ -30,10 +31,11 @@ export default memo(function ShipEntity({
     const getShipOwner = () =>
         Array.from(world.players.values()).find((p) => p.ship === eid);
     const groupRef = useRef<Group>(null!);
+    const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
     const explosionRef = useParticleEffect(groupRef, fxExplodeData, [0, 0, 0]);
     const respawnRef = useParticleEffect(groupRef, fxRespawnData, [0, 0, 0]);
-    const shipRef = useRef<EntityObject3D>(null!);
+    const shootRef = useParticleEffect(shipRef, fxShootData, [0, 0, 0]);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
 
@@ -48,7 +50,7 @@ export default memo(function ShipEntity({
     useFrame((_state, deltaTime) => {
         const player = getShipOwner(); // inefficient, but there's only a few players
         const group = groupRef.current;
-        const ship = shipRef.current;
+        const ship = shipRef.current as EntityObject3D;
         if (!player) {
             return;
         }
@@ -168,15 +170,25 @@ export default memo(function ShipEntity({
                     !particleObj.isPlaying &&
                     world.components.entity.data.active[eid]
                 ) {
-                    const pos = new Vector3(
-                        group.position.x,
-                        group.position.y,
-                        group.position.z,
-                    );
+                    const pos = new Vector3(0, 0, 0);
                     particleObj.setPosition(pos);
                     particleObj.start();
                 }
                 particleObj.update(deltaTime);
+            });
+        }
+
+        // run shoot effect if shooting
+        if (shootRef.current) {
+            const shooting = hasInput(player.input, Input.Fire);
+            shootRef.current.particleSystems.forEach((particleObj) => {
+                particleObj.update(deltaTime);
+                if (shooting && !particleObj.isPlaying) {
+                    const pos = new Vector3(4.2, 0, 0);
+                    particleObj.setPosition(pos);
+                    particleObj.start();
+                    console.log('shootfx');
+                }
             });
         }
 
@@ -203,12 +215,7 @@ export default memo(function ShipEntity({
     const owner = getShipOwner();
     return (
         <group ref={groupRef}>
-            <Clone
-                ref={shipRef as any}
-                object={gltf.scene}
-                scale={1}
-                deep={true}
-            />
+            <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
             <Html ref={labelRef} style={{ fontSize: 11 }}>
                 {owner?.name}
             </Html>
