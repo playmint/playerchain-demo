@@ -5,6 +5,7 @@ import { Color, Group, Mesh, Vector3 } from 'three';
 import { World } from '../../../runtime/ecs';
 import { Input, ShooterSchema, hasInput } from '../../spaceshooter';
 import shipGLTF from '../assets/ship.glb?url';
+import fxExplodeData from '../effects/FXExplode';
 import fxThrusterData from '../effects/FXThruster';
 import {
     EntityObject3D,
@@ -29,6 +30,7 @@ export default memo(function ShipEntity({
         Array.from(world.players.values()).find((p) => p.ship === eid);
     const groupRef = useRef<Group>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
+    const explosionRef = useParticleEffect(groupRef, fxExplodeData, [0, 0, 0]);
     const shipRef = useRef<EntityObject3D>(null!);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
@@ -48,8 +50,9 @@ export default memo(function ShipEntity({
         if (!player) {
             return;
         }
+        // hide ship if not active (not the whole group, just the ship)
+        interpolateEntityVisibility(ship, world, eid, deltaTime);
         // lerp ship
-        interpolateEntityVisibility(group, world, eid, deltaTime);
         interpolateEntityPosition(
             group,
             world,
@@ -85,7 +88,6 @@ export default memo(function ShipEntity({
         ) {
             prevHealthRef.current = health;
         }
-
         if (health > 0) {
             if (health < prevHealthRef.current) {
                 // took damage
@@ -108,7 +110,6 @@ export default memo(function ShipEntity({
                 }
             }
         });
-        prevHealthRef.current = health;
 
         // update thruster effect
         if (thrustRef.current) {
@@ -135,11 +136,32 @@ export default memo(function ShipEntity({
             });
         }
 
-        // update generation
-        updateEntityGeneration(group, world, eid);
-        updateEntityGeneration(ship, world, eid);
+        // run explosion effect (if we died)
+        if (explosionRef.current) {
+            const exploding = prevHealthRef.current > 0 && health <= 0;
+            explosionRef.current.particleSystems.forEach((particleObj) => {
+                if (exploding && !particleObj.isPlaying) {
+                    const pos = new Vector3(
+                        group.position.x,
+                        group.position.y,
+                        group.position.z,
+                    );
+                    particleObj.setPosition(pos);
+                    particleObj.start();
+                } else if (
+                    !exploding &&
+                    particleObj.isPlaying &&
+                    world.components.entity.data.generation[eid] !==
+                        ship.__generation
+                ) {
+                    particleObj.stop();
+                }
+                particleObj.update(deltaTime);
+            });
+        }
 
         // show hide label
+        // TODO: wrap Html in a Group so can hide with three... this is messy
         if (
             labelRef.current &&
             world.components.entity.data.active[eid] &&
@@ -152,6 +174,11 @@ export default memo(function ShipEntity({
         ) {
             labelRef.current.style.display = 'none';
         }
+
+        // mark prev states
+        updateEntityGeneration(group, world, eid);
+        updateEntityGeneration(ship, world, eid);
+        prevHealthRef.current = health;
     });
     const owner = getShipOwner();
     return (
