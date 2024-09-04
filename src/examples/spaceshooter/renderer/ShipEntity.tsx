@@ -7,6 +7,7 @@ import { Input, ShooterSchema, hasInput } from '../../spaceshooter';
 import shipGLTF from '../assets/ship.glb?url';
 import fxThrusterData from '../effects/FXThruster';
 import {
+    EntityObject3D,
     InterpolateSpeed,
     assetPath,
     interpolate,
@@ -28,8 +29,9 @@ export default memo(function ShipEntity({
         Array.from(world.players.values()).find((p) => p.ship === eid);
     const groupRef = useRef<Group>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
-    const shipRef = useRef<any>(null!);
-    const prevHealthRef = useRef<number>(null);
+    const shipRef = useRef<EntityObject3D>(null!);
+    const prevHealthRef = useRef<number | null>(null);
+
     const gltf = useGLTF(assetPath(shipGLTF));
     useEffect(() => {
         if (!gltf) {
@@ -76,11 +78,17 @@ export default memo(function ShipEntity({
         );
         // flash ship if we lost health
         const health = world.components.stats.data.health[eid];
-        if (prevHealthRef.current === null) {
+        if (
+            prevHealthRef.current === null ||
+            world.components.entity.data.generation[eid] !== ship.__generation
+        ) {
             prevHealthRef.current = health;
         }
-        if (world.components.entity.data.generation === ship.generation) {
+
+        if (health > 0) {
             if (health < prevHealthRef.current) {
+                console.log('HIT2', health);
+                // took damage
                 ship.children[0].children[0].traverse((child) => {
                     if (child instanceof Mesh) {
                         child.material.emissive = new Color(0.5, 0.5, 0.5);
@@ -88,6 +96,20 @@ export default memo(function ShipEntity({
                 });
             }
         }
+        // fade ship color back to normal
+        ship.children[0].children[0].traverse((child) => {
+            if (child instanceof Mesh) {
+                if (child.material.emissive.r > 0) {
+                    child.material.emissive = new Color(
+                        Math.max(child.material.emissive.r - deltaTime, 0),
+                        Math.max(child.material.emissive.g - deltaTime, 0),
+                        Math.max(child.material.emissive.b - deltaTime, 0),
+                    );
+                } else {
+                    child.material.emissive = new Color(0, 0, 0);
+                }
+            }
+        });
         prevHealthRef.current = health;
 
         // update thruster effect
@@ -122,7 +144,12 @@ export default memo(function ShipEntity({
     const owner = getShipOwner();
     return (
         <group ref={groupRef}>
-            <Clone ref={shipRef} object={gltf.scene} scale={1} />
+            <Clone
+                ref={shipRef as any}
+                object={gltf.scene}
+                scale={1}
+                deep={true}
+            />
             <Html style={{ fontSize: 11 }}>{owner?.name}</Html>
         </group>
     );
