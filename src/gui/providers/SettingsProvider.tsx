@@ -12,13 +12,15 @@ export const SettingsProvider = ({
     const settings = useLiveQuery(() => db.settings.get(1), [db]);
 
     useEffect(() => {
-        if (!settings) {
-            db.settings
-                .put({ id: 1, name: '', muted: false })
-                .catch((err) => console.error('settings-add-err:', err));
-            return;
-        }
-    }, [db, settings]);
+        db.settings
+            .count()
+            .then((count) => {
+                if (count == 0) {
+                    return db.settings.add({ id: 1 });
+                }
+            })
+            .catch((err) => console.error('settings-add-err:', err));
+    }, [db]);
 
     if (!settings) {
         return <div>Loading Settings...</div>;

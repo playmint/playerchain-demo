@@ -234,7 +234,7 @@ export default memo(function ShipEntity({
     return (
         <group ref={groupRef}>
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
-            <Html ref={labelRef} style={{ fontSize: 11 }}>
+            <Html ref={labelRef} style={{ fontSize: 11 }} position={[3, 5, 0]}>
                 {owner?.name}
             </Html>
             <PositionalAudio

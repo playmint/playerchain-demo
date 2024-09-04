@@ -139,7 +139,7 @@ export function ChannelView({
                             onClick={toggleMuted}
                             className={theme.materialSymbolsOutlined}
                         >
-                            volume_mute
+                            {muted ? 'volume_off' : 'volume_up'}
                         </span>
                     </div>
                 </div>
