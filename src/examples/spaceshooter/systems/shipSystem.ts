@@ -69,7 +69,7 @@ export default system<ShooterSchema>(
                 const thrust = hasInput(player.input, Input.Forward)
                     ? SHIP_THRUST_RATE
                     : hasInput(player.input, Input.Back)
-                      ? -SHIP_THRUST_RATE
+                      ? -(SHIP_THRUST_RATE * 0.1) // reverse thrust is weaker
                       : 0;
 
                 // apply ship rotation
