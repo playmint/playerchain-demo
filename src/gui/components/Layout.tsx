@@ -5,7 +5,7 @@ import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
-import ChannelBoot from './ChannelBoot';
+import { ChannelBoot } from './ChannelBoot';
 import { ChannelView } from './ChannelView';
 import StatusBar from './StatusBar';
 

@@ -164,6 +164,7 @@ export class Client {
                         channels: [channel.id],
                         proxy: status.proxy,
                         sees: [],
+                        playerName: '',
                     };
                     await this.db.peers.put(info);
                 }
@@ -659,8 +660,10 @@ export class Client {
             }
             // send channel keep alive
             // see channel.ts ... this is a workaround for a bug
+            // and also how player names get broadcasted... (lol)
 
             const connectedPeers = await this.db.peers.toArray();
+            const settings = await this.db.settings.get(1);
             ch.send(
                 {
                     type: PacketType.KEEP_ALIVE,
@@ -669,6 +672,7 @@ export class Client {
                     sees: connectedPeers.map((p) =>
                         Buffer.from(p.peerId, 'hex'),
                     ),
+                    playerName: settings?.name || '',
                 },
                 {
                     channels: [ch.id],

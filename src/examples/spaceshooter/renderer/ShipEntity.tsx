@@ -242,12 +242,12 @@ export default memo(function ShipEntity({
         prevHealthRef.current = health;
     });
 
-    const [peerId, _player] = getShipOwner();
+    const [peerId, player] = getShipOwner();
     return (
         <group ref={groupRef}>
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
             <Html ref={labelRef} style={{ fontSize: 11 }} position={[3, 5, 0]}>
-                {peerId?.slice(0, 8)}
+                {(player && player.name) || peerId?.slice(0, 8)}
             </Html>
             <PositionalAudio
                 ref={explosionSfxRef}
