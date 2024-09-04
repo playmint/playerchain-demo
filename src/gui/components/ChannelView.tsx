@@ -9,7 +9,7 @@ import theme from '../styles/default.module.css';
 import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
 
-const FIXED_UPDATE_RATE = 100;
+const FIXED_UPDATE_RATE = 200;
 const src = '/examples/spaceshooter.js';
 
 export function ChannelView({

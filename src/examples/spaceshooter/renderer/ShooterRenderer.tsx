@@ -6,6 +6,7 @@ import { RendererProps } from '../../../runtime/game';
 import { ModelType, ShooterSchema } from '../../spaceshooter';
 import BulletEntity from './BulletEntity';
 import PlayerCam from './PlayerCam';
+import PlayerHUD from './PlayerHUD';
 import ShipEntity from './ShipEntity';
 import WallEntity from './WallEntity';
 
@@ -55,37 +56,6 @@ const GameView = memo(function GameView({
             ))}
             <PlayerCam peerId={peerId} world={world} />
         </>
-    );
-});
-
-const PlayerHUD = memo(function PlayerHUD({
-    peerId,
-    world,
-}: {
-    world: World<ShooterSchema>;
-    peerId: string;
-}) {
-    const player = world.players.get(peerId);
-    if (!player) {
-        return null;
-    }
-    const health = world.components.stats.data.health[player.ship];
-    // console.log('updating player hud');
-    return (
-        <div
-            style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: 200,
-                height: 40,
-                backgroundColor: 'black',
-                color: 'white',
-            }}
-        >
-            <div> Score:{player.score} </div>
-            <div> Health:{health} </div>
-        </div>
     );
 });
 
