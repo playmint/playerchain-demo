@@ -164,7 +164,9 @@ export default memo(function ShipEntity({
                     particleObj.setPosition(pos);
                     particleObj.start();
                     // make noise too
-                    explosionSfxRef.current.play();
+                    if (!explosionSfxRef.current.isPlaying) {
+                        explosionSfxRef.current.play();
+                    }
                 } else if (
                     particleObj.isPlaying &&
                     world.components.entity.data.generation[eid] !==
@@ -204,7 +206,6 @@ export default memo(function ShipEntity({
                     const pos = new Vector3(4.2, 0, 0);
                     particleObj.setPosition(pos);
                     particleObj.start();
-                    console.log('shootfx');
                 }
             });
         }
@@ -239,7 +240,7 @@ export default memo(function ShipEntity({
             <PositionalAudio
                 ref={explosionSfxRef}
                 url={assetPath(sfxDestroy)}
-                distance={5}
+                distance={500}
                 loop={false}
             />
             <PositionalAudio

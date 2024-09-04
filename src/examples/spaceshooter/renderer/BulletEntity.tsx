@@ -80,7 +80,9 @@ export default memo(function BulletEntity({
                     particleObj.setPosition(pos);
                     particleObj.start();
                     // make noise too
-                    hitSfxRef.current.play();
+                    if (!hitSfxRef.current.isPlaying) {
+                        hitSfxRef.current.play();
+                    }
                 }
             });
         }
@@ -106,13 +108,13 @@ export default memo(function BulletEntity({
             <PositionalAudio
                 ref={shotSfxRef}
                 url={assetPath(sfxShot)}
-                distance={5}
+                distance={500}
                 loop={false}
             />
             <PositionalAudio
                 ref={hitSfxRef}
                 url={assetPath(sfxHit)}
-                distance={5}
+                distance={500}
                 loop={false}
             />
         </group>
