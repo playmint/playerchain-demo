@@ -1,6 +1,5 @@
 import { Clone, Html, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { use } from 'chai';
 import { memo, useEffect, useRef } from 'react';
 import { Color, Group, Mesh, Vector3 } from 'three';
 import { World } from '../../../runtime/ecs';
