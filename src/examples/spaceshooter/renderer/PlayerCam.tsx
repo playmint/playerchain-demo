@@ -3,7 +3,12 @@ import { useFrame } from '@react-three/fiber';
 import { memo } from 'react';
 import { World } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
-import { InterpolateSpeed, interpolate } from '../utils/RenderUtils';
+import {
+    EntityObject3D,
+    InterpolateSpeed,
+    interpolate,
+    updateEntityGeneration,
+} from '../utils/RenderUtils';
 import { BackgroundGrid } from './Background';
 
 const CAM_INITIAL_ZOOM = 160;
@@ -27,17 +32,23 @@ export default memo(function PlayerCam({
             return;
         }
         // move the camera to the ship
+        // snap if ship generation changed
+        const snapiness =
+            world.components.entity.data.generation[player.ship] ===
+            (camera as EntityObject3D).__generation
+                ? InterpolateSpeed.Smooth
+                : InterpolateSpeed.Snap;
         camera.position.x = interpolate(
             camera.position.x,
             world.components.position.data.x[player.ship],
             deltaTime,
-            InterpolateSpeed.Smooth,
+            snapiness,
         );
         camera.position.y = interpolate(
             camera.position.y,
             world.components.position.data.y[player.ship],
             deltaTime,
-            InterpolateSpeed.Smooth,
+            snapiness,
         );
         // calulate velocity magnitude
 
@@ -55,6 +66,9 @@ export default memo(function PlayerCam({
             deltaTime,
             InterpolateSpeed.Slow,
         );
+
+        // mark generation
+        updateEntityGeneration(camera, world, player.ship);
     });
     return (
         <>

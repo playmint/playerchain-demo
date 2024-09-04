@@ -6,6 +6,7 @@ import { World } from '../../../runtime/ecs';
 import { Input, ShooterSchema, hasInput } from '../../spaceshooter';
 import shipGLTF from '../assets/ship.glb?url';
 import fxExplodeData from '../effects/FXExplode';
+import fxRespawnData from '../effects/FXRespawn';
 import fxThrusterData from '../effects/FXThruster';
 import {
     EntityObject3D,
@@ -31,6 +32,7 @@ export default memo(function ShipEntity({
     const groupRef = useRef<Group>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
     const explosionRef = useParticleEffect(groupRef, fxExplodeData, [0, 0, 0]);
+    const respawnRef = useParticleEffect(groupRef, fxRespawnData, [0, 0, 0]);
     const shipRef = useRef<EntityObject3D>(null!);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
@@ -155,6 +157,29 @@ export default memo(function ShipEntity({
                         ship.__generation
                 ) {
                     particleObj.stop();
+                }
+                particleObj.update(deltaTime);
+            });
+        }
+
+        // run respawn effect if generation changed
+        if (respawnRef.current) {
+            const respawned =
+                world.components.entity.data.generation[eid] !==
+                ship.__generation;
+            respawnRef.current.particleSystems.forEach((particleObj) => {
+                if (
+                    respawned &&
+                    !particleObj.isPlaying &&
+                    world.components.entity.data.active[eid]
+                ) {
+                    const pos = new Vector3(
+                        group.position.x,
+                        group.position.y,
+                        group.position.z,
+                    );
+                    particleObj.setPosition(pos);
+                    particleObj.start();
                 }
                 particleObj.update(deltaTime);
             });
