@@ -2,7 +2,7 @@ import { system } from '../../../runtime/ecs';
 import { Input, ShooterSchema, Tags, hasInput } from '../../spaceshooter';
 
 const BULLET_SPEED = 50;
-const BULLET_LIFETIME = 50;
+const BULLET_LIFETIME = 35;
 const SHIP_SHOOT_COOLOFF = 2;
 
 export default system<ShooterSchema>(
@@ -23,7 +23,6 @@ export default system<ShooterSchema>(
         // check bullet collisions
         for (const bullet of bullets) {
             // reset bullet flags
-            stats.hasHit[bullet] = 0;
             audio.play[bullet] = 0;
 
             if (!entity.active[bullet]) {
@@ -41,7 +40,6 @@ export default system<ShooterSchema>(
                 position.y[bullet] = collider.collisionPointY[bullet];
                 velocity.x[bullet] = 0;
                 velocity.z[bullet] = 0;
-                stats.hasHit[bullet] = 1;
                 entity.active[bullet] = 0; // hide on hit
                 stats.health[bullet] = 0;
             }

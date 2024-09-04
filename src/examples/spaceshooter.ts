@@ -108,7 +108,6 @@ export const schema = {
         stats: {
             damage: Type.u8,
             health: Type.u8,
-            hasHit: Type.u8,
             shootTimer: Type.u8,
             hasShot: Type.u8,
             hasExploded: Type.u8,
@@ -141,21 +140,26 @@ export class SpaceShooter implements GameModule {
     onKeyDown = (key: string): void => {
         switch (key) {
             case 'w':
+            case 'W':
                 this.input |= Input.Forward;
                 break;
             case 'a':
+            case 'A':
                 this.input |= Input.Left;
                 break;
             case 's':
+            case 'S':
                 this.input |= Input.Back;
                 break;
             case 'd':
+            case 'D':
                 this.input |= Input.Right;
                 break;
             case ' ':
                 this.input |= Input.Fire;
                 break;
             case 'e':
+            case 'E':
                 this.input |= Input.Respawn;
                 break;
         }
@@ -164,21 +168,26 @@ export class SpaceShooter implements GameModule {
     onKeyUp = (key: string): void => {
         switch (key) {
             case 'w':
+            case 'W':
                 this.input &= ~Input.Forward;
                 break;
             case 'a':
+            case 'A':
                 this.input &= ~Input.Left;
                 break;
             case 's':
+            case 'S':
                 this.input &= ~Input.Back;
                 break;
             case 'd':
+            case 'D':
                 this.input &= ~Input.Right;
                 break;
             case ' ':
                 this.input &= ~Input.Fire;
                 break;
             case 'e':
+            case 'E':
                 this.input &= ~Input.Respawn;
                 break;
         }

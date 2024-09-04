@@ -1,5 +1,6 @@
 import { Clone, Html, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
+import { use } from 'chai';
 import { memo, useEffect, useRef } from 'react';
 import { Color, Group, Mesh, Vector3 } from 'three';
 import { World } from '../../../runtime/ecs';
@@ -30,6 +31,7 @@ export default memo(function ShipEntity({
     const groupRef = useRef<Group>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
     const shipRef = useRef<EntityObject3D>(null!);
+    const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
 
     const gltf = useGLTF(assetPath(shipGLTF));
@@ -87,7 +89,6 @@ export default memo(function ShipEntity({
 
         if (health > 0) {
             if (health < prevHealthRef.current) {
-                console.log('HIT2', health);
                 // took damage
                 ship.children[0].children[0].traverse((child) => {
                     if (child instanceof Mesh) {
@@ -105,8 +106,6 @@ export default memo(function ShipEntity({
                         Math.max(child.material.emissive.g - deltaTime, 0),
                         Math.max(child.material.emissive.b - deltaTime, 0),
                     );
-                } else {
-                    child.material.emissive = new Color(0, 0, 0);
                 }
             }
         });
@@ -140,6 +139,20 @@ export default memo(function ShipEntity({
         // update generation
         updateEntityGeneration(group, world, eid);
         updateEntityGeneration(ship, world, eid);
+
+        // show hide label
+        if (
+            labelRef.current &&
+            world.components.entity.data.active[eid] &&
+            labelRef.current.style.display !== 'block'
+        ) {
+            labelRef.current.style.display = 'block';
+        } else if (
+            !world.components.entity.data.active[eid] &&
+            labelRef.current.style.display !== 'none'
+        ) {
+            labelRef.current.style.display = 'none';
+        }
     });
     const owner = getShipOwner();
     return (
@@ -150,7 +163,9 @@ export default memo(function ShipEntity({
                 scale={1}
                 deep={true}
             />
-            <Html style={{ fontSize: 11 }}>{owner?.name}</Html>
+            <Html ref={labelRef} style={{ fontSize: 11 }}>
+                {owner?.name}
+            </Html>
         </group>
     );
 });

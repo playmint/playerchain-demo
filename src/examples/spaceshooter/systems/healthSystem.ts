@@ -60,7 +60,6 @@ export default system<ShooterSchema>(
 
             // update health
             stats.health[target] = targetHealth;
-            stats.hasHit[collider.collisionEntity[bullet]] = 1;
         }
 
         // tick down the death timer

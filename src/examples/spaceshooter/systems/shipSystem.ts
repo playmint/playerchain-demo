@@ -9,7 +9,7 @@ import {
 } from '../../spaceshooter';
 
 export const SHIP_THRUST_RATE = 50;
-export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 2);
+export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 1);
 export const SHIP_RESPAWN_RADIUS = 400;
 
 export default system<ShooterSchema>(
@@ -48,7 +48,6 @@ export default system<ShooterSchema>(
             // reset ship stats
             stats.hasExploded[player.ship] = 0;
             stats.hasRespawned[player.ship] = 0;
-            stats.hasHit[player.ship] = 0;
             stats.hasShot[player.ship] = 0;
 
             // respawn ship if requested or if it's the first spawn generation
@@ -139,7 +138,6 @@ function addShip({
     stats.health[eid] = 100;
     stats.deathTimer[eid] = 200;
     stats.hasShot[eid] = 0;
-    stats.hasHit[eid] = 0;
     stats.hasExploded[eid] = 0;
     stats.hasRespawned[eid] = 0;
     entity.generation[eid] = 0;
@@ -199,7 +197,6 @@ function addBullet(
     physics.bounciness[eid] = 1;
     stats.damage[eid] = 34;
     stats.health[eid] = 100;
-    stats.hasHit[eid] = 0;
     return eid;
 }
 
