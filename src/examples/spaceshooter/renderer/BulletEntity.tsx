@@ -5,7 +5,14 @@ import { AdditiveBlending, Group, Mesh } from 'three';
 import { World } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import shipGLTF from '../assets/bullet.glb?url';
-import { assetPath, lerpToEntity } from '../utils/RenderUtils';
+import {
+    InterpolateSpeed,
+    assetPath,
+    interpolateEntityPosition,
+    interpolateEntityRotation,
+    interpolateEntityVisibility,
+    updateEntityGeneration,
+} from '../utils/RenderUtils';
 
 export default memo(function BulletEntity({
     eid,
@@ -14,7 +21,6 @@ export default memo(function BulletEntity({
     eid: number;
     world: World<ShooterSchema>;
 }) {
-    const generation = useRef(0);
     const groupRef = useRef<Group>(null!);
     const gltf = useGLTF(assetPath(shipGLTF));
     const model = useMemo(() => {
@@ -26,21 +32,26 @@ export default memo(function BulletEntity({
         });
         return gltf.scene;
     }, [gltf]);
-    useFrame(() => {
-        if (
-            generation.current !== world.components.entity.data.generation[eid]
-        ) {
-            generation.current = world.components.entity.data.generation[eid];
-            groupRef.current.position.x = world.components.position.data.x[eid];
-            groupRef.current.position.y = world.components.position.data.y[eid];
-            groupRef.current.position.z = world.components.position.data.z[eid];
-            groupRef.current.rotation.z = world.components.rotation.data.z[eid];
-            groupRef.current.visible =
-                !!world.components.entity.data.active[eid];
-        } else {
-            lerpToEntity(groupRef.current, world, eid);
-        }
+
+    useFrame((_state, deltaTime) => {
+        interpolateEntityVisibility(groupRef.current, world, eid);
+        interpolateEntityPosition(
+            groupRef.current,
+            world,
+            eid,
+            deltaTime,
+            InterpolateSpeed.Fastest,
+        );
+        interpolateEntityRotation(
+            groupRef.current,
+            world,
+            eid,
+            deltaTime,
+            InterpolateSpeed.Snap,
+        );
+        updateEntityGeneration(groupRef.current, world, eid);
     });
+
     return (
         <group ref={groupRef}>
             <Clone object={model} scale={1} />

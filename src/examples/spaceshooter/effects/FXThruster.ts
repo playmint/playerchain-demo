@@ -1,8 +1,7 @@
 import BlueGlowImage from '../assets/BlueGlow.png?url';
 import Thruster2Image from '../assets/Thruster2.png?url';
-import { ParticleEffectData } from './ParticleSystem';
 
-export default new ParticleEffectData({
+export default {
     name: 'thrusterFX',
     particleSystems: [
         {
@@ -120,4 +119,4 @@ export default new ParticleEffectData({
             },
         },
     ],
-});
+};

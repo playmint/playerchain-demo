@@ -135,7 +135,7 @@ function addShip({
     physics.applyRotation[eid] = 0;
     physics.drag[eid] = 0.01;
     physics.maxVelocity[eid] = 70;
-    physics.bounciness[eid] = 0.4;
+    physics.bounciness[eid] = 0.25;
     stats.health[eid] = 100;
     stats.deathTimer[eid] = 200;
     stats.hasShot[eid] = 0;
