@@ -8,7 +8,7 @@ export function BackgroundGrid() {
     gridTex.wrapT = RepeatWrapping;
     gridTex.repeat.set(100, 100);
     return (
-        <mesh position={[0, 0, -1]}>
+        <mesh position={[0, 0, -10]}>
             <planeGeometry args={[1000, 1000, 100, 100]} />
             <meshStandardMaterial
                 map={gridTex}

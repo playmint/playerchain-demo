@@ -225,8 +225,8 @@ export class SpaceShooter implements GameModule {
         levelSystem(this.world, deltaTime);
         shipSystem(this.world, deltaTime);
         physicsSystem(this.world, deltaTime);
-        bulletSystem(this.world, deltaTime);
         healthSystem(this.world, deltaTime);
+        bulletSystem(this.world, deltaTime);
     };
 
     getRenderComponent = (): FunctionComponent<RendererProps> | null => {

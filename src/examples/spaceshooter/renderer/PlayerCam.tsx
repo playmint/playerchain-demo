@@ -3,11 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { memo } from 'react';
 import { World } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
-import {
-    InterpolateSpeed,
-    interpolate,
-    interpolateEntityPosition,
-} from '../utils/RenderUtils';
+import { InterpolateSpeed, interpolate } from '../utils/RenderUtils';
 import { BackgroundGrid } from './Background';
 
 const CAM_INITIAL_ZOOM = 160;

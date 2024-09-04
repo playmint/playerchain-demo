@@ -44,7 +44,6 @@ export default system<ShooterSchema>(
                 stats.hasHit[bullet] = 1;
                 entity.active[bullet] = 0; // hide on hit
                 stats.health[bullet] = 0;
-                console.log('colliderdd');
             }
 
             // run down bullet health

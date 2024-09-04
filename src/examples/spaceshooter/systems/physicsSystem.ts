@@ -22,7 +22,7 @@ export default system<ShooterSchema>(
         deltaTime,
     }) => {
         const bodies = query(Tags.IsSolidBody);
-        const steps = Math.ceil(50 * deltaTime); // number of times we check physics between updates
+        const steps = Math.ceil(100 * deltaTime); // number of times we check physics between updates
         // console.log('steps', steps);
 
         // apply physics
@@ -158,7 +158,6 @@ function collideCircle(
     // console.log('check', distance, circle1, circle2);
     if (distance < circle1.radius + circle2.radius) {
         // Handle collision
-        console.log('COLLISION');
         collider.hasCollided[thisEid] = 1;
         collider.collisionEntity[thisEid] = thatEid;
         const collisionDirection: Vector2 = {

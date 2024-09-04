@@ -1,7 +1,7 @@
 import { Clone, Html, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo, useEffect, useRef } from 'react';
-import { Group, Vector3 } from 'three';
+import { Color, Group, Mesh, Vector3 } from 'three';
 import { World } from '../../../runtime/ecs';
 import { Input, ShooterSchema, hasInput } from '../../spaceshooter';
 import shipGLTF from '../assets/ship.glb?url';
@@ -9,6 +9,7 @@ import fxThrusterData from '../effects/FXThruster';
 import {
     InterpolateSpeed,
     assetPath,
+    interpolate,
     interpolateEntityPosition,
     interpolateEntityRotation,
     interpolateEntityVisibility,
@@ -28,6 +29,7 @@ export default memo(function ShipEntity({
     const groupRef = useRef<Group>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
     const shipRef = useRef<any>(null!);
+    const prevHealthRef = useRef<number>(null);
     const gltf = useGLTF(assetPath(shipGLTF));
     useEffect(() => {
         if (!gltf) {
@@ -59,6 +61,35 @@ export default memo(function ShipEntity({
             deltaTime,
             InterpolateSpeed.Quick,
         );
+        // apply ship roll if we are turning
+        const shipInner = ship.children[0].children[0];
+        const roll = hasInput(player.input, Input.Left)
+            ? -0.4
+            : hasInput(player.input, Input.Right)
+              ? 0.4
+              : 0;
+        shipInner.rotation.x = interpolate(
+            shipInner.rotation.x,
+            roll,
+            deltaTime,
+            InterpolateSpeed.Smooth,
+        );
+        // flash ship if we lost health
+        const health = world.components.stats.data.health[eid];
+        if (prevHealthRef.current === null) {
+            prevHealthRef.current = health;
+        }
+        if (world.components.entity.data.generation === ship.generation) {
+            if (health < prevHealthRef.current) {
+                ship.children[0].children[0].traverse((child) => {
+                    if (child instanceof Mesh) {
+                        child.material.emissive = new Color(0.5, 0.5, 0.5);
+                    }
+                });
+            }
+        }
+        prevHealthRef.current = health;
+
         // update thruster effect
         if (thrustRef.current) {
             const thrusting =
