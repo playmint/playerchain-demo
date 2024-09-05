@@ -1,7 +1,10 @@
 import { memo } from 'react';
-import { World } from '../../../runtime/ecs';
+import { PlayerData, World } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import EnergyBar from './EnergyBar';
+import LeaderBoard from './LeaderBoard';
+
+type PlayerDataWithId = PlayerData<ShooterSchema['player']> & { id: string };
 
 export default memo(function PlayerHUD({
     peerId,
@@ -15,6 +18,10 @@ export default memo(function PlayerHUD({
         return null;
     }
     const health = world.components.stats.data.health[player.ship];
+    const players = Array.from(world.players.entries()).map((p) => ({
+        id: p[0],
+        ...p[1],
+    })) as PlayerDataWithId[];
     // console.log('updating player hud');
     return (
         <div
@@ -32,12 +39,28 @@ export default memo(function PlayerHUD({
         >
             <div></div>
             <div style={{ flexGrow: 1 }}></div>
-            <div style={{ display: 'flex', marginBottom: '1rem' }}>
-                <div style={{ flexGrow: 1 }}>chat</div>
-                <div style={{ width: 300 }}>
+            <div
+                style={{
+                    display: 'flex',
+                    marginBottom: '1rem',
+                    alignContent: 'center',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                }}
+            >
+                <div style={{ width: '30%' }}></div>
+                <div
+                    style={{
+                        flexGrow: 1,
+                        marginRight: '1rem',
+                        marginLeft: '1rem',
+                    }}
+                >
                     <EnergyBar energy={health} />
                 </div>
-                <div style={{ flexGrow: 1 }}>Score: {player.score}</div>
+                <div style={{ width: '30%' }}>
+                    <LeaderBoard players={players} peerId={peerId} />
+                </div>
             </div>
         </div>
     );

@@ -104,7 +104,7 @@ export default memo(function BulletEntity({
 
     return (
         <group ref={groupRef}>
-            <Clone ref={bulletRef} object={model} scale={1} />
+            <Clone ref={bulletRef} object={model} scale={0.5} />
             <PositionalAudio
                 ref={shotSfxRef}
                 url={assetPath(sfxShot)}

@@ -1,8 +1,8 @@
 import { system } from '../../../runtime/ecs';
 import { ShooterSchema, Tags } from '../../spaceshooter';
 
-const SCORE_HIT = 1;
-const SCORE_KILL = 1000;
+const SCORE_HIT = 0;
+const SCORE_KILL = 1;
 
 export default system<ShooterSchema>(
     ({ query, players, entity, collider, stats, velocity, deltaTime }) => {
