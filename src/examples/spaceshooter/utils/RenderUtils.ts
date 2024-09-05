@@ -18,7 +18,7 @@ export type EntityObject3D = Object3D & {
 export enum InterpolateSpeed {
     Snap = -1,
     Fastest = 10,
-    Quick = 7,
+    Quick = 9,
     Smooth = 2.5,
     Slow = 0.5,
 }

@@ -15,6 +15,7 @@ import sfxHit from '../assets/Hit.mp3?url';
 import sfxShot from '../assets/Shot.mp3?url';
 import shipGLTF from '../assets/bullet.glb?url';
 import fxPopData from '../effects/FXShoot';
+import { BULLET_LIFETIME } from '../systems/bulletSystem';
 import {
     EntityObject3D,
     InterpolateSpeed,
@@ -52,15 +53,23 @@ export default memo(function BulletEntity({
     useFrame((_state, deltaTime) => {
         const group = groupRef.current as EntityObject3D;
         const bullet = bulletRef.current;
-        // hide bullet if not active
-        interpolateEntityVisibility(bullet, world, eid);
+        // during the first few frames of bullet shooting, the bullet is not
+        // alighed with the interpolated position of the ship so we hide it for
+        // a bit and snap position to make it look bit better
+        const isNewlySpawned =
+            world.components.stats.data.health[eid] > BULLET_LIFETIME - 2;
+        if (isNewlySpawned) {
+            bullet.visible = false;
+        } else {
+            interpolateEntityVisibility(bullet, world, eid);
+        }
         // track bullet
         interpolateEntityPosition(
             group,
             world,
             eid,
             deltaTime,
-            InterpolateSpeed.Fastest,
+            isNewlySpawned ? InterpolateSpeed.Snap : InterpolateSpeed.Fastest,
         );
         interpolateEntityRotation(
             group,
