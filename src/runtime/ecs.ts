@@ -239,14 +239,14 @@ export class World<T extends WorldSchema> {
 
     // return a snapshot of the world state as an object suitable for serialization
     dump = () => {
-        return {
+        return structuredClone({
             entities: this.entities,
             players: this.players,
             components: Object.keys(this.components).map((name) => {
                 return { name, component: this.components[name].data };
             }),
             tags: this.tags.data,
-        };
+        });
     };
 
     // retore a dumped snapshot, overwrites the current world state
@@ -262,6 +262,7 @@ export class World<T extends WorldSchema> {
                     typeof data,
             );
         }
+        data = structuredClone(data); // ensure we don't mutate the input
         this.entities = data.entities;
         this.players = data.players;
         for (const { name, component } of data.components) {
