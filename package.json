@@ -68,7 +68,6 @@
         "eslint-plugin-react-refresh": "^0.4.7",
         "fake-indexeddb": "^6.0.0",
         "globals": "^15.9.0",
-        "indexeddbshim": "^15.0.1",
         "jdenticon": "^3.3.0",
         "libsodium-wrappers": "^0.7.15",
         "lru-cache": "^11.0.0",
