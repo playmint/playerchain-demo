@@ -105,7 +105,12 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
         if (!mod) {
             return;
         }
-        sim.cue(cueTo > 0 ? cueTo : Math.floor(Date.now() / rate))
+        if (cueTo === 0) {
+            const now = Math.floor(Date.now() / rate);
+            setCueTo(now);
+            return;
+        }
+        sim.cue(cueTo)
             .then((state) => {
                 mod.load(state.data);
                 mod.notify();
