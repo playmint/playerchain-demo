@@ -22,7 +22,7 @@ export default function LeaderBoard({
         .map((p) => ({
             user: p.name,
             score: p.score,
-            color: '#ac75eb',
+            color: `#${p.id.slice(0, 6)}`, //'#ac75eb',
             isMe: peerId === p.id,
         }))
         .sort((a, b) => b.score - a.score);

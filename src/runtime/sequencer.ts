@@ -111,7 +111,6 @@ export class Sequencer {
             return true;
         }
         // if our input has changed write a block
-        // if input has change, commit
         if (
             this.prev &&
             this.prev.type === MessageType.INPUT &&

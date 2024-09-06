@@ -122,3 +122,12 @@ export async function importStatic(modulePath) {
 export function peerIdTo64bitBigNum(peerId: string): bigint {
     return BigInt(`0x${peerId.slice(0, 15)}`);
 }
+
+// wipe all the state
+export async function hardReset() {
+    const dbs = await window.indexedDB.databases();
+    await Promise.all(
+        dbs.map((db: any) => window.indexedDB.deleteDatabase(db.name)),
+    );
+    localStorage.clear();
+}

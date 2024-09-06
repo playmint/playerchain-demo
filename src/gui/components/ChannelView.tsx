@@ -10,7 +10,7 @@ import theme from '../styles/default.module.css';
 import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
 
-const FIXED_UPDATE_RATE = 100;
+const FIXED_UPDATE_RATE = 50;
 const src = '/examples/spaceshooter.js';
 
 export function ChannelView({
@@ -57,10 +57,8 @@ export function ChannelView({
     // peer info
 
     const peers = useLiveQuery(() => db.peers.toArray(), [db]);
-    const connectedPeers =
-        peers?.filter((p) => p.connected && p.online).length || 0;
-    const minConnected =
-        import.meta.env.mode === 'production' ? connectedPeers > 0 : true;
+    const connectedPeers = peers?.filter((p) => p.online).length || 0;
+    const minConnected = connectedPeers > 0;
     const peersToShowInLace = useMemo(() => {
         const ps = peers
             ? peers

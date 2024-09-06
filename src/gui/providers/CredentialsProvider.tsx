@@ -12,6 +12,14 @@ import { useSocket } from '../hooks/use-socket';
 async function createCredentials(
     playerIndex: number,
 ): Promise<CredentialsContextType> {
+    // --------------
+    // temp, burn all the state on reload
+    // TODO: only burn the state on first load not refresh
+    // -------
+    // if (playerIndex === 0) {
+    //     await hardReset();
+    // }
+    // ------
     const peerSecretKey = `peerSecret/${playerIndex}`;
     let peerSecretValue = localStorage.getItem(peerSecretKey);
     if (peerSecretValue === null) {

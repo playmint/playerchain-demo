@@ -38,17 +38,29 @@ export default memo(function PlayerCam({
             (camera as EntityObject3D).__generation
                 ? InterpolateSpeed.Smooth
                 : InterpolateSpeed.Snap;
-        camera.position.x = interpolate(
-            camera.position.x,
-            world.components.position.data.x[player.ship],
-            deltaTime,
-            snapiness,
+        camera.position.x = Math.max(
+            Math.min(
+                interpolate(
+                    camera.position.x,
+                    world.components.position.data.x[player.ship],
+                    deltaTime,
+                    snapiness,
+                ),
+                460,
+            ),
+            -460,
         );
-        camera.position.y = interpolate(
-            camera.position.y,
-            world.components.position.data.y[player.ship],
-            deltaTime,
-            snapiness,
+        camera.position.y = Math.max(
+            Math.min(
+                interpolate(
+                    camera.position.y,
+                    world.components.position.data.y[player.ship],
+                    deltaTime,
+                    snapiness,
+                ),
+                460, // north extent
+            ),
+            -460, // south extent
         );
         // calulate velocity magnitude
 

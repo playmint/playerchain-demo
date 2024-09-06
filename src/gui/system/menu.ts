@@ -1,5 +1,6 @@
 import application from 'socket:application';
 import process from 'socket:process';
+import { hardReset } from '../../runtime/utils';
 
 const isMobile = ['android', 'ios'].includes(process.platform);
 const isProduction = false; // import.meta.env.MODE === 'production'
@@ -111,14 +112,11 @@ const menu: Menu[] = [
                 name: 'Hard Reset!',
                 shortcut: '',
                 handler: async () => {
-                    const dbs = await window.indexedDB.databases();
-                    await Promise.all(
-                        dbs.map((db: any) =>
-                            window.indexedDB.deleteDatabase(db.name),
-                        ),
-                    );
-                    localStorage.clear();
-                    window.location.reload();
+                    hardReset()
+                        .then(() => window.location.reload())
+                        .catch((err) =>
+                            console.error(`hard-reset-fail: ${err}`),
+                        );
                 },
             },
         ],

@@ -71,7 +71,7 @@ export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
         });
     }, [mod, peerId]);
     if (!world) {
-        return <div>NO WORLD</div>;
+        return <div>Loading world...</div>;
     }
     // console.log('updating canvas');
     return (

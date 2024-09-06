@@ -131,11 +131,14 @@ type WorldComponentData<T extends WorldSchema> = {
 
 export class World<T extends WorldSchema> {
     size: number;
-    entities: (EntityId | null)[] = [];
     schema: T;
+
+    // the data
+    entities: (EntityId | null)[] = [];
     components: WorldData<T> = {} as WorldData<T>;
     tags: Component<{ tag: u32 }> = new Component({ tag: Type.u32 }, 0);
     players: Map<string, PlayerData<T['player']>> = new Map();
+
     constructor(schema: T, size: number) {
         this.schema = schema;
         this.size = size;
@@ -144,6 +147,7 @@ export class World<T extends WorldSchema> {
 
     // reset clears all entities and components from the world
     reset = () => {
+        this.entities = [];
         this.components = Object.keys(this.schema.components)
             .sort()
             .reduce((acc, key) => {
@@ -164,8 +168,9 @@ export class World<T extends WorldSchema> {
                 `addEntity failed, world hit max entities: ${this.size}`,
             );
         }
-        const eid = this.entities.length;
+        const eid = this.entities.length + 1;
         this.entities = [...this.entities, eid];
+        console.log('added entity', eid);
         return eid;
     };
 

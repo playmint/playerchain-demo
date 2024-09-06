@@ -88,7 +88,6 @@ export class Simulation {
             }));
         };
         // fast forward through all the empty deltas
-        mod.load(nextState.data);
         for (let r = 0; r < round.delta; r++) {
             nextState.t = round.round - round.delta + r;
             // wipe out any existing input state, we do this every round%N
@@ -96,7 +95,9 @@ export class Simulation {
             if (nextState.t % 10 === 0) {
                 resetInputs(nextState);
             }
+            mod.load(nextState.data);
             mod.run(nextState.inputs, deltaTime);
+            nextState.data = mod.dump();
         }
         // reset inputs on Nth round
         if (round.round % 10 === 0) {
@@ -108,6 +109,7 @@ export class Simulation {
         }));
         // tick the game logic forward
         nextState.t = round.round;
+        mod.load(nextState.data);
         mod.run(nextState.inputs, deltaTime);
         nextState.data = mod.dump();
         // return the copy of the state
@@ -290,6 +292,7 @@ export class Simulation {
         // play the messages on top of the state
         let state = rollbackState.state;
         // push in the emulated tick for toRound if no messages
+        let fakes = 0;
         if (prevRound < toRound) {
             roundInputs.push({
                 round: toRound,
@@ -298,6 +301,7 @@ export class Simulation {
                 inputs: [],
                 fake: true,
             });
+            fakes = toRound - prevRound;
         }
         const checkpoints: SerializedState[] = [];
         for (const round of roundInputs) {
@@ -329,22 +333,30 @@ export class Simulation {
         }
         // update the last processed cursors
         if (checkpoints.length > 0) {
-            console.log(
-                `writing-states
-                    states=${checkpoints.length} 
-                    applies=${roundInputs.length} 
-                    ticks=${toRound - fromRound} 
-                    emutick=${Math.min(toRound - prevRound, this.idleTimeoutRounds)} 
-                    fromRound=${fromRound} 
-                    toRound=${toRound}
-                    messages=${messages.length}
-                    inputs=${roundInputs.length}
-                    lastArrived=${prevArrived}
-                `,
-            );
+            // console.log(
+            //     `CHECKPOINT
+            //         toRound=${toRound}
+            //         fromRound=${fromRound}
+            //         ticks=${toRound - fromRound}
+            //         states=${checkpoints.length}
+            //         applies=${roundInputs.length}
+            //         emutick=${Math.min(toRound - prevRound, this.idleTimeoutRounds)}
+            //         messages=${messages.length}
+            //         inputs=${roundInputs.length}
+            //         lastArrived=${prevArrived}
+            //     `,
+            // );
             // write the state to the store
             // await this.db.state.bulkPut(checkpoints);
         }
+        // console.log(
+        //     `simulated
+        //         toRound=${toRound}
+        //         fromRound=${fromRound}
+        //         ticks=${toRound - fromRound}
+        //         fakes=${fakes}
+        //     `,
+        // );
         return state;
     }
 

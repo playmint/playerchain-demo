@@ -38,7 +38,9 @@ export default memo(function ShipEntity({
     world: World<ShooterSchema>;
 }) {
     const getShipOwner = () =>
-        Array.from(world.players.values()).find((p) => p.ship === eid);
+        Array.from(world.players.entries()).find(
+            ([_id, p]) => p.ship === eid,
+        ) || [undefined, undefined];
     const groupRef = useRef<Group>(null!);
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
@@ -59,12 +61,19 @@ export default memo(function ShipEntity({
     }, [gltf]);
 
     useFrame((_state, deltaTime) => {
-        const player = getShipOwner(); // inefficient, but there's only a few players
+        const [peerId, player] = getShipOwner();
+        const color = new Color(peerId ? `#${peerId.slice(0, 6)}` : '#ffffff');
         const group = groupRef.current;
         const ship = shipRef.current as EntityObject3D;
         if (!player) {
             return;
         }
+        // color the ship
+        ship.children[0].children[0].traverse((child) => {
+            if (child instanceof Mesh) {
+                child.material.color = color;
+            }
+        });
         // hide ship if not active (not the whole group, just the ship)
         interpolateEntityVisibility(ship, world, eid, deltaTime);
         // lerp ship
@@ -230,12 +239,13 @@ export default memo(function ShipEntity({
         updateEntityGeneration(ship, world, eid);
         prevHealthRef.current = health;
     });
-    const owner = getShipOwner();
+
+    const [peerId, _player] = getShipOwner();
     return (
         <group ref={groupRef}>
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
             <Html ref={labelRef} style={{ fontSize: 11 }} position={[3, 5, 0]}>
-                {owner?.name}
+                {peerId?.slice(0, 8)}
             </Html>
             <PositionalAudio
                 ref={explosionSfxRef}
