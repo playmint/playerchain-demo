@@ -177,7 +177,7 @@ export class Peer {
             //     `SEND ${this.client.shortId} -> ${this.shortId} (${(buf as any).length}b) via ${channelId.slice(0, 8)}`,
             // );
             await socket.emit(evt, buf as any, opts);
-            await sleep(10);
+            await sleep(1);
             return;
         }
     };
@@ -195,7 +195,7 @@ export class Peer {
             //     `SEND2 ${(buf as any).length} bytes to peer via ${channelId}`,
             // );
             await socket.emit(evt, buf as any, opts);
-            await sleep(100);
+            await sleep(2);
             return;
         }
     };

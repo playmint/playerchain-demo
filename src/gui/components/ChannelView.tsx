@@ -58,7 +58,7 @@ export function ChannelView({
 
     const peers = useLiveQuery(() => db.peers.toArray(), [db]);
     const connectedPeers = peers?.filter((p) => p.online).length || 0;
-    const minConnected = connectedPeers > 0;
+    const minConnected = connectedPeers > 0 || true;
     const peersToShowInLace = useMemo(() => {
         const ps = peers
             ? peers
