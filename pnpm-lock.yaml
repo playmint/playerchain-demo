@@ -36,9 +36,6 @@ importers:
       '@react-three/fiber':
         specifier: ^8.16.8
         version: 8.16.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.167.1)
-      '@socketsupply/indexed':
-        specifier: ^1.0.3
-        version: 1.0.3
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^4.3.0
         version: 4.3.0(prettier@3.3.3)
@@ -653,9 +650,6 @@ packages:
     resolution: {integrity: sha512-aJ1EJSuTdGnM6qbVC4B5DSmozPTqIag9fSzXRNNo+humQLG89XpPgdt16Ia56ORD7s+H8Pmyx44uczDQ0yDzpg==}
     cpu: [x64]
     os: [win32]
-
-  '@socketsupply/indexed@1.0.3':
-    resolution: {integrity: sha512-XVHmoTc4rtNUZLbzP2x1e0uQKmik5+lmS9BxbeK154sktodrKK86l1t7kvQPS4ZM9Pb5VXO3hwC81ds4wys2tQ==}
 
   '@swc/core-darwin-arm64@1.7.5':
     resolution: {integrity: sha512-Y+bvW9C4/u26DskMbtQKT4FU6QQenaDYkKDi028vDIKAa7v1NZqYG9wmhD/Ih7n5EUy2uJ5I5EWD7WaoLzT6PA==}
@@ -3504,8 +3498,6 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.20.0':
     optional: true
-
-  '@socketsupply/indexed@1.0.3': {}
 
   '@swc/core-darwin-arm64@1.7.5':
     optional: true
