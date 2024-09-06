@@ -3,6 +3,7 @@ import process from 'socket:process';
 import { hardReset } from '../../runtime/utils';
 
 const isMobile = ['android', 'ios'].includes(process.platform);
+const isWindows = ['win'].includes(process.platform);
 const isProduction = false; // import.meta.env.MODE === 'production'
 
 interface MenuItem {
@@ -175,27 +176,20 @@ async function handleMenuSelection(parent: string, title: string) {
     return unhandledMenuSelection(parent, title);
 }
 
+export async function setContextMenu() {
+    const win = await application.getCurrentWindow();
+    const menuString = toMenuString();
+    await win.setContextMenu({ index: 0, value: menuString });
+}
+
 export async function setSystemMenu() {
+    // FIXME: this is broken on windows so disable it
+    if (isWindows) {
+        return;
+    }
     // setup menu
     if (!isMobile) {
-        let menuString = '';
-        for (const item of menu) {
-            if (item.visible && !item.visible()) {
-                continue;
-            }
-            menuString += `${item.name}:\n`;
-            for (const subitem of item.items) {
-                if (subitem.visible && !subitem.visible()) {
-                    continue;
-                }
-                if (subitem.name === '---') {
-                    menuString += '    ---\n';
-                } else {
-                    menuString += `    ${subitem.name}: ${subitem.shortcut}\n`;
-                }
-            }
-            menuString += ';\n';
-        }
+        const menuString = toMenuString();
         await application.setSystemMenu({ index: 0, value: menuString });
 
         window.addEventListener('menuItemSelected', (event) => {
@@ -204,4 +198,26 @@ export async function setSystemMenu() {
             );
         });
     }
+}
+
+function toMenuString() {
+    let menuString = '';
+    for (const item of menu) {
+        if (item.visible && !item.visible()) {
+            continue;
+        }
+        menuString += `${item.name}:\n`;
+        for (const subitem of item.items) {
+            if (subitem.visible && !subitem.visible()) {
+                continue;
+            }
+            if (subitem.name === '---') {
+                menuString += '    ---\n';
+            } else {
+                menuString += `    ${subitem.name}: ${subitem.shortcut}\n`;
+            }
+        }
+        menuString += ';\n';
+    }
+    return menuString;
 }
