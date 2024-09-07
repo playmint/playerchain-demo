@@ -19,6 +19,7 @@ export const SimulationProvider = ({
 }) => {
     // const { transport } = useTransport();
     const { keys, dbname } = useCredentials();
+    console.log(`SimulationProvider ${src} ${rate}`);
 
     const sim = useAsyncMemo<Comlink.Remote<Simulation> | undefined>(
         async (defer) => {
@@ -50,6 +51,7 @@ export const SimulationProvider = ({
                 src,
                 rate,
             });
+            await sim.init();
             defer(async () => {
                 await sim.destroy();
                 console.log(`sim shutdown`);

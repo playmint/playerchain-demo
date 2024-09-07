@@ -5,13 +5,9 @@ import { PeerInfo } from '../../runtime/db';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
-import { SimulationProvider } from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
-
-const FIXED_UPDATE_RATE = 50;
-const src = '/examples/spaceshooter.js';
 
 export function ChannelView({
     channelId,
@@ -56,7 +52,7 @@ export function ChannelView({
 
     // peer info
 
-    const peers = useLiveQuery(() => db.peers.toArray(), [db]);
+    const peers = useLiveQuery(() => db.peers.toArray(), [], []);
     const connectedPeers = peers?.filter((p) => p.online).length || 0;
     const minConnected = connectedPeers > 0 || true;
     const peersToShowInLace = useMemo(() => {
@@ -75,6 +71,15 @@ export function ChannelView({
         return ps.sort();
     }, [peers, peerId, channelId]);
 
+    const largestDiff = peers.reduce(
+        (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),
+        0,
+    );
+
+    if (largestDiff > 10) {
+        return <div>too out of sync, waiting...</div>;
+    }
+
     if (!channel) {
         return <div>failed to load channel data</div>;
     }
@@ -88,91 +93,85 @@ export function ChannelView({
     }
 
     return (
-        <SimulationProvider
-            src={src}
-            rate={FIXED_UPDATE_RATE}
-            channelId={channelId}
-        >
-            <div style={{ display: 'flex', flexGrow: 1 }}>
+        <div style={{ display: 'flex', flexGrow: 1 }}>
+            <div
+                style={{
+                    flexGrow: 1,
+                    position: 'relative',
+                }}
+                ref={canvasRef}
+            >
+                <Renderer key={channel.id} channelId={channel.id} />
                 <div
                     style={{
-                        flexGrow: 1,
-                        position: 'relative',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        boxShadow: 'inset 0px 0px 5px 0px rgba(0,0,0,0.75)',
+                        pointerEvents: 'none',
                     }}
-                    ref={canvasRef}
                 >
-                    <Renderer key={channel.id} channelId={channel.id} />
-                    <div
+                    <span
                         style={{
+                            pointerEvents: 'auto',
                             position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            boxShadow: 'inset 0px 0px 5px 0px rgba(0,0,0,0.75)',
-                            pointerEvents: 'none',
+                            bottom: '1rem',
+                            left: '1rem',
+                            color: '#555',
                         }}
+                        onClick={toggleFullscreen}
+                        className={theme.materialSymbolsOutlined}
                     >
-                        <span
-                            style={{
-                                pointerEvents: 'auto',
-                                position: 'absolute',
-                                bottom: '1rem',
-                                left: '1rem',
-                                color: '#555',
-                            }}
-                            onClick={toggleFullscreen}
-                            className={theme.materialSymbolsOutlined}
-                        >
-                            fullscreen
-                        </span>
-                        <span
-                            style={{
-                                pointerEvents: 'auto',
-                                position: 'absolute',
-                                top: '1rem',
-                                right: '1rem',
-                                color: '#555',
-                            }}
-                            onClick={toggleMuted}
-                            className={theme.materialSymbolsOutlined}
-                        >
-                            {muted ? 'volume_off' : 'volume_up'}
-                        </span>
-                    </div>
-                </div>
-                {details && (
-                    <div
+                        fullscreen
+                    </span>
+                    <span
                         style={{
-                            background: '#333',
-                            width: '15rem',
-                            fontSize: '0.8rem',
-                            padding: '1rem',
-                            color: '#aaa',
-                            flexShrink: 0,
-                            flexGrow: 0,
-                            display: 'flex',
-                            flexDirection: 'column',
+                            pointerEvents: 'auto',
+                            position: 'absolute',
+                            top: '1rem',
+                            right: '1rem',
+                            color: '#555',
                         }}
+                        onClick={toggleMuted}
+                        className={theme.materialSymbolsOutlined}
                     >
-                        {peers
-                            ?.filter((p) => p.knownHeight != -1)
-                            .map((peer) => (
-                                <PeerStatus key={peer.peerId} peer={peer} />
-                            ))}
-
-                        {channelId && connectedPeers > 0 ? (
-                            <PacketLace
-                                channelId={channelId}
-                                peers={peersToShowInLace}
-                            />
-                        ) : (
-                            'NO PEERS ONLINE'
-                        )}
-                    </div>
-                )}
+                        {muted ? 'volume_off' : 'volume_up'}
+                    </span>
+                </div>
             </div>
-        </SimulationProvider>
+            {details && (
+                <div
+                    style={{
+                        background: '#333',
+                        width: '15rem',
+                        fontSize: '0.8rem',
+                        padding: '1rem',
+                        color: '#aaa',
+                        flexShrink: 0,
+                        flexGrow: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}
+                >
+                    {peers
+                        ?.filter((p) => p.knownHeight != -1)
+                        .map((peer) => (
+                            <PeerStatus key={peer.peerId} peer={peer} />
+                        ))}
+
+                    {channelId && connectedPeers > 0 ? (
+                        <PacketLace
+                            channelId={channelId}
+                            peers={peersToShowInLace}
+                        />
+                    ) : (
+                        'NO PEERS ONLINE'
+                    )}
+                </div>
+            )}
+        </div>
     );
 }
 

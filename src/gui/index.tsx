@@ -2,9 +2,13 @@ import '@fontsource-variable/recursive/mono.css';
 import '@fontsource/material-symbols-outlined';
 import ReactDOM from 'react-dom/client';
 import application from 'socket:application';
+import gc from 'socket:gc';
+import { enableNativeImplementations } from '../runtime/utils';
 import App from './App';
 import './styles/reset.css';
 import { setSystemMenu } from './system/menu';
+
+enableNativeImplementations();
 
 async function init() {
     // await setContextMenu();
@@ -14,9 +18,13 @@ async function init() {
 
     const win = await application.getCurrentWindow();
 
-    // FIXME: this can be removed... it makes application and window available for messing around in the console
+    // expose some stuff on window for debugging
     (window as any).webview = win;
     (window as any).application = application;
+    (window as any).gc = gc;
+
+    // experiment to avoid the gc leak we see
+    enableNativeImplementations();
 
     if (import.meta.env.MODE === 'test') {
         // skip the main app and go straight to the tests

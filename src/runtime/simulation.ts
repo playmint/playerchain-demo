@@ -3,6 +3,7 @@ import database, { DB, SerializedState, StateTag } from './db';
 import { GameModule, PlayerData, load } from './game';
 import { IncrementalCache } from './lru';
 import { MessageType } from './messages';
+import { enableNativeImplementations } from './utils';
 
 export type State = {
     t: number;
@@ -22,7 +23,7 @@ export interface SimulationConfig {
     dbname: string;
     channelId: string;
     src: string; // URL to the game module to load
-    rate?: number;
+    rate: number;
     inputBuffer?: number;
     idleTimeout?: number;
 }
@@ -35,6 +36,7 @@ export class Simulation {
     private stateCache: IncrementalCache<number, SerializedState>;
     private stateBuffer = 100;
     private db: DB;
+    cueing = false;
 
     constructor({
         src,
@@ -47,7 +49,7 @@ export class Simulation {
         this.mod = load(src);
         this.channelId = channelId;
         this.db = database.open(dbname);
-        this.fixedUpdateRate = rate ? rate : 200;
+        this.fixedUpdateRate = rate;
         this.idleTimeoutRounds = idleTimeout ? idleTimeout : 60; // game pauses if no input for this many rounds
         // this.inputBuffer = typeof inputBuffer === 'number' ? inputBuffer : 2;
         this.stateCache = new IncrementalCache<number, SerializedState>(
@@ -55,8 +57,9 @@ export class Simulation {
         );
     }
 
-    configure(config: { stf: () => void }) {
-        config.stf();
+    async init() {
+        // FIXME: experimenting if this avoid the gc leak
+        enableNativeImplementations();
     }
 
     getFixedUpdateRate() {
@@ -221,7 +224,19 @@ export class Simulation {
         return this.fixedUpdateRate;
     }
 
-    async cue(targetRound: number): Promise<State> {
+    async cue(targetRound: number): Promise<State | null> {
+        if (this.cueing) {
+            console.warn('cue-already-in-progress');
+            return null;
+        }
+        this.cueing = true;
+        try {
+            return await this._cue(targetRound);
+        } finally {
+            this.cueing = false;
+        }
+    }
+    private async _cue(targetRound: number): Promise<State | null> {
         // find the round to process to
         const toRound = Math.min(
             await this.getCurrentRoundLimit(),
@@ -292,7 +307,6 @@ export class Simulation {
         // play the messages on top of the state
         let state = rollbackState.state;
         // push in the emulated tick for toRound if no messages
-        let fakes = 0;
         if (prevRound < toRound) {
             roundInputs.push({
                 round: toRound,
@@ -301,7 +315,6 @@ export class Simulation {
                 inputs: [],
                 fake: true,
             });
-            fakes = toRound - prevRound;
         }
         const checkpoints: SerializedState[] = [];
         for (const round of roundInputs) {
@@ -324,7 +337,7 @@ export class Simulation {
                         [this.channelId, StateTag.ACCEPTED, Dexie.maxKey],
                     )
                     .delete();
-                if (checkpoint.round % 100 === 0) {
+                if (checkpoint.round % 200 === 0) {
                     // write the checkpoint
                     checkpoints.push(checkpoint);
                 }
@@ -333,21 +346,21 @@ export class Simulation {
         }
         // update the last processed cursors
         if (checkpoints.length > 0) {
-            // console.log(
-            //     `CHECKPOINT
-            //         toRound=${toRound}
-            //         fromRound=${fromRound}
-            //         ticks=${toRound - fromRound}
-            //         states=${checkpoints.length}
-            //         applies=${roundInputs.length}
-            //         emutick=${Math.min(toRound - prevRound, this.idleTimeoutRounds)}
-            //         messages=${messages.length}
-            //         inputs=${roundInputs.length}
-            //         lastArrived=${prevArrived}
-            //     `,
-            // );
+            console.log(
+                `CHECKPOINT
+                    toRound=${toRound}
+                    fromRound=${fromRound}
+                    ticks=${toRound - fromRound}
+                    states=${checkpoints.length}
+                    applies=${roundInputs.length}
+                    emutick=${Math.min(toRound - prevRound, this.idleTimeoutRounds)}
+                    messages=${messages.length}
+                    inputs=${roundInputs.length}
+                    lastArrived=${prevArrived}
+                `,
+            );
             // write the state to the store
-            // await this.db.state.bulkPut(checkpoints);
+            await this.db.state.bulkPut(checkpoints);
         }
         // console.log(
         //     `simulated

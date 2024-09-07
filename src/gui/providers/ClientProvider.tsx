@@ -10,6 +10,8 @@ export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
     // const { transport } = useTransport();
     const { keys, dbname } = useCredentials();
 
+    console.log('client provider render');
+
     // create client
     const client = useAsyncMemo<ClientContextType | undefined>(
         async (defer) => {

@@ -10,6 +10,7 @@ export const SettingsProvider = ({
 }) => {
     const db = useDatabase();
     const settings = useLiveQuery(() => db.settings.get(1), [db]);
+    console.log('settings render');
 
     useEffect(() => {
         db.settings

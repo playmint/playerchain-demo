@@ -9,8 +9,6 @@ import {
     PositionalAudio as PositionalAudioImpl,
     Vector3,
 } from 'three';
-import { World } from '../../../runtime/ecs';
-import { ShooterSchema } from '../../spaceshooter';
 import sfxHit from '../assets/Hit.mp3?url';
 import sfxShot from '../assets/Shot.mp3?url';
 import shipGLTF from '../assets/bullet.glb?url';
@@ -26,13 +24,14 @@ import {
     updateEntityGeneration,
     useParticleEffect,
 } from '../utils/RenderUtils';
+import { WorldRef } from './ShooterRenderer';
 
 export default memo(function BulletEntity({
     eid,
-    world,
+    worldRef,
 }: {
     eid: number;
-    world: World<ShooterSchema>;
+    worldRef: WorldRef;
 }) {
     const groupRef = useRef<Group>(null!);
     const bulletRef = useRef<Group<Object3DEventMap>>(null!);
@@ -51,6 +50,7 @@ export default memo(function BulletEntity({
     }, [gltf]);
 
     useFrame((_state, deltaTime) => {
+        const world = worldRef.current;
         const group = groupRef.current as EntityObject3D;
         const bullet = bulletRef.current;
         // during the first few frames of bullet shooting, the bullet is not

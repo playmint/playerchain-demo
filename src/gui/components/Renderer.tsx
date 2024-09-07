@@ -1,4 +1,4 @@
-import { FC, memo, useEffect, useMemo, useState } from 'react';
+import { FC, memo, useEffect, useMemo } from 'react';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
 import { RendererProps } from '../../runtime/game';
@@ -10,14 +10,10 @@ import { useSimulation } from '../hooks/use-simulation';
 // const rewindMax = 200;
 
 export default memo(function Renderer({ channelId }: { channelId: string }) {
-    const [playing, _setPlaying] = useState<boolean>(true);
-    // const [rewind, setRewind] = useState<number>(rewindMax);
-    // const [rewindFrom, setRewindFrom] = useState<number>(0);
-    const [cueTo, setCueTo] = useState<number>(0);
-    // const [world, setWorld] = useState<World<RenderSchema>>();
     const { peerId } = useCredentials();
     const { sim, rate, mod } = useSimulation();
     const client = useClient();
+    console.log('Renderer.tsx render', rate);
 
     const GameRenderer: FC<RendererProps> | undefined = useMemo(() => {
         // HMR breaks this, hard coding a switch for now
@@ -30,7 +26,6 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
     }, [mod]);
 
     // start the channel sequencer
-    const [_sequencer, setSequencer] = useState<Sequencer>();
     useEffect(() => {
         if (!client) {
             console.log('no client');
@@ -41,7 +36,7 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
             return;
         }
         if (!rate) {
-            console.log('no reate');
+            console.log('no rate set');
             return;
         }
         if (!mod) {
@@ -58,10 +53,8 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
         });
         console.log('starting sequencer');
         seq.start();
-        setSequencer(seq);
         return () => {
-            seq.stop();
-            setSequencer(undefined);
+            seq.destroy();
         };
     }, [client, channelId, rate, mod]);
 
@@ -105,62 +98,31 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
         if (!mod) {
             return;
         }
-        if (cueTo === 0) {
+        let cueing = false;
+        const handler = setInterval(() => {
+            if (cueing) {
+                console.log('skip cue');
+                return;
+            }
+            cueing = true;
             const now = Math.floor(Date.now() / rate);
-            setCueTo(now);
-            return;
-        }
-        sim.cue(cueTo)
-            .then((state) => {
-                mod.load(state.data);
-                mod.notify();
-            })
-            .then(() => {
-                setTimeout(() => {
-                    if (!playing) {
-                        return;
-                    }
-                    // console.log('cue-to:', cueTo);
-
-                    const now = Math.floor(Date.now() / rate);
-                    setCueTo(now);
-                }, rate);
-            })
-            .catch((err) => {
-                console.error('cue-to-err:', err);
-            });
-    }, [cueTo, sim, playing, rate, mod]);
-
-    // const onCue = useCallback((e) => {
-    //     setRewind(e.target.value);
-    // }, []);
-
-    // const togglePlay = useCallback(() => {
-    //     if (!rate) {
-    //         return;
-    //     }
-    //     setPlaying((prev) => {
-    //         const playing = !prev;
-    //         const now = Math.floor(Date.now() / rate);
-    //         if (playing) {
-    //             setRewindFrom(0);
-    //             setRewind(rewindMax);
-    //             setCueTo(now);
-    //         } else {
-    //             setRewindFrom(now);
-    //         }
-    //         return playing;
-    //     });
-    // }, [rate]);
-
-    // useEffect(() => {
-    //     if (playing) {
-    //         return;
-    //     }
-    //     if (rewindFrom > 0) {
-    //         setCueTo(rewindFrom - (rewindMax - rewind));
-    //     }
-    // }, [playing, rewind, rewindFrom, sim]);
+            sim.cue(now)
+                .then((state) => {
+                    // console.log('got state', state.t);
+                    mod.load(state.data);
+                    mod.notify();
+                })
+                .catch((err) => {
+                    console.error('cue-to-err:', err);
+                })
+                .finally(() => {
+                    cueing = false;
+                });
+        }, rate);
+        return () => {
+            clearInterval(handler);
+        };
+    }, [sim, rate, mod]);
 
     if (!mod) {
         return <div>NO MOD</div>;
@@ -169,28 +131,5 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
         return <div>NO RENDERER</div>;
     }
 
-    // {/* {GameRenderer && (
-    //     <Html
-    //         position={[-2, -3, 0]}
-    //         style={{
-    //             backgroundColor: 'gray',
-    //         }}
-    //     >
-    //         <button onClick={togglePlay}>
-    //             {playing ? 'pause' : 'play'}
-    //         </button>
-    //         {!playing && (
-    //             <input
-    //                 type="range"
-    //                 style={{ width: '350px' }}
-    //                 min={0}
-    //                 max={rewindMax}
-    //                 onChange={onCue}
-    //                 value={playing ? rewindMax : rewind}
-    //                 step={1}
-    //             />
-    //         )}
-    //     </Html>
-    // )} */}
     return <GameRenderer mod={mod} peerId={peerId} channelId={channelId} />;
 });

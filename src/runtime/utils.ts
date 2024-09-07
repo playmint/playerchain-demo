@@ -131,3 +131,26 @@ export async function hardReset() {
     );
     localStorage.clear();
 }
+
+// either socket timers are leaking refs and cannot be gc'd
+// or we have a bug in how we are using them
+// the result is gc.pool.size grows forever and the time to iterate the
+// finalizers in the pools gets longer and longer
+// reverting to native implementations avoid this, but does not necasarily
+// fix the issue, it's still possible we are leaking refs somewhere
+export function enableNativeImplementations() {
+    return; // disable for now
+    if (
+        globalThis.__native_setTimeout &&
+        globalThis.__native_setTimeout != globalThis.setTimeout
+    ) {
+        globalThis.setTimeout = globalThis.__native_setTimeout;
+        globalThis.clearTimeout = globalThis.__native_clearTimeout;
+        globalThis.setInterval = globalThis.__native_setInterval;
+        globalThis.clearInterval = globalThis.__native_clearInterval;
+        globalThis.setImmediate = globalThis.__native_setTimeout;
+        globalThis.clearImmediate = globalThis.__native_clearTimeout;
+        globalThis.Promise = globalThis.__native_Promise;
+        // globalThis.queueMicrotask = globalThis.setTimeout;
+    }
+}

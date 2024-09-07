@@ -16,6 +16,8 @@ export const DatabaseProvider = ({
     const { dbname } = useCredentials();
     const [db, setDatabase] = useState<DB>();
 
+    console.log('database render');
+
     // create db
     useLayoutEffect(() => {
         if (!dbname) {

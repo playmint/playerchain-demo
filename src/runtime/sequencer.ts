@@ -3,6 +3,7 @@
 import type { Client } from './client';
 import { GameModule } from './game';
 import { Message, MessageType } from './messages';
+import { CancelFunction, setPeriodic } from './utils';
 
 export interface Committer {
     commit: Client['commit'];
@@ -32,31 +33,24 @@ export class Sequencer {
     private warmingUp = 0;
     private prev?: Message;
     private fixedUpdateRate: number;
-    private inputDelay = 50;
+    private inputDelay = 100;
+    threads: CancelFunction[] = [];
 
     constructor({ mod, committer, channelId, rate }: SequencerConfig) {
         this.mod = mod;
         this.committer = committer;
         this.channelId = channelId;
         this.fixedUpdateRate = rate;
-        this.loopInterval = this.fixedUpdateRate / 2;
+        this.loopInterval = this.fixedUpdateRate;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 2; // 2s warmup
     }
 
-    private loop = () => {
-        if (!this.playing) {
-            console.log('seq-loop-stopped');
-            return;
+    private loop = async () => {
+        try {
+            await this._loop();
+        } catch (err) {
+            console.error(`seq-loop-err: ${err}`);
         }
-        this._loop()
-            .catch((err) => {
-                console.error(`seq-loop-err: ${err}`);
-            })
-            .finally(() => {
-                if (this.playing) {
-                    setTimeout(this.loop, this.loopInterval);
-                }
-            });
     };
 
     private async _loop() {
@@ -132,7 +126,7 @@ export class Sequencer {
             return;
         }
         this.playing = true;
-        setTimeout(this.loop, this.loopInterval);
+        this.threads.push(setPeriodic(this.loop, this.loopInterval));
     }
 
     stop() {
@@ -141,5 +135,8 @@ export class Sequencer {
 
     destroy() {
         this.stop();
+        for (const cancel of this.threads) {
+            cancel();
+        }
     }
 }

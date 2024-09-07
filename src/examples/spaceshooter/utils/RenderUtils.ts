@@ -18,7 +18,7 @@ export type EntityObject3D = Object3D & {
 export enum InterpolateSpeed {
     Snap = -1,
     Fastest = 10,
-    Quick = 9,
+    Quick = 5,
     Smooth = 2.5,
     Slow = 0.5,
 }
@@ -143,6 +143,7 @@ export function useParticleEffect(
     const asset = useRef<ParticleEffectData | null>(null);
     const effect = useRef<ParticleEffect | null>(null);
     useAsyncEffect(async () => {
+        console.log('loading particle effect');
         const data = new ParticleEffectData(config);
         await data.prepare();
         asset.current = data;

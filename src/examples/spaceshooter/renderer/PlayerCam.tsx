@@ -1,8 +1,6 @@
 import { PerspectiveCamera } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo } from 'react';
-import { World } from '../../../runtime/ecs';
-import { ShooterSchema } from '../../spaceshooter';
 import {
     EntityObject3D,
     InterpolateSpeed,
@@ -10,18 +8,20 @@ import {
     updateEntityGeneration,
 } from '../utils/RenderUtils';
 import { BackgroundGrid } from './Background';
+import { WorldRef } from './ShooterRenderer';
 
 const CAM_INITIAL_ZOOM = 160;
 
 // camera and scene setup for following a player's ship
 export default memo(function PlayerCam({
-    world,
+    worldRef,
     peerId,
 }: {
-    world: World<ShooterSchema>;
+    worldRef: WorldRef;
     peerId: string;
 }) {
     useFrame(({ camera }, deltaTime) => {
+        const world = worldRef.current;
         // find the player data for viewing peerId
         const player = world.players.get(peerId);
         if (!player) {

@@ -1,24 +1,25 @@
 import { memo } from 'react';
-import { PlayerData, World } from '../../../runtime/ecs';
+import { PlayerData } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
+import { WorldRef } from './ShooterRenderer';
 
 type PlayerDataWithId = PlayerData<ShooterSchema['player']> & { id: string };
 
 export default memo(function PlayerHUD({
     peerId,
-    world,
+    worldRef,
 }: {
-    world: World<ShooterSchema>;
+    worldRef: WorldRef;
     peerId: string;
 }) {
-    const player = world.players.get(peerId);
+    const player = worldRef.current.players.get(peerId);
     if (!player) {
         return null;
     }
-    const health = world.components.stats.data.health[player.ship];
-    const players = Array.from(world.players.entries()).map((p) => ({
+    const health = worldRef.current.components.stats.data.health[player.ship];
+    const players = Array.from(worldRef.current.players.entries()).map((p) => ({
         id: p[0],
         ...p[1],
     })) as PlayerDataWithId[];
