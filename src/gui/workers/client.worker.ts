@@ -4,7 +4,6 @@ import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { Client, ClientConfig } from '../../runtime/client';
 import { CLUSTER_ID } from '../../runtime/config';
 import { Message, UnsignedMessage } from '../../runtime/messages';
-import { enableNativeImplementations } from '../../runtime/utils';
 import type { ClientUserConfig } from '../hooks/use-client';
 
 // socket is broken
@@ -14,9 +13,6 @@ import type { ClientUserConfig } from '../hooks/use-client';
 let client: Client;
 
 export async function init(userConfig: ClientUserConfig) {
-    // FIXME: experimenting if this avoid the gc leak
-    enableNativeImplementations();
-
     // an entrypoint to the network, nothing special about this node, any node will do
     console.log('bootstrapping with:', BOOTSTRAP_PEERS);
 

@@ -3,7 +3,6 @@ import database, { DB, SerializedState, StateTag } from './db';
 import { GameModule, PlayerData, load } from './game';
 import { IncrementalCache } from './lru';
 import { MessageType } from './messages';
-import { enableNativeImplementations } from './utils';
 
 export type State = {
     t: number;
@@ -57,10 +56,7 @@ export class Simulation {
         );
     }
 
-    async init() {
-        // FIXME: experimenting if this avoid the gc leak
-        enableNativeImplementations();
-    }
+    async init() {}
 
     getFixedUpdateRate() {
         return this.fixedUpdateRate;
