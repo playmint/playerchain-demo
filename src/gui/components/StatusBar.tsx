@@ -59,9 +59,8 @@ export default memo(function StatusBar() {
                 .finally(() => {
                     updating = false;
                 });
-        }, 2000);
+        }, 2500);
     }, [clientId, db]);
-    console.log('render statusbar');
     return (
         <div
             style={{

@@ -1,6 +1,5 @@
-import { PlayerData } from '../../../runtime/ecs';
-import { ShooterSchema } from '../../spaceshooter';
 import styles from './LeaderBoard.module.css';
+import { PlayerInfo } from './PlayerHUD';
 
 interface Score {
     user: string;
@@ -15,7 +14,7 @@ export default function LeaderBoard({
     players,
     peerId,
 }: {
-    players: (PlayerData<ShooterSchema['player']> & { id: string })[];
+    players: PlayerInfo[];
     peerId: string;
 }) {
     const scores: Score[] = players
