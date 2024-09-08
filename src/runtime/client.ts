@@ -12,6 +12,7 @@ import {
     Message,
     MessageType,
     PresignedMessage,
+    SetPeersMessage,
     UnsignedMessage,
 } from './messages';
 import {
@@ -118,7 +119,7 @@ export class Client {
         this.threads.push(
             setPeriodic(async () => {
                 await this.syncChannels();
-            }, 7000),
+            }, 5000),
         );
         // load any existing channels we know about
         const channels = await this.db.channels.toArray();
@@ -442,14 +443,27 @@ export class Client {
             case MessageType.CREATE_CHANNEL:
                 await this.onCreateChannel(msg);
                 return;
+            case MessageType.SET_PEERS:
+                await this.onSetPeers(msg);
+                return;
             case MessageType.INPUT:
                 // TODO: pass to consensus
                 return;
-            default:
-                console.warn('unknown-message-type', msg);
         }
-        return msg;
     };
+
+    async onSetPeers(msg: SetPeersMessage) {
+        this.debug('SETTING PEERS', msg);
+        // TODO: implement checking that SET_PEERS is from same peer as CREATE_CHANNEL
+        const channel = await this.db.channels.get(msg.channel);
+        if (!channel) {
+            console.warn('set-peers-unknown-channel', msg.channel);
+            return;
+        }
+        await this.db.channels.update(channel.id, {
+            peers: msg.peers.map((p) => Buffer.from(p).toString('hex')),
+        });
+    }
 
     async requestMissingParent(child: Message) {
         if (child.parent === null) {
@@ -465,50 +479,38 @@ export class Client {
             .where(['peer', 'height'])
             .between([child.peer, Dexie.minKey], [child.peer, child.height])
             .last();
-        // request it from a peer
-        const shuffledPeers = [...this.peers.values()].sort(() =>
-            Math.random() > 0.5 ? 1 : -1,
-        );
         const missingHeight = child.height;
         const missingCount = nextKnownMessage
             ? child.height - nextKnownMessage.height
             : child.height;
         const peerId = Buffer.from(child.peer).toString('hex');
         let asked = 0;
-        for (const peerToAsk of shuffledPeers) {
-            if (!peerToAsk.isOnline()) {
-                continue;
+        try {
+            this.debug(
+                `req-missing asking=everyone missingpeer=${peerId.slice(0, 8)} missingheight=${missingHeight} count=${missingCount}`,
+            );
+            const count = await this.rpc({
+                name: 'requestMessagesByHeight',
+                args: {
+                    peerId: this.peerId,
+                    fromHeight: missingHeight - missingCount,
+                    toHeight: missingHeight,
+                },
+            });
+            asked++;
+            if (typeof count !== 'number') {
+                throw new Error('missing-count-not-number');
             }
-            try {
-                this.debug(
-                    `req-missing asking=${peerToAsk.shortId} missingpeer=${peerId.slice(0, 8)} missingheight=${missingHeight} count=${missingCount}`,
+            if (count === 0) {
+                console.log(
+                    `missing-count-zero wanted=${missingHeight - missingCount}`,
                 );
-                const count = await this.rpc(peerToAsk, {
-                    name: 'requestMessagesByHeight',
-                    args: {
-                        peerId: this.peerId,
-                        fromHeight: missingHeight - missingCount,
-                        toHeight: missingHeight,
-                    },
-                });
-                asked++;
-                if (typeof count !== 'number') {
-                    console.warn('missing-count-not-number', count);
-                    continue;
-                }
-                if (count === 0) {
-                    console.log(
-                        `missing-count-zero wanted=${missingHeight - missingCount}`,
-                    );
-                    continue;
-                }
-                this.debug(`req-missing-recv count=${count}`);
-                break;
-            } catch (err) {
-                console.error(
-                    `req-missing-err asking=${peerToAsk.shortId} err=${err}`,
-                );
+                return;
             }
+            this.debug(`req-missing-recv count=${count}`);
+            return;
+        } catch (err) {
+            console.error(`req-missing-err asking=everyone err=${err}`);
         }
         this.debug(`req-missing-asked peers=${asked}`);
     }
@@ -621,6 +623,23 @@ export class Client {
                 console.warn('ignoring invalid channel id', ch);
                 continue;
             }
+            // send channel keep alive
+            // see channel.ts ... this is a workaround for a bug
+            ch.send(
+                {
+                    type: PacketType.KEEP_ALIVE,
+                    peer: this.id,
+                },
+                {
+                    channels: [ch.id],
+                    ttl: 500,
+                },
+            );
+            // send channel join
+            if (ch.socket) {
+                ch.socket.join();
+            }
+            // sync channel name with genesis and rebroadcast it
             const channelSig = Uint8Array.from(atob(ch.id), (c) =>
                 c.charCodeAt(0),
             );
@@ -629,43 +648,37 @@ export class Client {
                 .equals(channelSig)
                 .first();
             if (genesis) {
-                if (genesis.type !== MessageType.CREATE_CHANNEL) {
-                    console.warn('unexpected type for channel genesis');
-                    continue;
+                if (genesis.type === MessageType.CREATE_CHANNEL) {
+                    if (ch.name === '') {
+                        ch.name = genesis.name;
+                        await this.db.channels.update(ch.id, {
+                            name: genesis.name,
+                        });
+                    }
+                    this.debug(
+                        'emit-genesis',
+                        Buffer.from(genesis.sig).toString('hex').slice(0, 10),
+                    );
+                    ch.send(
+                        {
+                            type: PacketType.MESSAGE,
+                            msgs: [genesis],
+                        },
+                        {
+                            channels: [ch.id],
+                            ttl: 1000,
+                        },
+                    );
                 }
-                if (ch.name === '') {
-                    ch.name = genesis.name;
-                    await this.db.channels.update(ch.id, {
-                        name: genesis.name,
-                    });
-                }
-                this.debug(
-                    'emit-genesis',
-                    Buffer.from(genesis.sig).toString('hex').slice(0, 10),
-                );
-                ch.send(
-                    {
-                        type: PacketType.MESSAGE,
-                        msgs: [genesis],
-                    },
-                    {
-                        channels: [ch.id],
-                        ttl: 5000,
-                    },
-                );
-            } else {
-                this.debug(
-                    'need-channel-genesis',
-                    Buffer.from(channelSig).toString('hex').slice(0, 10),
-                );
             }
+            // check we have the peer set
         }
     }
 
     private async updateChannelConfig(id: string): Promise<ChannelInfo> {
         let info = await this.db.channels.get(id);
         if (!info) {
-            info = { id, name: '' };
+            info = { id, name: '', peers: [] };
             await this.db.channels.put(info);
         }
         return info;
@@ -679,7 +692,7 @@ export class Client {
             const socket = await this.net.socket.subcluster({
                 sharedKey,
             });
-            socket.on(`rpc_${this.shortId}`, this.onRPCRequest);
+            socket.on(`rpc`, this.onRPCRequest);
             channel = new Channel({
                 id: config.id,
                 client: this,
@@ -690,11 +703,7 @@ export class Client {
                 onPacket: this.onPacket,
                 Buffer: Buffer,
             });
-            this.debug(
-                'monitor-channel',
-                channel.shortId,
-                Buffer.from(sharedKey).toString('hex').slice(0, 8),
-            );
+            this.debug('monitor-channel', channel.shortId, socket.subclusterId);
         }
         this.channels.set(config.id, channel);
         channel.socket.join();
@@ -719,6 +728,16 @@ export class Client {
         return channelId;
     }
 
+    async setPeers(channelId: Base64ID, peers: string[]) {
+        const msg: SetPeersMessage = {
+            type: MessageType.SET_PEERS,
+            channel: channelId,
+            peers: peers.sort().map((p) => Buffer.from(p, 'hex')),
+        };
+        await this.commit(msg);
+        await this.onSetPeers(msg);
+    }
+
     private debug(...args: any[]) {
         console.log(`[client/${this.shortId}]`, ...args);
     }
@@ -735,15 +754,14 @@ export class Client {
     }
 
     private rpc = async (
-        peer: Peer,
         req: Omit<Omit<SocketRPCRequest, 'id'>, 'sender'>,
     ): Promise<any> => {
         let done = false;
         const id = `cb_${await this.nextSequenceNumber()}`;
         return new Promise((resolve, reject) => {
             const callback = (b: Uint8Array) => {
-                for (const [_, socket] of peer.sockets) {
-                    socket.off(id, callback);
+                for (const [_, ch] of this.channels) {
+                    ch.socket.off(id, callback);
                 }
                 if (done) {
                     return;
@@ -763,32 +781,37 @@ export class Client {
                     return;
                 }
             };
-            for (const [_, socket] of peer.sockets) {
-                socket.on(id, callback);
+            for (const [_, ch] of this.channels) {
+                ch.socket.on(id, callback);
             }
             const r: SocketRPCRequest = { ...req, id, sender: this.peerId };
-            peer.stream2(`rpc_${peer.shortId}`, Buffer.from(cbor.encode(r)), {
-                ttl: 1000,
-            }).catch((err) => {
-                for (const [_, socket] of peer.sockets) {
-                    socket.off(id, callback);
-                }
-                if (done) {
-                    return;
-                }
-                done = true;
-                reject(`request-fail ${id} stream-fail:${err}`);
-            });
+            for (const [_, ch] of this.channels) {
+                ch.socket
+                    .emit(`rpc`, Buffer.from(cbor.encode(r)), {
+                        ttl: 1000,
+                    })
+                    .catch((err) => {
+                        for (const [_, ch] of this.channels) {
+                            ch.socket.off(id, callback);
+                        }
+                        if (done) {
+                            return;
+                        }
+                        done = true;
+                        reject(`request-fail ${id} stream-fail:${err}`);
+                    });
+            }
             setTimeout(() => {
-                for (const [_, socket] of peer.sockets) {
-                    socket.off(id, callback);
+                for (const [_, ch] of this.channels) {
+                    ch.socket.off(id, callback);
                 }
                 if (done) {
                     return;
                 }
                 done = true;
-                reject(new Error(`request-fail ${id} timeout`));
-            }, 10000);
+                // reject(new Error(`request-fail ${id} timeout`));
+                resolve(0);
+            }, 1000);
         });
     };
 
@@ -812,17 +835,11 @@ export class Client {
         if (!handler) {
             throw new Error(`unknown-rpc-request ${req.name}`);
         }
-        try {
+        for (const [_, ch] of this.channels) {
             const result = await handler(req.args as any);
-            await sender.stream2(req.id, Buffer.from(cbor.encode({ result })), {
+            await ch.socket.emit(req.id, Buffer.from(cbor.encode({ result })), {
                 ttl: 1000,
             });
-        } catch (err) {
-            await sender.stream2(
-                req.id,
-                Buffer.from(cbor.encode({ err: `${err}` })),
-                { ttl: 1000 },
-            );
         }
     }, 5);
 
@@ -836,7 +853,6 @@ export class Client {
     };
 
     private requestMessagesByHeight = async ({
-        peerId, // who to send to
         fromHeight,
         toHeight,
     }: {
@@ -844,38 +860,42 @@ export class Client {
         fromHeight: number;
         toHeight: number;
     }): Promise<number> => {
-        const peer = this.peers.get(peerId);
-        if (!peer) {
-            throw new Error(`unknown-peer ${peerId}`);
-        }
+        // const peer = this.peers.get(peerId);
+        // if (!peer) {
+        //     throw new Error(`unknown-peer ${peerId}`);
+        // }
         const msgs = await this.db.messages
             .where(['peer', 'height'])
             .between([this.id, fromHeight], [this.id, toHeight + 1])
-            .limit(200)
+            .limit(100)
             .toArray();
         let batch: Message[] = [];
         for (const msg of msgs) {
             batch.unshift(msg);
             if (batch.length >= 3) {
-                peer.send2(
+                for (const [_, ch] of this.channels) {
+                    ch.send(
+                        {
+                            type: PacketType.MESSAGE,
+                            msgs: batch,
+                        },
+                        { ttl: 100 },
+                    );
+                }
+                batch = [];
+            }
+            await sleep(50);
+        }
+        if (batch.length > 0) {
+            for (const [_, ch] of this.channels) {
+                ch.send(
                     {
                         type: PacketType.MESSAGE,
                         msgs: batch,
                     },
                     { ttl: 100 },
                 );
-                batch = [];
             }
-            await sleep(50);
-        }
-        if (batch.length > 0) {
-            peer.send2(
-                {
-                    type: PacketType.MESSAGE,
-                    msgs: batch,
-                },
-                { ttl: 100 },
-            );
         }
 
         return msgs.length;

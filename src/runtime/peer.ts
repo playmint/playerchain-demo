@@ -195,7 +195,7 @@ export class Peer {
             //     `SEND2 ${(buf as any).length} bytes to peer via ${channelId}`,
             // );
             await socket.emit(evt, buf as any, opts);
-            await sleep(2);
+            await sleep(5);
             return;
         }
     };

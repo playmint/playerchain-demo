@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useMemo, useRef } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
+import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
@@ -19,6 +20,7 @@ export function ChannelView({
     const canvasRef = useRef<HTMLDivElement>(null);
     const { peerId } = useCredentials();
     const db = useDatabase();
+    const client = useClient();
 
     const toggleFullscreen = useCallback(() => {
         if (document.fullscreenElement) {
@@ -47,47 +49,60 @@ export function ChannelView({
     const channel = useLiveQuery(
         async (): Promise<ChannelInfo | null | undefined> =>
             db.channels.get(channelId),
-        [db, channelId],
+        [channelId],
     );
 
     // peer info
 
-    const peers = useLiveQuery(() => db.peers.toArray(), [], []);
-    const connectedPeers = peers?.filter((p) => p.online).length || 0;
-    const minConnected = connectedPeers > 0 || true;
-    const peersToShowInLace = useMemo(() => {
-        const ps = peers
-            ? peers
-                  .filter(
-                      (peer) =>
-                          peer.knownHeight != -1 &&
-                          peer.channels.includes(channelId),
-                  )
-                  .map((peer) => peer.peerId)
-            : [];
-        if (peerId) {
-            ps.push(peerId);
+    const allPeers = useLiveQuery(() => db.peers.toArray(), [], []);
+    const peers = useMemo(
+        () => allPeers.filter((p) => p.channels.includes(channelId)),
+        [allPeers, channelId],
+    );
+    const potentialPeers = useMemo(
+        () => [...peers.map((p) => p.peerId), peerId].sort(),
+        [peerId, peers],
+    );
+
+    const acceptPeers = useCallback(() => {
+        if (!client.setPeers) {
+            return;
         }
-        return ps.sort();
-    }, [peers, peerId, channelId]);
+        console.log('acceptPeers', channelId, potentialPeers);
+        client.setPeers(channelId, potentialPeers).catch((err) => {
+            console.error('acceptPeers', err);
+        });
+    }, [client, channelId, potentialPeers]);
 
     const largestDiff = peers.reduce(
         (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),
         0,
     );
 
-    if (largestDiff > 10) {
-        return <div>too out of sync, waiting...</div>;
-    }
-
     if (!channel) {
         return <div>failed to load channel data</div>;
     }
 
-    if (!minConnected) {
+    if (channel.peers.length === 0) {
         return (
             <div>
-                min number of online peers not met for this channel, waiting...
+                <p>Waiting for peers to be decided...</p>
+                <p>connected peers:</p>
+                <ul>
+                    {potentialPeers.map((pid) => (
+                        <li key={pid}>
+                            {pid.slice(0, 8)} {pid === peerId && '(you)'}
+                        </li>
+                    ))}
+                </ul>
+                <p>
+                    <button
+                        onClick={acceptPeers}
+                        disabled={potentialPeers.length < 2}
+                    >
+                        ACCEPT THESE PEERS
+                    </button>
+                </p>
             </div>
         );
     }
@@ -101,7 +116,11 @@ export function ChannelView({
                 }}
                 ref={canvasRef}
             >
-                <Renderer key={channel.id} channelId={channel.id} />
+                {largestDiff > 10 ? (
+                    <div>Syncing....</div>
+                ) : (
+                    <Renderer key={channel.id} channelId={channel.id} />
+                )}
                 <div
                     style={{
                         position: 'absolute',
@@ -155,19 +174,19 @@ export function ChannelView({
                         flexDirection: 'column',
                     }}
                 >
-                    {peers
-                        ?.filter((p) => p.knownHeight != -1)
-                        .map((peer) => (
-                            <PeerStatus key={peer.peerId} peer={peer} />
-                        ))}
+                    {channel.peers.map((peerId) => (
+                        <PeerStatus
+                            key={peerId}
+                            peerId={peerId}
+                            info={peers.find((p) => p.peerId === peerId)}
+                        />
+                    ))}
 
-                    {channelId && connectedPeers > 0 ? (
+                    {channelId && (
                         <PacketLace
                             channelId={channelId}
-                            peers={peersToShowInLace}
+                            peers={channel.peers}
                         />
-                    ) : (
-                        'NO PEERS ONLINE'
                     )}
                 </div>
             )}
@@ -175,10 +194,12 @@ export function ChannelView({
     );
 }
 
-function PeerStatus({ peer }: { peer: PeerInfo }) {
+function PeerStatus({ peerId, info }: { peerId: string; info?: PeerInfo }) {
     // const sync =
     //     peer.validHeight > -1 && peer.knownHeight - peer.validHeight < 10;
-    const probablyFine = peer.knownHeight - peer.validHeight < 10;
+    const probablyFine = info
+        ? info.knownHeight - info.validHeight < 10
+        : false;
     return (
         <div
             style={{
@@ -190,16 +211,16 @@ function PeerStatus({ peer }: { peer: PeerInfo }) {
         >
             <span
                 style={{
-                    backgroundColor: peer.online ? 'green' : 'red',
+                    backgroundColor: info?.online ? 'green' : 'red',
                 }}
             >
-                {peer.peerId.slice(0, 8)}
+                {peerId.slice(0, 8)}
             </span>
-            <span>{peer.validHeight}</span>
-            <span>{peer.knownHeight}</span>
-            <span>{peer.online && peer.proxy ? 'P' : ''}</span>
+            <span>{info?.validHeight}</span>
+            <span>{info?.knownHeight}</span>
+            <span>{info?.online && info?.proxy ? 'P' : '-'}</span>
             <span>
-                {peer.online
+                {info?.online
                     ? `${probablyFine ? 'SYNC' : 'NOSYNC'}`
                     : 'OFFLINE'}
             </span>
