@@ -88,7 +88,7 @@ export function ChannelView({
     }
 
     const acceptedPeersOnlineCount =
-        channel.peers.reduce((acc, pid) => {
+        (channel.peers || []).reduce((acc, pid) => {
             const info = peers.find((p) => p.peerId === pid);
             if (!info) {
                 return acc;
@@ -113,7 +113,7 @@ export function ChannelView({
                             share this key:{' '}
                             <input
                                 type="text"
-                                readOnly={true}
+                                onChange={() => {}}
                                 value={channel.id}
                             />
                         </p>

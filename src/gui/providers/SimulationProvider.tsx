@@ -45,19 +45,19 @@ export const SimulationProvider = ({
                 console.log(`sim worker terminated`);
             });
             const SimulationProxy = Comlink.wrap<typeof Simulation>(w);
-            const sim = await new SimulationProxy({
+            const s = await new SimulationProxy({
                 channelId,
                 dbname,
                 src,
                 rate,
             });
-            await sim.init();
+            await s.init();
             defer(async () => {
-                await sim.destroy();
+                await s.destroy();
                 console.log(`sim shutdown`);
             });
 
-            return sim;
+            return s;
         },
         [src, rate, dbname, keys, channelId],
     );

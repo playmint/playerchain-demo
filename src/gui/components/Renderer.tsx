@@ -108,9 +108,11 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
             try {
                 const now = Math.floor(Date.now() / rate);
                 sim.cue(now)
-                    .then((state) => {
+                    .then((state: any) => {
                         cueing = false;
-                        // console.log('got state', state.t);
+                        if (!state) {
+                            return;
+                        }
                         mod.load(state.data);
                         mod.notify();
                     })
