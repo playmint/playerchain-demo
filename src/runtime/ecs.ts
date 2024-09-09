@@ -134,6 +134,7 @@ export class World<T extends WorldSchema> {
     schema: T;
 
     // the data
+    t: number = 0;
     entities: (EntityId | null)[] = [];
     components: WorldData<T> = {} as WorldData<T>;
     tags: Component<{ tag: u32 }> = new Component({ tag: Type.u32 }, 0);
@@ -245,6 +246,7 @@ export class World<T extends WorldSchema> {
     // return a snapshot of the world state as an object suitable for serialization
     dump = () => {
         return structuredClone({
+            t: this.t,
             entities: this.entities,
             players: this.players,
             components: Object.keys(this.components).map((name) => {
@@ -268,6 +270,7 @@ export class World<T extends WorldSchema> {
             );
         }
         data = structuredClone(data); // ensure we don't mutate the input
+        this.t = data.t;
         this.entities = data.entities;
         this.players = data.players;
         for (const { name, component } of data.components) {
@@ -299,6 +302,7 @@ export class World<T extends WorldSchema> {
             addPlayer: this.addPlayer,
             removePlayer: this.removePlayer,
             deltaTime: 0,
+            t: this.t,
         };
     };
 }
@@ -317,6 +321,7 @@ export type SystemArgs<T extends WorldSchema> = WorldComponentData<T> & {
     addPlayer: World<T>['addPlayer'];
     removePlayer: World<T>['removePlayer'];
     deltaTime: number;
+    t: number;
 };
 
 export function system<T extends WorldSchema = never>(

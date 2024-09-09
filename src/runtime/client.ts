@@ -715,6 +715,14 @@ export class Client {
         }
         const cfg = await this.updateChannelConfig(channelId);
         await this.monitorChannel(cfg);
+        // commit an empty input message, we currently depend on this
+        // in the simulation but we shouldn't
+        await this.commit({
+            type: MessageType.INPUT,
+            round: (Date.now() + 100) / 50,
+            channel: channelId,
+            data: 0,
+        });
     }
 
     async createChannel(name: string): Promise<Base64ID> {

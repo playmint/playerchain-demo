@@ -64,7 +64,7 @@ export async function createSocketCluster({
         clusterId: info.clusterId,
         keepalive: info.keepalive,
         signingKeys: keys,
-        worker: false,
+        // worker: false,
         ...ports,
         ...(config || {}),
         // config: config

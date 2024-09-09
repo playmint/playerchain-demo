@@ -204,7 +204,9 @@ export class SpaceShooter implements GameModule {
         return this.world.dump();
     };
 
-    run = (playerData: PlayerData[], deltaTime: number): void => {
+    run = (playerData: PlayerData[], deltaTime: number, t: number): void => {
+        // set the current tick
+        this.world.t = t;
         // map playerData into the world
         for (const data of playerData) {
             // find or create the player data

@@ -32,7 +32,7 @@ export interface GameModule {
     onUIEvent: (event: string) => void;
     load: (data?: any) => void;
     dump: () => any;
-    run: (playerData: PlayerData[], fixedDeltaTime: number) => void;
+    run: (playerData: PlayerData[], fixedDeltaTime: number, t: number) => void;
     getRenderComponent: () => FC<RendererProps> | null;
     subscribe: (fn: OnStateChange) => CancelFunc;
     notify: () => void;

@@ -1,12 +1,12 @@
 import * as Comlink from 'comlink';
-import React, { useMemo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { load } from '../../runtime/game';
 import { Simulation } from '../../runtime/simulation';
 import { useAsyncMemo } from '../hooks/use-async';
 import { useCredentials } from '../hooks/use-credentials';
 import { SimulationContext } from '../hooks/use-simulation';
 
-export const SimulationProvider = ({
+export default memo(function SimulationProvider({
     channelId,
     src,
     rate,
@@ -16,8 +16,7 @@ export const SimulationProvider = ({
     src: string;
     rate: number;
     children: React.ReactNode;
-}) => {
-    // const { transport } = useTransport();
+}) {
     const { keys, dbname } = useCredentials();
     console.log(`SimulationProvider ${src} ${rate}`);
 
@@ -81,4 +80,4 @@ export const SimulationProvider = ({
             {children}
         </SimulationContext.Provider>
     );
-};
+});

@@ -7,8 +7,6 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useSimulation } from '../hooks/use-simulation';
 
-// const rewindMax = 200;
-
 export default memo(function Renderer({ channelId }: { channelId: string }) {
     const { peerId } = useCredentials();
     const { sim, rate, mod } = useSimulation();
@@ -99,7 +97,8 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
             return;
         }
         let cueing = false;
-        const timer = setInterval(() => {
+        let timer: any;
+        timer = setInterval(() => {
             if (cueing) {
                 console.log('skip cue');
                 return;
@@ -109,7 +108,6 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
                 const now = Math.floor(Date.now() / rate);
                 sim.cue(now)
                     .then((state: any) => {
-                        cueing = false;
                         if (!state) {
                             return;
                         }
@@ -129,8 +127,11 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
             }
         }, rate);
         return () => {
-            clearInterval(timer);
             cueing = false;
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
         };
     }, [sim, rate, mod]);
 

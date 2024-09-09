@@ -95,7 +95,7 @@ export class Simulation {
                 resetInputs(nextState);
             }
             mod.load(nextState.data);
-            mod.run(nextState.inputs, deltaTime);
+            mod.run(nextState.inputs, deltaTime, nextState.t);
             nextState.data = mod.dump();
         }
         // reset inputs on Nth round
@@ -109,7 +109,7 @@ export class Simulation {
         // tick the game logic forward
         nextState.t = round.round;
         mod.load(nextState.data);
-        mod.run(nextState.inputs, deltaTime);
+        mod.run(nextState.inputs, deltaTime, nextState.t);
         nextState.data = mod.dump();
         // return the copy of the state
         return nextState;
@@ -228,6 +228,9 @@ export class Simulation {
         this.cueing = true;
         try {
             return await this._cue(targetRound);
+        } catch (err) {
+            console.error('cue-error:', err);
+            throw err;
         } finally {
             this.cueing = false;
         }
