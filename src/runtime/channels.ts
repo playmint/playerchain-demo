@@ -4,6 +4,7 @@ import { Client } from './client';
 import { Base64ID } from './messages';
 import { SocketPeer, SocketSubcluster } from './network';
 import {
+    KeepAlivePacket,
     Packet,
     PacketType,
     TransportEmitOpts,
@@ -29,6 +30,7 @@ export type ChannelConfig = {
 export interface ChannelInfo {
     id: Base64ID; // base64ified id that matches the commitment id of the CREATE_CHANNEL message
     name: string;
+    creator: string; // peer id of the creator
     peers: string[];
 }
 
@@ -53,7 +55,7 @@ export class Channel {
     _onPeerLeave?: (peerId: string, channel: Channel) => void;
     _onPacket?: (packet: Packet) => void;
     lastKnowPeers = new Map<string, PeerStatus>();
-    alivePeerIds: Map<string, number> = new Map();
+    alivePeerIds: Map<string, KeepAlivePacket> = new Map();
 
     constructor({
         id,
@@ -82,8 +84,8 @@ export class Channel {
 
     private updatePeers = async () => {
         // remove old alive tags
-        for (const [peerId, timestamp] of this.alivePeerIds.entries()) {
-            if (Date.now() - timestamp > 6000) {
+        for (const [peerId, keepAlive] of this.alivePeerIds.entries()) {
+            if (Date.now() - keepAlive.timestamp > 6000) {
                 this.alivePeerIds.delete(peerId);
             }
         }
@@ -151,14 +153,26 @@ export class Channel {
             }
             const p = unknownToPacket(cbor.decode(this.Buffer.from(b)));
             if (p.type === PacketType.KEEP_ALIVE) {
-                console.log(
-                    'UPDATE ALIVE PEER',
-                    Buffer.from(p.peer).toString('hex'),
-                );
-                this.alivePeerIds.set(
-                    Buffer.from(p.peer).toString('hex'),
-                    Date.now(),
-                );
+                const peerId = Buffer.from(p.peer).toString('hex');
+                const prev = this.alivePeerIds.get(peerId);
+                if (prev && p.timestamp < prev.timestamp) {
+                    console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
+                    return;
+                }
+                if (p.timestamp < Date.now() - 6000) {
+                    console.log('IGNORING DELAYED KEEPALIVE FOR PEER', peerId);
+                    return;
+                }
+                console.log('UPDATE ALIVE PEER', peerId);
+                this.alivePeerIds.set(peerId, p);
+                this.client.db.peers
+                    .update(peerId, {
+                        lastSeen: p.timestamp,
+                        sees: p.sees.map((s) => Buffer.from(s).toString('hex')),
+                    })
+                    .catch((err) => {
+                        console.error('update-peer-err:', err);
+                    });
             } else {
                 this._onPacket(p);
             }

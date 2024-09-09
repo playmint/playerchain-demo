@@ -62,9 +62,6 @@ export class Peer {
     }
 
     private checkChain = async () => {
-        if (!this.isOnline()) {
-            return;
-        }
         const highest = await this.client.db.messages
             .where(['peer', 'height'])
             .between([this.pk, Dexie.minKey], [this.pk, Dexie.maxKey])
@@ -166,12 +163,6 @@ export class Peer {
     );
 
     stream = async (evt: string, buf: Buffer, opts?: TransportEmitOpts) => {
-        if (!this.isOnline()) {
-            console.log(
-                `[${this.client.shortId}] --> ${this.shortId} (offline), skipping send`,
-            );
-            return;
-        }
         for (const [_channelId, socket] of this.sockets) {
             // console.log(
             //     `SEND ${this.client.shortId} -> ${this.shortId} (${(buf as any).length}b) via ${channelId.slice(0, 8)}`,
@@ -187,9 +178,6 @@ export class Peer {
         buf: Uint8Array,
         opts?: TransportEmitOpts,
     ) => {
-        if (!this.isOnline()) {
-            return;
-        }
         for (const [_channelId, socket] of this.sockets) {
             // console.log(
             //     `SEND2 ${(buf as any).length} bytes to peer via ${channelId}`,
@@ -204,27 +192,11 @@ export class Peer {
         return Array.from(this.sockets.values())[0];
     }
 
-    lastSeen(): number {
-        return Array.from(this.sockets.values()).reduce((seen, socket) => {
-            const lastUpdate = socket._peer?.lastUpdate || 0;
-            if (lastUpdate > seen) {
-                return lastUpdate;
-            }
-            return seen;
-        }, 0);
-    }
-
-    isOnline(): boolean {
-        return this.sockets.size > 0 && this.lastSeen() > Date.now() - 60000;
-    }
-
     private save = async () => {
         await this.client.db.peers.update(this.id, {
-            lastSeen: this.lastSeen(),
             validHeight: this.validHeight,
             knownHeight: this.knownHeight,
             channels: Array.from(this.sockets.keys()),
-            online: this.isOnline(),
         });
     };
 

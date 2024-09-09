@@ -93,14 +93,7 @@ export class Client {
 
     async init(config: Omit<ClientConfig, 'socket'>) {
         // disconnect all the peers
-        await this.db.peers
-            .where('peerId')
-            .between(Dexie.minKey, Dexie.maxKey)
-            .modify({
-                connected: false,
-                proxy: null,
-                online: false,
-            });
+        await this.db.peers.clear();
         // setup network
         this.net = await createSocketCluster({
             db: this.db,
@@ -119,7 +112,7 @@ export class Client {
         this.threads.push(
             setPeriodic(async () => {
                 await this.syncChannels();
-            }, 5000),
+            }, 2000),
         );
         // load any existing channels we know about
         const channels = await this.db.channels.toArray();
@@ -161,9 +154,8 @@ export class Client {
                         validHeight: -1,
                         knownHeight: -1,
                         channels: [channel.id],
-                        connected: status.connected,
                         proxy: status.proxy,
-                        online: false,
+                        sees: [],
                     };
                     await this.db.peers.put(info);
                 }
@@ -184,7 +176,6 @@ export class Client {
             peer.sockets.set(channel.id, socket);
             peer.channels.set(channel.id, channel);
             await this.db.peers.update(socket.peerId, {
-                connected: status.connected,
                 proxy: status.proxy,
             });
         },
@@ -391,36 +382,37 @@ export class Client {
         }
 
         // update or write a peer entry for this peer
-        const peerId = Buffer.from(msg.peer).toString('hex');
-        let peer = this.peers.get(peerId);
-        if (!peer) {
-            let info = await this.db.peers.get(peerId);
-            if (!info) {
-                info = {
-                    peerId,
-                    lastSeen: -1,
-                    validHeight: -1,
-                    knownHeight: msg.height,
-                    channels: [],
-                    connected: false,
-                    proxy: null,
-                    online: false,
-                };
-                await this.db.peers.put(info);
-            }
-            peer = new Peer({
-                pk: msg.peer,
-                sockets: new Map(),
-                channels: new Map(),
-                client: this,
-                validHeight: info.validHeight,
-                knownHeight: info.knownHeight,
-                lastSeen: info.lastSeen,
-                onPacket: this.onPacket,
-                Buffer: Buffer,
-            });
-            this.peers.set(peerId, peer);
-        }
+        // const peerId = Buffer.from(msg.peer).toString('hex');
+        // let peer = this.peers.get(peerId);
+        // if (!peer) {
+        //     let info = await this.db.peers.get(peerId);
+        //     if (!info) {
+        //         info = {
+        //             peerId,
+        //             lastSeen: -1,
+        //             validHeight: -1,
+        //             knownHeight: msg.height,
+        //             channels: [],
+        //             connected: false,
+        //             proxy: null,
+        //             online: false,
+        //             sees:
+        //         };
+        //         await this.db.peers.put(info);
+        //     }
+        //     peer = new Peer({
+        //         pk: msg.peer,
+        //         sockets: new Map(),
+        //         channels: new Map(),
+        //         client: this,
+        //         validHeight: info.validHeight,
+        //         knownHeight: info.knownHeight,
+        //         lastSeen: info.lastSeen,
+        //         onPacket: this.onPacket,
+        //         Buffer: Buffer,
+        //     });
+        //     this.peers.set(peerId, peer);
+        // }
 
         // do we have this message's parent?
         // [!] currently letting the chain repair handle this
@@ -538,6 +530,7 @@ export class Client {
         if (ch) {
             return this.db.channels.update(ch.id, {
                 name: msg.name,
+                creator: Buffer.from(msg.peer).toString('hex'),
             });
         }
     }
@@ -625,10 +618,16 @@ export class Client {
             }
             // send channel keep alive
             // see channel.ts ... this is a workaround for a bug
+
+            const connectedPeers = await this.db.peers.toArray();
             ch.send(
                 {
                     type: PacketType.KEEP_ALIVE,
                     peer: this.id,
+                    timestamp: Date.now(),
+                    sees: connectedPeers.map((p) =>
+                        Buffer.from(p.peerId, 'hex'),
+                    ),
                 },
                 {
                     channels: [ch.id],
@@ -653,6 +652,7 @@ export class Client {
                         ch.name = genesis.name;
                         await this.db.channels.update(ch.id, {
                             name: genesis.name,
+                            creator: Buffer.from(genesis.peer).toString('hex'),
                         });
                     }
                     this.debug(
@@ -678,7 +678,7 @@ export class Client {
     private async updateChannelConfig(id: string): Promise<ChannelInfo> {
         let info = await this.db.channels.get(id);
         if (!info) {
-            info = { id, name: '', peers: [] };
+            info = { id, name: '', peers: [], creator: '' };
             await this.db.channels.put(info);
         }
         return info;

@@ -99,28 +99,36 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
             return;
         }
         let cueing = false;
-        const handler = setInterval(() => {
+        const timer = setInterval(() => {
             if (cueing) {
                 console.log('skip cue');
                 return;
             }
             cueing = true;
-            const now = Math.floor(Date.now() / rate);
-            sim.cue(now)
-                .then((state) => {
-                    // console.log('got state', state.t);
-                    mod.load(state.data);
-                    mod.notify();
-                })
-                .catch((err) => {
-                    console.error('cue-to-err:', err);
-                })
-                .finally(() => {
-                    cueing = false;
-                });
+            try {
+                const now = Math.floor(Date.now() / rate);
+                sim.cue(now)
+                    .then((state) => {
+                        cueing = false;
+                        // console.log('got state', state.t);
+                        mod.load(state.data);
+                        mod.notify();
+                    })
+                    .catch((err) => {
+                        cueing = false;
+                        console.error('cue-to-err:', err);
+                    })
+                    .finally(() => {
+                        cueing = false;
+                    });
+            } catch (err) {
+                console.error('cue-err:', err);
+                cueing = false;
+            }
         }, rate);
         return () => {
-            clearInterval(handler);
+            clearInterval(timer);
+            cueing = false;
         };
     }, [sim, rate, mod]);
 

@@ -24,9 +24,8 @@ export interface PeerInfo {
     validHeight: number;
     knownHeight: number;
     channels: string[];
-    connected: boolean; // if true, then we have at some point had a connection
     proxy: boolean | null; // if true, then messages are bouncing off someone else
-    online: boolean; // this is our internal definition of "online" see peer.ts
+    sees: string[]; // list of peers this peer has told us it knows about
 }
 
 export enum SearchStatus {

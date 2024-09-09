@@ -56,8 +56,12 @@ export function ChannelView({
 
     const allPeers = useLiveQuery(() => db.peers.toArray(), [], []);
     const peers = useMemo(
-        () => allPeers.filter((p) => p.channels.includes(channelId)),
-        [allPeers, channelId],
+        () =>
+            allPeers.filter(
+                (p) =>
+                    p.channels.includes(channelId) && p.sees.includes(peerId),
+            ),
+        [allPeers, channelId, peerId],
     );
     const potentialPeers = useMemo(
         () => [...peers.map((p) => p.peerId), peerId].sort(),
@@ -74,42 +78,24 @@ export function ChannelView({
         });
     }, [client, channelId, potentialPeers]);
 
-    const largestDiff = peers.reduce(
-        (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),
-        0,
-    );
+    // const largestDiff = peers.reduce(
+    //     (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),
+    //     0,
+    // );
 
     if (!channel) {
         return <div>failed to load channel data</div>;
     }
 
-    if (channel.peers.length === 0) {
-        return (
-            <div>
-                <p>playerchain initialized.</p>
-                <p>
-                    share this key: <input type="text" value={channel.id} />
-                </p>
-                <p>Waiting for peers to be decided...</p>
-                <p>connected peers:</p>
-                <ul>
-                    {potentialPeers.map((pid) => (
-                        <li key={pid}>
-                            {pid.slice(0, 8)} {pid === peerId && '(you)'}
-                        </li>
-                    ))}
-                </ul>
-                <p>
-                    <button
-                        onClick={acceptPeers}
-                        disabled={potentialPeers.length < 2}
-                    >
-                        ACCEPT THESE PEERS
-                    </button>
-                </p>
-            </div>
-        );
-    }
+    const acceptedPeersOnlineCount =
+        channel.peers.reduce((acc, pid) => {
+            const info = peers.find((p) => p.peerId === pid);
+            if (!info) {
+                return acc;
+            }
+            return info.sees.includes(peerId) ? acc + 1 : acc;
+        }, 0) + 1; // assume self is online
+    const majorityOnline = acceptedPeersOnlineCount > channel.peers.length / 2;
 
     return (
         <div style={{ display: 'flex', flexGrow: 1 }}>
@@ -120,8 +106,42 @@ export function ChannelView({
                 }}
                 ref={canvasRef}
             >
-                {largestDiff > 10 ? (
-                    <div>Syncing....</div>
+                {channel.peers.length === 0 ? (
+                    <div>
+                        <p>playerchain initialized.</p>
+                        <p>
+                            share this key:{' '}
+                            <input
+                                type="text"
+                                readOnly={true}
+                                value={channel.id}
+                            />
+                        </p>
+                        <p>Waiting for peers to be decided...</p>
+                        <p>connected peers:</p>
+                        <ul>
+                            {potentialPeers.map((pid) => (
+                                <li key={pid}>
+                                    {pid.slice(0, 8)}{' '}
+                                    {pid === peerId && '(you)'}
+                                </li>
+                            ))}
+                        </ul>
+                        <p>
+                            {channel.creator === peerId ? (
+                                <button
+                                    onClick={acceptPeers}
+                                    disabled={potentialPeers.length < 2}
+                                >
+                                    ACCEPT THESE PEERS
+                                </button>
+                            ) : (
+                                `waiting for ${channel.creator.slice(0, 8)} to accept peers`
+                            )}
+                        </p>
+                    </div>
+                ) : !majorityOnline ? (
+                    <div>Waiting for majority peers online...</div>
                 ) : (
                     <Renderer key={channel.id} channelId={channel.id} />
                 )}
@@ -178,11 +198,15 @@ export function ChannelView({
                         flexDirection: 'column',
                     }}
                 >
-                    {channel.peers.map((peerId) => (
+                    {(channel.peers.length === 0
+                        ? potentialPeers
+                        : channel.peers
+                    ).map((otherPeerId) => (
                         <PeerStatus
-                            key={peerId}
-                            peerId={peerId}
-                            info={peers.find((p) => p.peerId === peerId)}
+                            key={otherPeerId}
+                            peerId={otherPeerId}
+                            selfId={peerId}
+                            info={peers.find((p) => p.peerId === otherPeerId)}
                         />
                     ))}
 
@@ -198,12 +222,22 @@ export function ChannelView({
     );
 }
 
-function PeerStatus({ peerId, info }: { peerId: string; info?: PeerInfo }) {
+function PeerStatus({
+    peerId,
+    info,
+    selfId,
+}: {
+    peerId: string;
+    info?: PeerInfo;
+    selfId: string;
+}) {
     // const sync =
     //     peer.validHeight > -1 && peer.knownHeight - peer.validHeight < 10;
     const probablyFine = info
         ? info.knownHeight - info.validHeight < 10
         : false;
+    const isSelf = peerId === selfId;
+    const online = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
     return (
         <div
             style={{
@@ -215,17 +249,21 @@ function PeerStatus({ peerId, info }: { peerId: string; info?: PeerInfo }) {
         >
             <span
                 style={{
-                    backgroundColor: info?.online ? 'green' : 'red',
+                    backgroundColor: online ? 'green' : 'red',
                 }}
             >
                 {peerId.slice(0, 8)}
             </span>
             <span>{info?.validHeight}</span>
             <span>{info?.knownHeight}</span>
-            <span>{info?.online && info?.proxy ? 'P' : '-'}</span>
             <span>
-                {info?.online
-                    ? `${probablyFine ? 'SYNC' : 'NOSYNC'}`
+                {info?.sees.includes(selfId) ? '<' : '-'}
+                {online && info?.proxy ? 'P' : '-'}
+                {online && !isSelf ? '>' : '-'}
+            </span>
+            <span>
+                {online
+                    ? `${probablyFine || isSelf ? 'OK' : 'SYNCING'}`
                     : 'OFFLINE'}
             </span>
         </div>
