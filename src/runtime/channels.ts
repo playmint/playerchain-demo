@@ -1,9 +1,15 @@
 import * as cbor from 'cbor-x';
-import type { Buffer } from 'socket:buffer';
+import { Buffer } from 'socket:buffer';
 import { Client } from './client';
 import { Base64ID } from './messages';
 import { SocketPeer, SocketSubcluster } from './network';
-import { Packet, TransportEmitOpts, unknownToPacket } from './transport';
+import {
+    KeepAlivePacket,
+    Packet,
+    PacketType,
+    TransportEmitOpts,
+    unknownToPacket,
+} from './transport';
 import { CancelFunction, bufferedCall, setPeriodic } from './utils';
 
 export type ChannelConfig = {
@@ -24,6 +30,8 @@ export type ChannelConfig = {
 export interface ChannelInfo {
     id: Base64ID; // base64ified id that matches the commitment id of the CREATE_CHANNEL message
     name: string;
+    creator: string; // peer id of the creator
+    peers: string[];
 }
 
 export type PeerStatus = {
@@ -47,6 +55,7 @@ export class Channel {
     _onPeerLeave?: (peerId: string, channel: Channel) => void;
     _onPacket?: (packet: Packet) => void;
     lastKnowPeers = new Map<string, PeerStatus>();
+    alivePeerIds: Map<string, KeepAlivePacket> = new Map();
 
     constructor({
         id,
@@ -69,11 +78,17 @@ export class Channel {
         this.client = client;
         socket.on('bytes', this.onChannelBytes);
         socket.on('bytes2', this.onChannelBytes2);
-        // socket.on('#join', this.onPeerJoin);
+        // socket.on('#join', this.onPeerJoin); // this is broken
         this.threads.push(setPeriodic(this.updatePeers, 1000));
     }
 
     private updatePeers = async () => {
+        // remove old alive tags
+        for (const [peerId, keepAlive] of this.alivePeerIds.entries()) {
+            if (Date.now() - keepAlive.timestamp > 6000) {
+                this.alivePeerIds.delete(peerId);
+            }
+        }
         // check for removed peers
         for (const [peerId, _] of this.lastKnowPeers) {
             if (!this.socket.peers.has(peerId)) {
@@ -83,6 +98,11 @@ export class Channel {
         }
         // check for added peers
         for (const [_, peer] of this.socket.peers) {
+            // since we can't trust the peer list from the network
+            // we track keep alives to filter out invalid peers
+            if (!this.alivePeerIds.has(peer.peerId)) {
+                continue;
+            }
             const connected = !!peer._peer?.connected;
             const proxy = !!peer._peer?.proxy;
             let status = this.lastKnowPeers.get(peer.peerId);
@@ -132,7 +152,30 @@ export class Channel {
                 return;
             }
             const p = unknownToPacket(cbor.decode(this.Buffer.from(b)));
-            this._onPacket(p);
+            if (p.type === PacketType.KEEP_ALIVE) {
+                const peerId = Buffer.from(p.peer).toString('hex');
+                const prev = this.alivePeerIds.get(peerId);
+                if (prev && p.timestamp < prev.timestamp) {
+                    console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
+                    return;
+                }
+                if (p.timestamp < Date.now() - 6000) {
+                    console.log('IGNORING DELAYED KEEPALIVE FOR PEER', peerId);
+                    return;
+                }
+                console.log('UPDATE ALIVE PEER', peerId);
+                this.alivePeerIds.set(peerId, p);
+                this.client.db.peers
+                    .update(peerId, {
+                        lastSeen: p.timestamp,
+                        sees: p.sees.map((s) => Buffer.from(s).toString('hex')),
+                    })
+                    .catch((err) => {
+                        console.error('update-peer-err:', err);
+                    });
+            } else {
+                this._onPacket(p);
+            }
         },
         1000,
         'onChannelBytes',

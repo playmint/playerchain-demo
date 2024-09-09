@@ -50,6 +50,7 @@ export const CredentialsProvider = ({
 }) => {
     const [credentials, setCredentials] = useState<CredentialsContextType>();
     const socket = useSocket();
+    console.log('credentials provider render');
 
     useLayoutEffect(() => {
         if (!socket) {

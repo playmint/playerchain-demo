@@ -236,10 +236,10 @@ export const PacketLace = memo(function PacketLace({
 
     // tick each second
     useEffect(() => {
-        const interval = setInterval(() => {
+        const interval = globalThis.setInterval(() => {
             setTick((t) => t + 1);
-        }, 200);
-        return () => clearInterval(interval);
+        }, 1000);
+        return () => globalThis.clearInterval(interval);
     });
 
     const camYBase =

@@ -1,28 +1,25 @@
 import { memo } from 'react';
-import { PlayerData, World } from '../../../runtime/ecs';
+import { PlayerData } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
 
-type PlayerDataWithId = PlayerData<ShooterSchema['player']> & { id: string };
+export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
+    id: string;
+    health: number;
+};
 
 export default memo(function PlayerHUD({
     peerId,
-    world,
+    players,
 }: {
-    world: World<ShooterSchema>;
+    players: PlayerInfo[];
     peerId: string;
 }) {
-    const player = world.players.get(peerId);
+    const player = players.find((p) => p.id === peerId);
     if (!player) {
         return null;
     }
-    const health = world.components.stats.data.health[player.ship];
-    const players = Array.from(world.players.entries()).map((p) => ({
-        id: p[0],
-        ...p[1],
-    })) as PlayerDataWithId[];
-    // console.log('updating player hud');
     return (
         <div
             style={{
@@ -56,7 +53,7 @@ export default memo(function PlayerHUD({
                         marginLeft: '1rem',
                     }}
                 >
-                    <EnergyBar energy={health} />
+                    <EnergyBar energy={player.health} />
                 </div>
                 <div style={{ width: '30%' }}>
                     <LeaderBoard players={players} peerId={peerId} />

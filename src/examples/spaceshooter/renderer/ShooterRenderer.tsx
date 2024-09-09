@@ -1,6 +1,6 @@
 import { PositionalAudio, useGLTF } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { EntityId, World } from '../../../runtime/ecs';
 import { RendererProps } from '../../../runtime/game';
 import { ModelType, ShooterSchema } from '../../spaceshooter';
@@ -9,7 +9,7 @@ import { assetPath } from '../utils/RenderUtils';
 import AudioControls from './AudioControls';
 import BulletEntity from './BulletEntity';
 import PlayerCam from './PlayerCam';
-import PlayerHUD from './PlayerHUD';
+import PlayerHUD, { PlayerInfo } from './PlayerHUD';
 import ShipEntity from './ShipEntity';
 import WallEntity from './WallEntity';
 
@@ -17,71 +17,99 @@ useGLTF.setDecoderPath('/libs/draco');
 
 const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 
-function ModelEntity({
-    world,
+export type WorldRef = { current: World<ShooterSchema> };
+
+const ModelEntity = memo(function ModelEntity({
+    worldRef,
     eid,
 }: {
     eid: number;
-    world: World<ShooterSchema>;
+    worldRef: WorldRef;
 }) {
-    switch (world.components.model.data.type[eid]) {
+    console.log('ModelEntity', eid);
+    switch (worldRef.current.components.model.data.type[eid]) {
         case ModelType.Ship:
-            return <ShipEntity world={world} eid={eid} />;
+            return <ShipEntity worldRef={worldRef} eid={eid} />;
         case ModelType.Bullet:
-            return <BulletEntity world={world} eid={eid} />;
+            return <BulletEntity worldRef={worldRef} eid={eid} />;
         case ModelType.Wall:
-            return <WallEntity world={world} eid={eid} />;
+            return <WallEntity worldRef={worldRef} eid={eid} />;
     }
-}
-
-const ModelEntities = memo(function ModelEntities({
-    world,
-    peerId,
-}: {
-    world: World<ShooterSchema>;
-    changeMe: any;
-    peerId: string;
-}) {
-    const objects = world.entities.filter(
-        (eid) =>
-            !!eid && world.components.model.data.type[eid] !== ModelType.None,
-    ) as EntityId[];
-
-    if (!world) {
-        return null;
-    }
-    // console.log('updating game view');
-
-    return (
-        <>
-            {objects.map((eid) => (
-                <ModelEntity key={eid} eid={eid} world={world} />
-            ))}
-            <PlayerCam peerId={peerId} world={world} />
-        </>
-    );
 });
 
 export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
+    const worldRef = useMemo((): WorldRef => ({}) as WorldRef, []);
+
+    // entities to add to the scene
+    const [nextEntities, setNextEntities] = useState<(EntityId | null)[]>([]);
+    const prevEntities = useRef<(EntityId | null)[]>([]);
+
+    // stuff we send to the hud
+    const [nextPlayers, setNextPlayers] = useState<PlayerInfo[]>([]);
+    const prevPlayers = useRef<PlayerInfo[]>([]);
+
     // subscribe to updates
-    const [world, setWorld] = useState<World<ShooterSchema>>();
     useEffect(() => {
         return mod.subscribe((w: World<ShooterSchema>) => {
-            setWorld({ ...w }); // fixme: reernder less!!!!
+            // try to only update the entities list if it has changed
+            // to reduce unnecessary re-renders
+            worldRef.current = w;
+            const a = prevEntities.current ?? [];
+            const b = w.entities;
+            const isChanged =
+                a.length !== b.length || a.some((v, i) => v !== b[i]);
+            if (isChanged) {
+                setNextEntities(w.entities);
+            }
+            prevEntities.current = w.entities;
+            // try to only update the players list if it has changed
+            // to reduce unnecessary re-renders
+            const nextPlayers = Array.from(w.players.entries())
+                .map(([id, p]) => ({
+                    ...p,
+                    id,
+                    health: w.components.stats.data.health[p.ship],
+                }))
+                .sort((a, b) => (b.id > a.id ? -1 : 1));
+            if (
+                prevPlayers.current.length !== nextPlayers.length ||
+                prevPlayers.current.some((a, i) => {
+                    const b = nextPlayers[i];
+                    return (
+                        a.id !== b.id ||
+                        a.health !== b.health ||
+                        a.ship !== b.ship ||
+                        a.name !== b.name ||
+                        a.score !== b.score
+                    );
+                })
+            ) {
+                setNextPlayers(nextPlayers);
+            }
+            prevPlayers.current = nextPlayers;
         });
-    }, [mod, peerId]);
-    if (!world) {
+    }, [mod, peerId, worldRef]);
+
+    const entities = useMemo((): EntityId[] => {
+        return Array.from(nextEntities || []).filter(
+            (eid) =>
+                eid &&
+                worldRef.current &&
+                worldRef.current.components.model.data.type[eid] !==
+                    ModelType.None,
+        ) as EntityId[];
+    }, [nextEntities, worldRef]);
+
+    if (!worldRef.current) {
         return <div>Loading world...</div>;
     }
-    // console.log('updating canvas');
     return (
         <>
             <Canvas resize={CANVAS_RESIZE}>
-                <ModelEntities
-                    world={world}
-                    peerId={peerId}
-                    changeMe={world.entities}
-                />
+                {entities.map((eid) => (
+                    <ModelEntity key={eid} eid={eid} worldRef={worldRef} />
+                ))}
+                <PlayerCam peerId={peerId} worldRef={worldRef} />
                 <PositionalAudio
                     autoplay={true}
                     url={assetPath(backgroundMusic)}
@@ -90,7 +118,7 @@ export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
                 />
                 <AudioControls />
             </Canvas>
-            <PlayerHUD world={world} peerId={peerId} />
+            <PlayerHUD peerId={peerId} players={nextPlayers} />
         </>
     );
 });

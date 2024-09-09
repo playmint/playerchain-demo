@@ -10,11 +10,15 @@ export interface ClientContextType {
     commit: Client['commit'];
     createChannel: Client['createChannel'];
     joinChannel: Client['joinChannel'];
+    setPeers: Client['setPeers'];
     init(cfg: ClientUserConfig): Promise<void>;
     shutdown(): Promise<void>;
 }
 
-export const ClientContext = createContext<ClientContextType | null>(null);
+export const ClientContext = createContext<ClientContextType>(
+    // casting type because provider will enforce allways having a value
+    {} as ClientContextType,
+);
 
 export const useClient = () => {
     return useContext(ClientContext);

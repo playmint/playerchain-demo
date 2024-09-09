@@ -2,16 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useMemo, useRef } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
+import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
-import { SimulationProvider } from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
-
-const FIXED_UPDATE_RATE = 50;
-const src = '/examples/spaceshooter.js';
 
 export function ChannelView({
     channelId,
@@ -23,6 +20,7 @@ export function ChannelView({
     const canvasRef = useRef<HTMLDivElement>(null);
     const { peerId } = useCredentials();
     const db = useDatabase();
+    const client = useClient();
 
     const toggleFullscreen = useCallback(() => {
         if (document.fullscreenElement) {
@@ -51,135 +49,195 @@ export function ChannelView({
     const channel = useLiveQuery(
         async (): Promise<ChannelInfo | null | undefined> =>
             db.channels.get(channelId),
-        [db, channelId],
+        [channelId],
     );
 
     // peer info
 
-    const peers = useLiveQuery(() => db.peers.toArray(), [db]);
-    const connectedPeers = peers?.filter((p) => p.online).length || 0;
-    const minConnected = connectedPeers > 0;
-    const peersToShowInLace = useMemo(() => {
-        const ps = peers
-            ? peers
-                  .filter(
-                      (peer) =>
-                          peer.knownHeight != -1 &&
-                          peer.channels.includes(channelId),
-                  )
-                  .map((peer) => peer.peerId)
-            : [];
-        if (peerId) {
-            ps.push(peerId);
+    const allPeers = useLiveQuery(() => db.peers.toArray(), [], []);
+    const peers = useMemo(
+        () =>
+            allPeers.filter(
+                (p) =>
+                    p.channels.includes(channelId) && p.sees.includes(peerId),
+            ),
+        [allPeers, channelId, peerId],
+    );
+    const potentialPeers = useMemo(
+        () => [...peers.map((p) => p.peerId), peerId].sort(),
+        [peerId, peers],
+    );
+
+    const acceptPeers = useCallback(() => {
+        if (!client.setPeers) {
+            return;
         }
-        return ps.sort();
-    }, [peers, peerId, channelId]);
+        console.log('acceptPeers', channelId, potentialPeers);
+        client.setPeers(channelId, potentialPeers).catch((err) => {
+            console.error('acceptPeers', err);
+        });
+    }, [client, channelId, potentialPeers]);
+
+    // const largestDiff = peers.reduce(
+    //     (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),
+    //     0,
+    // );
 
     if (!channel) {
         return <div>failed to load channel data</div>;
     }
 
-    if (!minConnected) {
-        return (
-            <div>
-                min number of online peers not met for this channel, waiting...
-            </div>
-        );
-    }
+    const acceptedPeersOnlineCount =
+        channel.peers.reduce((acc, pid) => {
+            const info = peers.find((p) => p.peerId === pid);
+            if (!info) {
+                return acc;
+            }
+            return info.sees.includes(peerId) ? acc + 1 : acc;
+        }, 0) + 1; // assume self is online
+    const majorityOnline = acceptedPeersOnlineCount > channel.peers.length / 2;
 
     return (
-        <SimulationProvider
-            src={src}
-            rate={FIXED_UPDATE_RATE}
-            channelId={channelId}
-        >
-            <div style={{ display: 'flex', flexGrow: 1 }}>
+        <div style={{ display: 'flex', flexGrow: 1 }}>
+            <div
+                style={{
+                    flexGrow: 1,
+                    position: 'relative',
+                }}
+                ref={canvasRef}
+            >
+                {channel.peers.length === 0 ? (
+                    <div>
+                        <p>playerchain initialized.</p>
+                        <p>
+                            share this key:{' '}
+                            <input
+                                type="text"
+                                readOnly={true}
+                                value={channel.id}
+                            />
+                        </p>
+                        <p>Waiting for peers to be decided...</p>
+                        <p>connected peers:</p>
+                        <ul>
+                            {potentialPeers.map((pid) => (
+                                <li key={pid}>
+                                    {pid.slice(0, 8)}{' '}
+                                    {pid === peerId && '(you)'}
+                                </li>
+                            ))}
+                        </ul>
+                        <p>
+                            {channel.creator === peerId ? (
+                                <button
+                                    onClick={acceptPeers}
+                                    disabled={potentialPeers.length < 2}
+                                >
+                                    ACCEPT THESE PEERS
+                                </button>
+                            ) : (
+                                `waiting for ${channel.creator.slice(0, 8)} to accept peers`
+                            )}
+                        </p>
+                    </div>
+                ) : !majorityOnline ? (
+                    <div>Waiting for majority peers online...</div>
+                ) : (
+                    <Renderer key={channel.id} channelId={channel.id} />
+                )}
                 <div
                     style={{
-                        flexGrow: 1,
-                        position: 'relative',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        boxShadow: 'inset 0px 0px 5px 0px rgba(0,0,0,0.75)',
+                        pointerEvents: 'none',
                     }}
-                    ref={canvasRef}
                 >
-                    <Renderer key={channel.id} channelId={channel.id} />
-                    <div
+                    <span
                         style={{
+                            pointerEvents: 'auto',
                             position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            boxShadow: 'inset 0px 0px 5px 0px rgba(0,0,0,0.75)',
-                            pointerEvents: 'none',
+                            bottom: '1rem',
+                            left: '1rem',
+                            color: '#555',
                         }}
+                        onClick={toggleFullscreen}
+                        className={theme.materialSymbolsOutlined}
                     >
-                        <span
-                            style={{
-                                pointerEvents: 'auto',
-                                position: 'absolute',
-                                bottom: '1rem',
-                                left: '1rem',
-                                color: '#555',
-                            }}
-                            onClick={toggleFullscreen}
-                            className={theme.materialSymbolsOutlined}
-                        >
-                            fullscreen
-                        </span>
-                        <span
-                            style={{
-                                pointerEvents: 'auto',
-                                position: 'absolute',
-                                top: '1rem',
-                                right: '1rem',
-                                color: '#555',
-                            }}
-                            onClick={toggleMuted}
-                            className={theme.materialSymbolsOutlined}
-                        >
-                            {muted ? 'volume_off' : 'volume_up'}
-                        </span>
-                    </div>
-                </div>
-                {details && (
-                    <div
+                        fullscreen
+                    </span>
+                    <span
                         style={{
-                            background: '#333',
-                            width: '15rem',
-                            fontSize: '0.8rem',
-                            padding: '1rem',
-                            color: '#aaa',
-                            flexShrink: 0,
-                            flexGrow: 0,
-                            display: 'flex',
-                            flexDirection: 'column',
+                            pointerEvents: 'auto',
+                            position: 'absolute',
+                            top: '1rem',
+                            right: '1rem',
+                            color: '#555',
                         }}
+                        onClick={toggleMuted}
+                        className={theme.materialSymbolsOutlined}
                     >
-                        {peers
-                            ?.filter((p) => p.knownHeight != -1)
-                            .map((peer) => (
-                                <PeerStatus key={peer.peerId} peer={peer} />
-                            ))}
-
-                        {channelId && connectedPeers > 0 ? (
-                            <PacketLace
-                                channelId={channelId}
-                                peers={peersToShowInLace}
-                            />
-                        ) : (
-                            'NO PEERS ONLINE'
-                        )}
-                    </div>
-                )}
+                        {muted ? 'volume_off' : 'volume_up'}
+                    </span>
+                </div>
             </div>
-        </SimulationProvider>
+            {details && (
+                <div
+                    style={{
+                        background: '#333',
+                        width: '15rem',
+                        fontSize: '0.8rem',
+                        padding: '1rem',
+                        color: '#aaa',
+                        flexShrink: 0,
+                        flexGrow: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}
+                >
+                    {(channel.peers.length === 0
+                        ? potentialPeers
+                        : channel.peers
+                    ).map((otherPeerId) => (
+                        <PeerStatus
+                            key={otherPeerId}
+                            peerId={otherPeerId}
+                            selfId={peerId}
+                            info={peers.find((p) => p.peerId === otherPeerId)}
+                        />
+                    ))}
+
+                    {channelId && (
+                        <PacketLace
+                            channelId={channelId}
+                            peers={channel.peers}
+                        />
+                    )}
+                </div>
+            )}
+        </div>
     );
 }
 
-function PeerStatus({ peer }: { peer: PeerInfo }) {
+function PeerStatus({
+    peerId,
+    info,
+    selfId,
+}: {
+    peerId: string;
+    info?: PeerInfo;
+    selfId: string;
+}) {
     // const sync =
     //     peer.validHeight > -1 && peer.knownHeight - peer.validHeight < 10;
-    const probablyFine = peer.knownHeight - peer.validHeight < 10;
+    const probablyFine = info
+        ? info.knownHeight - info.validHeight < 10
+        : false;
+    const isSelf = peerId === selfId;
+    const online = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
     return (
         <div
             style={{
@@ -191,17 +249,21 @@ function PeerStatus({ peer }: { peer: PeerInfo }) {
         >
             <span
                 style={{
-                    backgroundColor: peer.online ? 'green' : 'red',
+                    backgroundColor: online ? 'green' : 'red',
                 }}
             >
-                {peer.peerId.slice(0, 8)}
+                {peerId.slice(0, 8)}
             </span>
-            <span>{peer.validHeight}</span>
-            <span>{peer.knownHeight}</span>
-            <span>{peer.online && peer.proxy ? 'P' : ''}</span>
+            <span>{info?.validHeight}</span>
+            <span>{info?.knownHeight}</span>
             <span>
-                {peer.online
-                    ? `${probablyFine ? 'SYNC' : 'NOSYNC'}`
+                {info?.sees.includes(selfId) ? '<' : '-'}
+                {online && info?.proxy ? 'P' : '-'}
+                {online && !isSelf ? '>' : '-'}
+            </span>
+            <span>
+                {online
+                    ? `${probablyFine || isSelf ? 'OK' : 'SYNCING'}`
                     : 'OFFLINE'}
             </span>
         </div>

@@ -41,6 +41,11 @@ export async function joinChannel(id: string) {
     await client!.joinChannel(id);
 }
 
+export async function setPeers(id: string, peers: string[]) {
+    console.log('setPeers', id, peers);
+    await client!.setPeers(id, peers);
+}
+
 export async function shutdown() {
     await client!.shutdown();
 }
@@ -50,6 +55,7 @@ const exports = {
     commit,
     createChannel,
     joinChannel,
+    setPeers,
     shutdown,
 };
 Comlink.expose(exports);

@@ -10,13 +10,17 @@ export const SettingsProvider = ({
 }) => {
     const db = useDatabase();
     const settings = useLiveQuery(() => db.settings.get(1), [db]);
+    console.log('settings render');
 
     useEffect(() => {
         db.settings
             .count()
             .then((count) => {
                 if (count == 0) {
-                    return db.settings.add({ id: 1 });
+                    return db.settings.add({
+                        id: 1,
+                        muted: import.meta.env.MODE !== 'production',
+                    });
                 }
             })
             .catch((err) => console.error('settings-add-err:', err));

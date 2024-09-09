@@ -9,8 +9,7 @@ import {
     PositionalAudio as PositionalAudioImpl,
     Vector3,
 } from 'three';
-import { World } from '../../../runtime/ecs';
-import { Input, ShooterSchema, hasInput } from '../../spaceshooter';
+import { Input, hasInput } from '../../spaceshooter';
 import sfxDestroy from '../assets/Destroy.mp3?url';
 import sfxThrust from '../assets/Thrust_Loop.mp3?url';
 import shipGLTF from '../assets/ship.glb?url';
@@ -29,16 +28,17 @@ import {
     updateEntityGeneration,
     useParticleEffect,
 } from '../utils/RenderUtils';
+import { WorldRef } from './ShooterRenderer';
 
 export default memo(function ShipEntity({
     eid,
-    world,
+    worldRef,
 }: {
     eid: number;
-    world: World<ShooterSchema>;
+    worldRef: WorldRef;
 }) {
     const getShipOwner = () =>
-        Array.from(world.players.entries()).find(
+        Array.from(worldRef.current.players.entries()).find(
             ([_id, p]) => p.ship === eid,
         ) || [undefined, undefined];
     const groupRef = useRef<Group>(null!);
@@ -51,6 +51,7 @@ export default memo(function ShipEntity({
     const shootRef = useParticleEffect(shipRef, fxShootData, [0, 0, 0]);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
+    console.log('rendering ship', eid);
 
     const gltf = useGLTF(assetPath(shipGLTF));
     useEffect(() => {
@@ -61,6 +62,7 @@ export default memo(function ShipEntity({
     }, [gltf]);
 
     useFrame((_state, deltaTime) => {
+        const world = worldRef.current;
         const [peerId, player] = getShipOwner();
         const color = new Color(peerId ? `#${peerId.slice(0, 6)}` : '#ffffff');
         const group = groupRef.current;

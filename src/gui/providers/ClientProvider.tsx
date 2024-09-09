@@ -4,11 +4,10 @@ import { useAsyncMemo } from '../hooks/use-async';
 import { ClientContext, ClientContextType } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 
-// import { useTransport } from '../hooks/use-transport';
-
 export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
-    // const { transport } = useTransport();
     const { keys, dbname } = useCredentials();
+
+    console.log('client provider render');
 
     // create client
     const client = useAsyncMemo<ClientContextType | undefined>(
@@ -46,24 +45,6 @@ export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
         },
         [keys, dbname],
     );
-
-    // connect client to transport
-    // useLayoutEffect(() => {
-    //     if (!client) {
-    //         return;
-    //     }
-    //     if (!transport) {
-    //         return;
-    //     }
-    //     console.debug('client-connected-transport');
-    //     client.connect(transport);
-    //     return () => {
-    //         if (client) {
-    //             client.disconnect();
-    //             console.debug('client-disconnected-transport');
-    //         }
-    //     };
-    // }, [client, transport]);
 
     if (!client) {
         return <div>Loading client...</div>;

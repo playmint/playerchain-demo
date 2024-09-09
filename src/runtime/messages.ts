@@ -11,6 +11,7 @@ export enum MessageType {
     INVALID = 0,
     CREATE_CHANNEL = 1,
     INPUT = 2,
+    SET_PEERS = 3,
 }
 
 export type CreateChannelMessage = {
@@ -25,7 +26,16 @@ export type InputMessage = {
     data: number;
 };
 
-export type UnsignedMessage = CreateChannelMessage | InputMessage;
+export type SetPeersMessage = {
+    type: MessageType.SET_PEERS;
+    channel: Base64ID;
+    peers: Uint8Array[];
+};
+
+export type UnsignedMessage =
+    | CreateChannelMessage
+    | InputMessage
+    | SetPeersMessage;
 
 export type ChainMessageProps = {
     peer: Uint8Array;
@@ -65,8 +75,15 @@ export function unknownToMessage(o: any): Message {
                 type: MessageType.CREATE_CHANNEL,
                 name: mustGetString(o, 'name'),
             };
+        case MessageType.SET_PEERS:
+            return {
+                ...header,
+                type: MessageType.SET_PEERS,
+                channel: mustGetString(o, 'channel'),
+                peers: mustGetUint8ArrayArray(o, 'peers'),
+            };
         default:
-            throw new Error(`unknown message kind: ${o}`);
+            throw new Error(`unknown message type: ${JSON.stringify(o)}`);
     }
 }
 

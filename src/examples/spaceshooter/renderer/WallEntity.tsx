@@ -1,19 +1,19 @@
 import { useFrame } from '@react-three/fiber';
 import { memo, useRef } from 'react';
 import { Group, Mesh } from 'three';
-import { World } from '../../../runtime/ecs';
-import { ShooterSchema } from '../../spaceshooter';
+import { WorldRef } from './ShooterRenderer';
 
 export default memo(function WallEntity({
     eid,
-    world,
+    worldRef,
 }: {
     eid: number;
-    world: World<ShooterSchema>;
+    worldRef: WorldRef;
 }) {
     const groupRef = useRef<Group>(null!);
     const meshRef = useRef<Mesh>(null!);
     useFrame(() => {
+        const world = worldRef.current;
         const obj = groupRef.current;
         obj.position.x = world.components.position.data.x[eid];
         obj.position.y = world.components.position.data.y[eid];
