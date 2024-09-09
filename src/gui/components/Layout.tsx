@@ -1,9 +1,11 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { useDatabase } from '../hooks/use-database';
 import { SimulationProvider } from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
+import ChannelBoot from './ChannelBoot';
 import { ChannelView } from './ChannelView';
-import { Sidebar } from './Sidebar';
 import StatusBar from './StatusBar';
 
 const FIXED_UPDATE_RATE = 50;
@@ -19,21 +21,15 @@ function fallbackRender({ error }) {
 }
 
 export function Layout() {
+    const db = useDatabase();
     const [channelPanelOpen, setChannelPanelOpen] = useState(true);
-    const [channelListOpen, setChannelListOpen] = useState(true);
-    const [activeChannelId, setActiveChannelId] = useState<string>();
-
-    const toggleChannelList = useCallback(() => {
-        setChannelListOpen((prev) => !prev);
-    }, []);
 
     const toggleChannelPanel = useCallback(() => {
         setChannelPanelOpen((prev) => !prev);
     }, []);
 
-    const onChannelActivate = useCallback((id: string) => {
-        setActiveChannelId(id);
-    }, []);
+    const channels = useLiveQuery(async () => db.channels.toArray(), [], []);
+    const channel = channels[0];
 
     return (
         <div
@@ -84,16 +80,10 @@ export function Layout() {
                     }}
                 >
                     <span
-                        onClick={toggleChannelList}
-                        className={theme.materialSymbolsOutlined}
-                    >
-                        left_panel_close
-                    </span>
-                    <span
                         onClick={toggleChannelPanel}
                         className={theme.materialSymbolsOutlined}
                     >
-                        device_hub
+                        right_panel_close
                     </span>
                     <span className={theme.materialSymbolsOutlined}>
                         person
@@ -108,26 +98,20 @@ export function Layout() {
                     overflow: 'hidden',
                 }}
             >
-                {channelListOpen && (
-                    <Sidebar
-                        active={activeChannelId}
-                        onActivate={onChannelActivate}
-                    />
-                )}
                 <ErrorBoundary fallbackRender={fallbackRender}>
-                    {activeChannelId ? (
+                    {channel ? (
                         <SimulationProvider
                             src={src}
                             rate={FIXED_UPDATE_RATE}
-                            channelId={activeChannelId}
+                            channelId={channel.id}
                         >
                             <ChannelView
                                 details={channelPanelOpen}
-                                channelId={activeChannelId}
+                                channelId={channel.id}
                             />
                         </SimulationProvider>
                     ) : (
-                        <div>No Channel Selected</div>
+                        <ChannelBoot />
                     )}
                 </ErrorBoundary>
             </div>

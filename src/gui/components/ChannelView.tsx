@@ -86,6 +86,10 @@ export function ChannelView({
     if (channel.peers.length === 0) {
         return (
             <div>
+                <p>playerchain initialized.</p>
+                <p>
+                    share this key: <input type="text" value={channel.id} />
+                </p>
                 <p>Waiting for peers to be decided...</p>
                 <p>connected peers:</p>
                 <ul>
