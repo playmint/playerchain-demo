@@ -631,7 +631,7 @@ export class Client {
                 },
                 {
                     channels: [ch.id],
-                    ttl: 500,
+                    ttl: 1000,
                 },
             );
             // send channel join

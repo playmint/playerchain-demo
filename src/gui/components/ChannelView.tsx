@@ -87,15 +87,18 @@ export function ChannelView({
         return <div>failed to load channel data</div>;
     }
 
-    const acceptedPeersOnlineCount =
-        (channel.peers || []).reduce((acc, pid) => {
-            const info = peers.find((p) => p.peerId === pid);
-            if (!info) {
-                return acc;
-            }
-            return info.sees.includes(peerId) ? acc + 1 : acc;
-        }, 0) + 1; // assume self is online
-    const majorityOnline = acceptedPeersOnlineCount > channel.peers.length / 2;
+    // a peer is "ready" if it can see all other peers
+    const readyPeers = channel.peers.reduce((acc, pid) => {
+        if (pid === peerId) {
+            return acc;
+        }
+        const info = peers.find((p) => p.peerId === pid);
+        if (!info) {
+            return acc;
+        }
+        return info.sees.length === channel.peers.length - 1 ? acc + 1 : acc;
+    }, 1); // assume self is online
+    const majorityReady = readyPeers > channel.peers.length / 2;
 
     return (
         <div style={{ display: 'flex', flexGrow: 1 }}>
@@ -140,7 +143,7 @@ export function ChannelView({
                             )}
                         </p>
                     </div>
-                ) : !majorityOnline ? (
+                ) : !majorityReady ? (
                     <div>Waiting for majority peers online...</div>
                 ) : (
                     <Renderer key={channel.id} channelId={channel.id} />
@@ -207,6 +210,7 @@ export function ChannelView({
                             peerId={otherPeerId}
                             selfId={peerId}
                             info={peers.find((p) => p.peerId === otherPeerId)}
+                            peerCount={channel.peers.length}
                         />
                     ))}
 
@@ -226,18 +230,16 @@ function PeerStatus({
     peerId,
     info,
     selfId,
+    peerCount,
 }: {
     peerId: string;
     info?: PeerInfo;
     selfId: string;
+    peerCount: number;
 }) {
-    // const sync =
-    //     peer.validHeight > -1 && peer.knownHeight - peer.validHeight < 10;
-    const probablyFine = info
-        ? info.knownHeight - info.validHeight < 10
-        : false;
     const isSelf = peerId === selfId;
-    const online = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
+    const outbound = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
+    const inbound = (outbound && info?.sees.includes(selfId)) || isSelf;
     return (
         <div
             style={{
@@ -245,27 +247,36 @@ function PeerStatus({
                 flexDirection: 'row',
                 gap: '0.5rem',
                 borderBottom: '1px solid #444',
+                padding: '0.1rem',
+                color: '#888',
             }}
         >
             <span
                 style={{
-                    backgroundColor: online ? 'green' : 'red',
+                    // backgroundColor: outbound ? 'green' : 'red',
+                    width: '30%',
+                    overflow: 'hidden',
                 }}
             >
                 {peerId.slice(0, 8)}
             </span>
+            <span>
+                {inbound
+                    ? info?.sees.length === peerCount - 1 || isSelf
+                        ? '<<' // fully connected inbound
+                        : '<-' // partially connected
+                    : '--'}
+                {outbound && info?.proxy
+                    ? 'P' // proxing
+                    : '-'}
+                {outbound
+                    ? info?.sees.length === peerCount - 1 || isSelf
+                        ? '>>'
+                        : '->'
+                    : '--'}
+            </span>
             <span>{info?.validHeight}</span>
             <span>{info?.knownHeight}</span>
-            <span>
-                {info?.sees.includes(selfId) ? '<' : '-'}
-                {online && info?.proxy ? 'P' : '-'}
-                {online && !isSelf ? '>' : '-'}
-            </span>
-            <span>
-                {online
-                    ? `${probablyFine || isSelf ? 'OK' : 'SYNCING'}`
-                    : 'OFFLINE'}
-            </span>
         </div>
     );
 }
