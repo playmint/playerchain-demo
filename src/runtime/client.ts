@@ -848,10 +848,10 @@ export class Client {
         if (!req.sender) {
             throw new Error('missing-rpc-sender');
         }
-        const sender = this.peers.get(req.sender);
-        if (!sender) {
-            throw new Error(`unknown-rpc-sender ${req.sender}`);
-        }
+        // const sender = this.peers.get(req.sender);
+        // if (!sender) {
+        //     throw new Error(`unknown-rpc-sender ${req.sender}`);
+        // }
         if (!req.name) {
             throw new Error('missing-rpc-name');
         }
@@ -908,7 +908,7 @@ export class Client {
                 }
                 batch = [];
             }
-            await sleep(50);
+            await sleep(10);
         }
         if (batch.length > 0) {
             for (const [_, ch] of this.channels) {
