@@ -377,8 +377,24 @@ export class Client {
                 ...msg,
                 arrived: await this.nextSequenceNumber(),
             });
-            // have we seen this peer before?
-            // const peerId = Buffer.from(msg.peer).toString('hex');
+            // rebroadcast this with jitter since it's new to us
+            // this is bandwidth inefficient, but it helps those with patchy connections
+            setTimeout(
+                () => {
+                    for (const [_, ch] of this.channels) {
+                        ch.send(
+                            {
+                                type: PacketType.MESSAGE,
+                                msgs: [msg],
+                            },
+                            {
+                                ttl: 300,
+                            },
+                        );
+                    }
+                },
+                Math.floor(Math.random() * 25) + 25,
+            );
         }
 
         // update or write a peer entry for this peer
