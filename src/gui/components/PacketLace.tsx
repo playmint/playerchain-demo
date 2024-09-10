@@ -1,7 +1,6 @@
 import { Line, OrthographicCamera } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import Dexie from 'dexie';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Vector3 } from 'three';
 import {
