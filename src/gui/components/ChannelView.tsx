@@ -240,6 +240,7 @@ function PeerStatus({
     const isSelf = peerId === selfId;
     const outbound = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
     const inbound = (outbound && info?.sees.includes(selfId)) || isSelf;
+    const isWellConnected = info?.sees.length === peerCount - 1 || isSelf;
     return (
         <div
             style={{
@@ -262,18 +263,14 @@ function PeerStatus({
             </span>
             <span>
                 {inbound
-                    ? info?.sees.length === peerCount - 1 || isSelf
+                    ? isWellConnected
                         ? '<<' // fully connected inbound
                         : '<-' // partially connected
                     : '--'}
                 {outbound && info?.proxy
                     ? 'P' // proxing
                     : '-'}
-                {outbound
-                    ? info?.sees.length === peerCount - 1 || isSelf
-                        ? '>>'
-                        : '->'
-                    : '--'}
+                {outbound ? (isWellConnected ? '>>' : '->') : '--'}
             </span>
             <span>{info?.validHeight}</span>
             <span>{info?.knownHeight}</span>
