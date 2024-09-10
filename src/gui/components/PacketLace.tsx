@@ -12,7 +12,7 @@ import {
 import { useDatabase } from '../hooks/use-database';
 
 const PACKET_SCALE = 0.1;
-const SPREAD_X = 6;
+const SPREAD_X = 5;
 const SPREAD_Y = 0.5;
 const LINE_WIDTH = 2;
 const DEFAULT_LINE_COLOR = 'grey';
@@ -207,46 +207,59 @@ export const PacketLace = memo(function PacketLace({
     channelId: string;
     peers: string[];
 }) {
-    const [tick, setTick] = useState(0);
+    const [data, setData] = useState<any>(null);
+
     const db = useDatabase();
-    const messages = useLiveQuery(
-        async () =>
+
+    useEffect(() => {
+        let fetching = false;
+        const timer = setInterval(() => {
+            if (fetching) {
+                console.log('lace fetch skip');
+                return;
+            }
+            fetching = true;
             db.messages
                 .where(['channel', 'round'])
                 .between([channelId, Dexie.minKey], [channelId, Dexie.maxKey])
                 .reverse()
-                .limit(100)
-                .toArray(),
-        [db, channelId],
-    );
+                .limit(32)
+                .toArray()
+                .then((messages) => {
+                    const minRound = Math.min(
+                        ...messages.map((msg: any) => msg.round),
+                    );
+                    const maxRound = Math.max(
+                        ...messages.map((msg: any) => msg.round),
+                    );
+                    const messagesWithOffsetRound = messages.map(
+                        (msg: any) => ({
+                            ...msg,
+                            round: msg.round - minRound,
+                        }),
+                    );
+                    return { minRound, maxRound, messagesWithOffsetRound };
+                })
+                .then(setData)
+                .catch((err) => console.error('lace-fetch-err', err))
+                .finally(() => {
+                    fetching = false;
+                });
+        }, 2000);
+        return () => {
+            clearInterval(timer);
+        };
+    }, [channelId, db]);
 
-    const { minRound, maxRound, messagesWithOffsetRound } = useMemo(() => {
-        if (!messages) {
-            return {};
-        }
-        const minRound = Math.min(...messages.map((msg: any) => msg.round));
-        const maxRound = Math.max(...messages.map((msg: any) => msg.round));
-        const messagesWithOffsetRound = messages.map((msg: any) => ({
-            ...msg,
-            round: msg.round - minRound,
-        }));
-        setTick(0);
-        return { minRound, maxRound, messagesWithOffsetRound };
-    }, [messages]);
-
-    // tick each second
-    useEffect(() => {
-        const interval = globalThis.setInterval(() => {
-            setTick((t) => t + 1);
-        }, 1000);
-        return () => globalThis.clearInterval(interval);
-    });
-
+    if (!data) {
+        return;
+    }
+    const { minRound, maxRound, messagesWithOffsetRound } = data;
     const camYBase =
         maxRound && minRound
             ? (maxRound - minRound - 50) * SPREAD_Y * PACKET_SCALE
             : 0;
-    const camY = camYBase + tick * SPREAD_Y * PACKET_SCALE;
+    const camY = 0.5 + camYBase + 0 * SPREAD_Y * PACKET_SCALE;
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             <Canvas>
