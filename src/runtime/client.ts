@@ -20,6 +20,7 @@ import {
     SocketNetwork,
     SocketPeer,
     SocketPersistedState,
+    SocketRPCGetMessagesByHeight,
     SocketRPCRequest,
     SocketRPCResponse,
     createSocketCluster,
@@ -808,7 +809,12 @@ export class Client {
             for (const [_, ch] of this.channels) {
                 ch.socket.on(id, callback);
             }
-            const r: SocketRPCRequest = { ...req, id, sender: this.peerId };
+            const r: SocketRPCGetMessagesByHeight = {
+                ...req,
+                id,
+                sender: this.peerId,
+                timestamp: Date.now(),
+            };
             for (const [_, ch] of this.channels) {
                 ch.socket
                     .emit(`rpc`, Buffer.from(cbor.encode(r)), {
@@ -841,24 +847,32 @@ export class Client {
 
     private onRPCRequest = bufferedCall(async (b: Uint8Array) => {
         const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
-        console.log('GOT RPC REQUEST');
         if (!req.id) {
             throw new Error('missing-rpc-id');
         }
         if (!req.sender) {
             throw new Error('missing-rpc-sender');
         }
-        // const sender = this.peers.get(req.sender);
-        // if (!sender) {
-        //     throw new Error(`unknown-rpc-sender ${req.sender}`);
-        // }
+        if (req.sender === this.peerId) {
+            // don't answer own requests!
+            return;
+        }
         if (!req.name) {
             throw new Error('missing-rpc-name');
+        }
+        if (
+            !req.timestamp ||
+            typeof req.timestamp !== 'number' ||
+            req.timestamp < Date.now() - 1000
+        ) {
+            // ignore old requests
+            return;
         }
         const handler = this.getRequestHandler(req.name);
         if (!handler) {
             throw new Error(`unknown-rpc-request ${req.name}`);
         }
+        console.log('GOT RPC REQUEST FROM', req.sender);
         for (const [_, ch] of this.channels) {
             const result = await handler(req.args as any);
             await ch.socket.emit(req.id, Buffer.from(cbor.encode({ result })), {
