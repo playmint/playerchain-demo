@@ -27,6 +27,7 @@ export async function init(userConfig: ClientUserConfig) {
         },
     };
     client = await Client.from(cfg);
+    globalThis.client = client; // for debugging
 }
 
 export async function commit(msg: UnsignedMessage): Promise<Message> {

@@ -159,11 +159,7 @@ export class Channel {
                     console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
                     return;
                 }
-                if (p.timestamp < Date.now() - 6000) {
-                    console.log('IGNORING DELAYED KEEPALIVE FOR PEER', peerId);
-                    return;
-                }
-                console.log('UPDATE ALIVE PEER', peerId);
+                // console.log('UPDATE ALIVE PEER', peerId);
                 this.alivePeerIds.set(peerId, p);
                 this.client.db.peers
                     .update(peerId, {

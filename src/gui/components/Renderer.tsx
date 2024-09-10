@@ -100,7 +100,7 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
         let timer: any;
         timer = setInterval(() => {
             if (cueing) {
-                console.log('skip cue');
+                console.log('skip cue - should be rare, are we cpu bound?');
                 return;
             }
             cueing = true;
