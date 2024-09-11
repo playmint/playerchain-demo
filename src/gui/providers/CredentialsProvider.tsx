@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { useState } from 'react';
 import { Buffer } from 'socket:buffer';
 import { randomBytes } from 'socket:crypto';
@@ -12,14 +12,6 @@ import { useSocket } from '../hooks/use-socket';
 async function createCredentials(
     playerIndex: number,
 ): Promise<CredentialsContextType> {
-    // --------------
-    // temp, burn all the state on reload
-    // TODO: only burn the state on first load not refresh
-    // -------
-    // if (playerIndex === 0) {
-    //     await hardReset();
-    // }
-    // ------
     const peerSecretKey = `peerSecret/${playerIndex}`;
     let peerSecretValue = localStorage.getItem(peerSecretKey);
     if (peerSecretValue === null) {
@@ -52,7 +44,7 @@ export const CredentialsProvider = ({
     const socket = useSocket();
     console.log('credentials provider render');
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         if (!socket) {
             return;
         }

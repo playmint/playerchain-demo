@@ -12,7 +12,7 @@ import { useDatabase } from '../hooks/use-database';
 
 const PACKET_SCALE = 0.1;
 const SPREAD_X = 5;
-const SPREAD_Y = 0.5;
+const SPREAD_Y = 2;
 const LINE_WIDTH = 2;
 const DEFAULT_LINE_COLOR = 'grey';
 // const HIGHLIGHTED_LINE_COLOR = 'cyan';
@@ -256,7 +256,7 @@ export const PacketLace = memo(function PacketLace({
     const { minRound, maxRound, messagesWithOffsetRound } = data;
     const camYBase =
         maxRound && minRound
-            ? (maxRound - minRound - 50) * SPREAD_Y * PACKET_SCALE
+            ? (maxRound - minRound - 15) * SPREAD_Y * PACKET_SCALE
             : 0;
     const camY = 0.5 + camYBase + 0 * SPREAD_Y * PACKET_SCALE;
     return (

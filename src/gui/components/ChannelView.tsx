@@ -83,22 +83,37 @@ export function ChannelView({
     //     0,
     // );
 
+    // a peer is "ready" if it can see all other peers
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const readyPeers = useMemo(() => {
+        if (!channel) {
+            return 0;
+        }
+        return channel.peers.reduce((acc, pid) => {
+            if (pid === peerId) {
+                return acc + 1; // assume self is ready
+            }
+            const info = peers.find((p) => p.peerId === pid);
+            if (!info) {
+                return acc;
+            }
+            const alive = (info?.lastSeen || 0) > Date.now() - 7000;
+            if (!alive) {
+                return acc;
+            }
+            return info.sees.length === channel.peers.length - 1
+                ? acc + 1
+                : acc;
+        }, 0);
+    }, [channel, peerId, peers]);
+
     if (!channel) {
         return <div>failed to load channel data</div>;
     }
 
-    // a peer is "ready" if it can see all other peers
-    const readyPeers = channel.peers.reduce((acc, pid) => {
-        if (pid === peerId) {
-            return acc;
-        }
-        const info = peers.find((p) => p.peerId === pid);
-        if (!info) {
-            return acc;
-        }
-        return info.sees.length === channel.peers.length - 1 ? acc + 1 : acc;
-    }, 1); // assume self is online
-    const majorityReady = readyPeers > channel.peers.length / 2;
+    const required = channel.peers.length == 2 ? 2 : channel.peers.length / 2;
+    const majorityReady = readyPeers >= required;
+    const selfIsInTheClub = channel.peers.includes(peerId);
 
     return (
         <div style={{ display: 'flex', flexGrow: 1 }}>
@@ -143,10 +158,16 @@ export function ChannelView({
                             )}
                         </p>
                     </div>
+                ) : !selfIsInTheClub ? (
+                    <div>session was started without you, sorry!</div>
                 ) : !majorityReady ? (
-                    <div>Waiting for majority peers online...</div>
+                    <div>waiting for majority peers online...</div>
                 ) : (
-                    <Renderer key={channel.id} channelId={channel.id} />
+                    <Renderer
+                        key={channel.id}
+                        channelId={channel.id}
+                        channelPeerIds={channel.peers}
+                    />
                 )}
                 <div
                     style={{

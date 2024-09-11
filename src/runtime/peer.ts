@@ -57,8 +57,8 @@ export class Peer {
         this.client = client;
         this._onPacket = onPacket;
         this.sockets = sockets;
-        this.threads.push(setPeriodic(this.save, 10000));
-        this.threads.push(setPeriodic(this.checkChain, 1000));
+        this.threads.push(setPeriodic(this.save, 5000));
+        this.threads.push(setPeriodic(this.checkChain, 2500));
     }
 
     private checkChain = async () => {
@@ -126,12 +126,14 @@ export class Peer {
                      expected msg.height=${msg.height} to be ${last.height + 1}
                      we have not implemented how to handle this case`,
                 );
-                // breaks++;
+                breaks++;
             }
 
             last = msg;
             if (breaks === 0) {
                 validHeight = msg.height;
+            } else {
+                break;
             }
         }
         // update the peer with the new valid height

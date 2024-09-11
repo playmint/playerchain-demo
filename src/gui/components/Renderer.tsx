@@ -2,12 +2,20 @@ import { FC, memo, useEffect, useMemo } from 'react';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
 import { RendererProps } from '../../runtime/game';
-import { Sequencer } from '../../runtime/sequencer';
+import { Sequencer, SequencerMode } from '../../runtime/sequencer';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
+import { useDatabase } from '../hooks/use-database';
 import { useSimulation } from '../hooks/use-simulation';
 
-export default memo(function Renderer({ channelId }: { channelId: string }) {
+export default memo(function Renderer({
+    channelId,
+    channelPeerIds,
+}: {
+    channelId: string;
+    channelPeerIds: string[];
+}) {
+    const db = useDatabase();
     const { peerId } = useCredentials();
     const { sim, rate, mod } = useSimulation();
     const client = useClient();
@@ -48,13 +56,19 @@ export default memo(function Renderer({ channelId }: { channelId: string }) {
             },
             channelId,
             rate,
+            mode: SequencerMode.CORDIAL,
+            interlace: 6,
+            channelPeerIds,
+            peerId,
+            db,
         });
-        console.log('starting sequencer');
         seq.start();
+        console.log('started sequencer');
         return () => {
             seq.destroy();
+            console.log('stopping sequencer');
         };
-    }, [client, channelId, rate, mod]);
+    }, [client, channelId, rate, mod, peerId, db, channelPeerIds]);
 
     // configure event handlers
     useEffect(() => {

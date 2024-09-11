@@ -1,6 +1,7 @@
 import * as Comlink from 'comlink';
 import React, { memo, useMemo } from 'react';
 import { load } from '../../runtime/game';
+import { SequencerMode } from '../../runtime/sequencer';
 import { Simulation } from '../../runtime/simulation';
 import { useAsyncMemo } from '../hooks/use-async';
 import { useCredentials } from '../hooks/use-credentials';
@@ -11,7 +12,9 @@ export default memo(function SimulationProvider({
     src,
     rate,
     children,
+    peerId,
 }: {
+    peerId: string;
     channelId: string;
     src: string;
     rate: number;
@@ -49,6 +52,8 @@ export default memo(function SimulationProvider({
                 dbname,
                 src,
                 rate,
+                peerId,
+                mode: SequencerMode.CORDIAL,
             });
             await s.init();
             defer(async () => {

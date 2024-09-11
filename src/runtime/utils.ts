@@ -125,9 +125,9 @@ export function peerIdTo64bitBigNum(peerId: string): bigint {
 
 // wipe all the state
 export async function hardReset() {
+    localStorage.clear();
     const dbs = await window.indexedDB.databases();
     await Promise.all(
         dbs.map((db: any) => window.indexedDB.deleteDatabase(db.name)),
     );
-    localStorage.clear();
 }

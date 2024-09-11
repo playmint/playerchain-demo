@@ -324,6 +324,7 @@ export type SocketRPCGetMessagesByHeight = {
     id: string;
     name: 'requestMessagesByHeight';
     sender: string;
+    timestamp: number;
     args: {
         peerId: string;
         fromHeight: number;

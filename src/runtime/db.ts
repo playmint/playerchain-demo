@@ -86,7 +86,7 @@ export function open(name: string): DB {
         channels: 'id',
         peers: 'peerId, connected',
         messages:
-            'sig, &[peer+height], &[channel+round+peer], &[channel+arrived]',
+            'sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+arrived]',
         missing: 'sig',
         state: '[channel+tag+round]',
         network: 'id',

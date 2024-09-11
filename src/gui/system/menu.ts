@@ -1,5 +1,6 @@
 import application from 'socket:application';
 import process from 'socket:process';
+import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
 
 const isMobile = ['android', 'ios'].includes(process.platform);
@@ -114,10 +115,9 @@ const menu: Menu[] = [
                 shortcut: '',
                 handler: async () => {
                     hardReset()
+                        .then(() => sleep(1000))
                         .then(() => window.location.reload())
-                        .catch((err) =>
-                            console.error(`hard-reset-fail: ${err}`),
-                        );
+                        .catch((err) => alert(`hard-reset-fail: ${err}`));
                 },
             },
         ],

@@ -2,7 +2,8 @@ import Dexie from 'dexie';
 import database, { DB, SerializedState, StateTag } from './db';
 import { GameModule, PlayerData, load } from './game';
 import { IncrementalCache } from './lru';
-import { MessageType } from './messages';
+import { InputMessage, MessageType } from './messages';
+import { SequencerMode } from './sequencer';
 
 export type State = {
     t: number;
@@ -25,6 +26,8 @@ export interface SimulationConfig {
     rate: number;
     inputBuffer?: number;
     idleTimeout?: number;
+    mode: SequencerMode;
+    peerId: string;
 }
 
 export class Simulation {
@@ -34,6 +37,8 @@ export class Simulation {
     private idleTimeoutRounds: number;
     private stateCache: IncrementalCache<number, SerializedState>;
     private stateBuffer = 100;
+    private mode: SequencerMode;
+    private peerId: string;
     private db: DB;
     cueing = false;
 
@@ -43,8 +48,12 @@ export class Simulation {
         channelId,
         rate,
         idleTimeout,
+        mode,
+        peerId,
         // inputBuffer,
     }: SimulationConfig) {
+        this.peerId = peerId;
+        this.mode = mode;
         this.mod = load(src);
         this.channelId = channelId;
         this.db = database.open(dbname);
@@ -198,6 +207,31 @@ export class Simulation {
     }
 
     private async getCurrentRoundLimit(): Promise<number> {
+        if (this.mode === SequencerMode.WALLCLOCK) {
+            return await this.getCurrentRoundLimitFromTime();
+        } else if (this.mode === SequencerMode.CORDIAL) {
+            return await this.getCurrentRoundLimitFromMessages();
+        } else {
+            throw new Error('unknown sequencer mode');
+        }
+    }
+
+    private async getCurrentRoundLimitFromMessages(): Promise<number> {
+        const ourPeerId = Buffer.from(this.peerId, 'hex');
+        const ourLatest = (await this.db.messages
+            .where(['channel', 'peer', 'round'])
+            .between(
+                [this.channelId, ourPeerId, Dexie.minKey],
+                [this.channelId, ourPeerId, Dexie.maxKey],
+            )
+            .last()) as InputMessage | undefined;
+        if (!ourLatest) {
+            return 1;
+        }
+        return ourLatest.round - 3; // FIXME: how can we be smart about the offset
+    }
+
+    private async getCurrentRoundLimitFromTime(): Promise<number> {
         // find the latest round we have a message for
         const m = await this.db.messages
             .where(['channel', 'round', 'peer'])
@@ -210,10 +244,6 @@ export class Simulation {
             m && m.type === MessageType.INPUT ? m.round : 0;
         // the max round we can process is idle timeout rounds ahead of the latest known round
         return latestKnownRound + this.idleTimeoutRounds;
-    }
-
-    now(): number {
-        return Math.floor(Date.now() / this.fixedUpdateRate);
     }
 
     async rate(): Promise<number> {
@@ -303,8 +333,6 @@ export class Simulation {
                 input: m.type == MessageType.INPUT ? m.data : 0,
             });
         }
-        // play the messages on top of the state
-        let state = rollbackState.state;
         // push in the emulated tick for toRound if no messages
         if (prevRound < toRound) {
             roundInputs.push({
@@ -315,6 +343,8 @@ export class Simulation {
                 fake: true,
             });
         }
+        // apply the messages on top of the state
+        let state = rollbackState.state;
         const checkpoints: SerializedState[] = [];
         for (const round of roundInputs) {
             state = await this.apply(state, round);
@@ -328,7 +358,7 @@ export class Simulation {
                     state,
                 };
                 // invalidate all states from this point forward
-                // TODO: we don't reall need to do this in a loop, the first one clears them all
+                // TODO: we don't need to do this in a loop, the first one clears them all
                 await this.db.state
                     .where(['channel', 'tag', 'round'])
                     .between(
@@ -343,7 +373,7 @@ export class Simulation {
                 this.stateCache.set(checkpoint.round, checkpoint);
             }
         }
-        // update the last processed cursors
+        // write any state checkpoints to the db
         if (checkpoints.length > 0) {
             console.log(
                 `CHECKPOINT

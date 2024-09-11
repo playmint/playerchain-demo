@@ -26,12 +26,21 @@ export async function init(userConfig: ClientUserConfig) {
             limitExempt: true,
         },
     };
-    client = await Client.from(cfg);
+    // client = await Client.from(cfg);
+
+    client = new Client(cfg);
+    if (client._ready) {
+        await client._ready;
+        client._ready = null;
+    }
     globalThis.client = client; // for debugging
 }
 
-export async function commit(msg: UnsignedMessage): Promise<Message> {
-    return client!.commit(msg);
+export async function commit(
+    msg: UnsignedMessage,
+    ackIds?: Uint8Array[] | null,
+): Promise<Message> {
+    return client!.commit(msg, ackIds);
 }
 
 export async function createChannel(name: string) {
