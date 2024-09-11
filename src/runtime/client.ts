@@ -67,7 +67,7 @@ export class Client {
     });
     recentlyProcessedMessage = new LRUCache<string, boolean>({
         max: 500,
-        ttl: 1000 * 60 * 5,
+        ttl: 1000 * 60,
     });
     recentlyRequestedMessage = new LRUCache<string, boolean>({
         max: 10,
@@ -269,9 +269,9 @@ export class Client {
         this.height = signed.height + 1;
         const msgs = [signed];
         // include the parent too for good measure, double the bandwidth, double the fun
-        // if (this.parent) {
-        //     msgs.push(this.parent);
-        // }
+        if (this.parent) {
+            msgs.unshift(this.parent);
+        }
         this.parent = signed;
         acks.forEach((ack) => {
             this.recentlyAckedMessage.set(
@@ -286,7 +286,7 @@ export class Client {
                     msgs,
                 },
                 {
-                    ttl: 300,
+                    ttl: 1000,
                 },
             );
         }
@@ -327,9 +327,16 @@ export class Client {
     }
 
     async hash(msg: PresignedMessage): Promise<Uint8Array> {
-        const values = Object.keys(msg)
-            .sort()
-            .map((k) => msg[k]);
+        const values = [
+            msg.peer,
+            msg.parent,
+            msg.height,
+            msg.type,
+            msg.acks,
+            (msg as any).data || 0,
+            (msg as any).round || 0,
+            (msg as any).channel || 0,
+        ];
         const data = JSON.stringify(values);
         // FIXME: is "BYTES_MIN" enough?
         return sodium.crypto_generichash(
@@ -366,13 +373,12 @@ export class Client {
 
     onMessage = async (msg: Message): Promise<void> => {
         // ignore messages we have seen recently
-        // const msgId = Buffer.from(msg.sig).toString('hex');
-        // const seen = this.recentlyProcessedMessage.get(msgId);
-        // if (seen) {
-        //     console.log('drop-message-recently-seen', msgId.slice(0, 8));
-        //     return;
-        // }
-        // this.recentlyProcessedMessage.set(msgId, true);
+        const msgId = Buffer.from(msg.sig).toString('hex');
+        const seen = this.recentlyProcessedMessage.get(msgId);
+        if (seen) {
+            // this.debug('drop-message-recently-seen', msgId.slice(0, 8));
+            return;
+        }
         // ignore own messages, assume we can take care of those
         if (Buffer.from(msg.peer).toString('hex') === this.peerId) {
             return;
@@ -395,58 +401,8 @@ export class Client {
                 ...msg,
                 arrived: await this.nextSequenceNumber(),
             });
-            // rebroadcast this with jitter since it's new to us
-            // this is bandwidth inefficient, but it helps those with patchy connections
-            // setTimeout(
-            //     () => {
-            //         for (const [_, ch] of this.channels) {
-            //             ch.send(
-            //                 {
-            //                     type: PacketType.MESSAGE,
-            //                     msgs: [msg],
-            //                 },
-            //                 {
-            //                     ttl: 300,
-            //                 },
-            //             );
-            //         }
-            //     },
-            //     Math.floor(Math.random() * 25) + 25,
-            // );
+            this.recentlyProcessedMessage.set(msgId, true);
         }
-
-        // update or write a peer entry for this peer
-        // const peerId = Buffer.from(msg.peer).toString('hex');
-        // let peer = this.peers.get(peerId);
-        // if (!peer) {
-        //     let info = await this.db.peers.get(peerId);
-        //     if (!info) {
-        //         info = {
-        //             peerId,
-        //             lastSeen: -1,
-        //             validHeight: -1,
-        //             knownHeight: msg.height,
-        //             channels: [],
-        //             connected: false,
-        //             proxy: null,
-        //             online: false,
-        //             sees:
-        //         };
-        //         await this.db.peers.put(info);
-        //     }
-        //     peer = new Peer({
-        //         pk: msg.peer,
-        //         sockets: new Map(),
-        //         channels: new Map(),
-        //         client: this,
-        //         validHeight: info.validHeight,
-        //         knownHeight: info.knownHeight,
-        //         lastSeen: info.lastSeen,
-        //         onPacket: this.onPacket,
-        //         Buffer: Buffer,
-        //     });
-        //     this.peers.set(peerId, peer);
-        // }
 
         // do we have this message's parent?
         const parentSig = msg.parent;
@@ -459,13 +415,15 @@ export class Client {
                     (async () => {
                         for (;;) {
                             try {
-                                await this.requestMissingParent(msg);
-                                await sleep(100);
                                 const parent =
                                     await this.db.messages.get(parentSig);
                                 if (parent) {
+                                    this.debug('AGRESSIVE-REQ-MISSING-FOUND');
                                     return;
                                 }
+                                this.debug('AGRESSIVE-REQ-MISSING-TRY');
+                                await this.requestMissingParent(msg);
+                                await sleep(90);
                             } catch (err) {
                                 console.error('mark-missing-loop-err', err);
                                 await sleep(1000);
@@ -474,7 +432,7 @@ export class Client {
                     })().catch((err) =>
                         console.error('mark-missing-parent-err', err),
                     );
-                }, 0);
+                }, 5);
             }
         }
 
@@ -518,35 +476,17 @@ export class Client {
         if (this.recentlyRequestedMessage.has(parentId)) {
             return;
         }
+        this.debug(
+            `req-missing asking=everyone missing=${parentId.slice(0, 8)}`,
+        );
         this.recentlyRequestedMessage.set(parentId, true);
-        // if this one is missing, then there are probably more
-        // check if there is a big gap after this one
-        const nextKnownMessage = await this.db.messages
-            .where(['peer', 'height'])
-            .between([child.peer, Dexie.minKey], [child.peer, child.height])
-            .last();
-        const missingHeight = child.height;
-        const missingCount = nextKnownMessage
-            ? child.height - nextKnownMessage.height
-            : child.height;
-        const peerId = Buffer.from(child.peer).toString('hex');
-        try {
-            this.debug(
-                `req-missing asking=everyone missingpeer=${peerId.slice(0, 8)} missingheight=${missingHeight} count=${missingCount}`,
-            );
-            await this.rpc({
-                name: 'requestMessagesByHeight',
-                timestamp: Date.now(),
-                args: {
-                    peerId: this.peerId,
-                    fromHeight: missingHeight - missingCount,
-                    toHeight: missingHeight,
-                },
-            });
-            return;
-        } catch (err) {
-            console.error(`req-missing-err asking=everyone err=${err}`);
-        }
+        await this.rpc({
+            name: 'requestMessagesBySig',
+            timestamp: Date.now(),
+            args: {
+                sig: child.parent,
+            },
+        });
     }
 
     // this is used to tag the order messages are received in
@@ -646,7 +586,7 @@ export class Client {
                     type: PacketType.MESSAGE,
                     msgs: heads,
                 },
-                { ttl: 10000 },
+                { ttl: 1000 },
             );
         }
         this.debug(`emit-peer-heads count=${heads.length}`);
@@ -679,6 +619,7 @@ export class Client {
                     ttl: 1000,
                 },
             );
+            this.debug('keep-alive');
             // send channel join
             if (ch.socket) {
                 ch.socket.join();
@@ -730,9 +671,13 @@ export class Client {
                         .last();
                     if (setPeers && setPeers.type === MessageType.SET_PEERS) {
                         await this.onSetPeers(setPeers);
+                    } else {
+                        this.debug('no-set-peers', ch.id);
                     }
                 }
                 // check we have the peer set
+            } else {
+                this.debug('NO CHANNEL FOR ID', ch.id);
             }
         }
     }
@@ -826,11 +771,10 @@ export class Client {
     }
 
     private rpc = async (
-        req: Omit<Omit<SocketRPCRequest, 'id'>, 'sender'>,
+        req: Omit<SocketRPCRequest, 'sender'>,
     ): Promise<any> => {
         const r: SocketRPCGetMessagesByHeight = {
             ...req,
-            id: 'x',
             sender: this.peerId,
         };
         for (const [_, ch] of this.channels) {
@@ -839,19 +783,13 @@ export class Client {
                     ttl: 1000,
                 })
                 .catch((err) => {
-                    console.log('rpc-err', err);
+                    this.debug('rpc-err', err);
                 });
         }
     };
 
     private onRPCRequest = bufferedCall(async (b: Uint8Array) => {
         const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
-        if (!req.id) {
-            return;
-        }
-        if (!req.sender) {
-            return;
-        }
         if (req.sender === this.peerId) {
             // don't answer own requests!
             return;
@@ -871,48 +809,40 @@ export class Client {
         if (!handler) {
             return;
         }
-        console.log('GOT RPC REQUEST FROM', req.sender);
         await handler(req.args as any);
     }, 5);
 
     private getRequestHandler = (name: SocketRPCRequest['name']) => {
         switch (name) {
-            case 'requestMessagesByHeight':
-                return this.requestMessagesByHeight;
+            case 'requestMessagesBySig':
+                return this.requestMessagesBySig;
             default:
                 return null;
         }
     };
 
-    private requestMessagesByHeight = async ({
-        fromHeight,
-        toHeight,
+    private requestMessagesBySig = async ({
+        sig,
     }: {
-        peerId: string;
-        fromHeight: number;
-        toHeight: number;
+        sig: Uint8Array;
     }): Promise<number> => {
-        // const peer = this.peers.get(peerId);
-        // if (!peer) {
-        //     throw new Error(`unknown-peer ${peerId}`);
-        // }
-        const msgs = await this.db.messages
-            .where(['peer', 'height'])
-            .between([this.id, fromHeight], [this.id, toHeight + 1])
-            .limit(10)
-            .toArray();
-        for (const msg of msgs) {
-            for (const [_, ch] of this.channels) {
-                ch.send(
-                    {
-                        type: PacketType.MESSAGE,
-                        msgs: [msg],
-                    },
-                    { ttl: 500 },
-                );
-            }
+        const msg = await this.db.messages.get(sig);
+        if (!msg) {
+            return 0;
         }
-        return msgs.length;
+        this.debug(
+            `res-missing sent=${Buffer.from(msg.sig).toString('hex').slice(0, 8)}`,
+        );
+        for (const [_, ch] of this.channels) {
+            ch.send(
+                {
+                    type: PacketType.MESSAGE,
+                    msgs: [msg],
+                },
+                { ttl: 1000 },
+            );
+        }
+        return 1;
     };
 
     // call this if you never want to use this instance again

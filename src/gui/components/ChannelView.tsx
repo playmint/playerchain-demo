@@ -6,10 +6,14 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
+import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
 import { Operation, TerminalStyle, TerminalView } from './Terminal';
+
+const FIXED_UPDATE_RATE = 50;
+const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export function ChannelView({
     channelId,
@@ -53,6 +57,19 @@ export function ChannelView({
             .catch((err) => console.error('togglemutederr', err));
     }, [db, muted]);
 
+    // get channel data
+
+    const channel = useLiveQuery(
+        async (): Promise<ChannelInfo | null | undefined> =>
+            db.channels.get(channelId),
+        [channelId],
+    );
+    const channelPeers = useMemo(
+        () => channel?.peers || [],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [(channel?.peers || []).join('|')],
+    );
+
     // peer info
 
     const allPeers = useLiveQuery(() => db.peers.toArray(), [], []);
@@ -85,14 +102,6 @@ export function ChannelView({
     //     0,
     // );
 
-    // get channel data
-
-    const channel = useLiveQuery(
-        async (): Promise<ChannelInfo | null | undefined> =>
-            db.channels.get(channelId),
-        [channelId],
-    );
-
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const readyPeers = useMemo(() => {
@@ -111,9 +120,11 @@ export function ChannelView({
             if (!alive) {
                 return acc;
             }
-            return info.sees.length === channel.peers.length - 1
-                ? acc + 1
-                : acc;
+            const seesChannelPeers = channel.peers.every(
+                (channelPeerId) =>
+                    channelPeerId === pid || info.sees.includes(channelPeerId),
+            );
+            return seesChannelPeers ? acc + 1 : acc;
         }, 0);
     }, [channel, peerId, peers]);
 
@@ -277,11 +288,19 @@ export function ChannelView({
                         style={{ height: '50vh' }}
                     />
                 ) : (
-                    <Renderer
-                        key={channel.id}
+                    <SimulationProvider
+                        src={src}
+                        rate={FIXED_UPDATE_RATE}
                         channelId={channel.id}
-                        channelPeerIds={channel.peers}
-                    />
+                        peerId={peerId}
+                        channelPeerIds={channelPeers}
+                    >
+                        <Renderer
+                            key={channel.id}
+                            channelId={channel.id}
+                            channelPeerIds={channelPeers}
+                        />
+                    </SimulationProvider>
                 )}
                 <div
                     style={{

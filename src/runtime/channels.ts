@@ -156,7 +156,7 @@ export class Channel {
                 const peerId = Buffer.from(p.peer).toString('hex');
                 const prev = this.alivePeerIds.get(peerId);
                 if (prev && p.timestamp < prev.timestamp) {
-                    console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
+                    // console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
                     return;
                 }
                 // console.log('UPDATE ALIVE PEER', peerId);
@@ -166,6 +166,9 @@ export class Channel {
                         lastSeen: p.timestamp,
                         playerName: p.playerName,
                         sees: p.sees.map((s) => Buffer.from(s).toString('hex')),
+                    })
+                    .then(() => {
+                        console.log('updated-peer:', peerId, p.timestamp);
                     })
                     .catch((err) => {
                         console.error('update-peer-err:', err);

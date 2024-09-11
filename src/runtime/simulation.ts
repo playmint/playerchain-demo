@@ -28,6 +28,7 @@ export interface SimulationConfig {
     idleTimeout?: number;
     mode: SequencerMode;
     peerId: string;
+    channelPeerIds: string[];
 }
 
 export class Simulation {
@@ -39,6 +40,7 @@ export class Simulation {
     private stateBuffer = 100;
     private mode: SequencerMode;
     private peerId: string;
+    private channelPeerIds: string[];
     private db: DB;
     cueing = false;
 
@@ -50,9 +52,11 @@ export class Simulation {
         idleTimeout,
         mode,
         peerId,
+        channelPeerIds,
         // inputBuffer,
     }: SimulationConfig) {
         this.peerId = peerId;
+        this.channelPeerIds = channelPeerIds;
         this.mode = mode;
         this.mod = load(src);
         this.channelId = channelId;
@@ -169,6 +173,14 @@ export class Simulation {
             )
             .each((m) => {
                 if (m.type !== MessageType.INPUT) {
+                    return;
+                }
+                if (
+                    !this.channelPeerIds.includes(
+                        Buffer.from(m.peer).toString('hex'),
+                    )
+                ) {
+                    // ignore messages from peers not accepted in the set
                     return;
                 }
                 if (m.round <= startFromRound) {
@@ -294,6 +306,11 @@ export class Simulation {
                 .toArray()
         )
             .filter((m) => m.type === MessageType.INPUT)
+            .filter((m) =>
+                this.channelPeerIds.includes(
+                    Buffer.from(m.peer).toString('hex'),
+                ),
+            )
             .sort((a, b) => {
                 return a.round - b.round;
             });

@@ -1,16 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
-import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import { ChannelBoot } from './ChannelBoot';
 import { ChannelView } from './ChannelView';
 import StatusBar from './StatusBar';
-
-const FIXED_UPDATE_RATE = 50;
-const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 function fallbackRender({ error }) {
     return (
@@ -22,7 +17,6 @@ function fallbackRender({ error }) {
 }
 
 export function Layout() {
-    const { peerId } = useCredentials();
     const db = useDatabase();
     const [channelPanelOpen, setChannelPanelOpen] = useState(true);
 
@@ -102,17 +96,10 @@ export function Layout() {
             >
                 <ErrorBoundary fallbackRender={fallbackRender}>
                     {channel ? (
-                        <SimulationProvider
-                            src={src}
-                            rate={FIXED_UPDATE_RATE}
+                        <ChannelView
+                            details={channelPanelOpen}
                             channelId={channel.id}
-                            peerId={peerId}
-                        >
-                            <ChannelView
-                                details={channelPanelOpen}
-                                channelId={channel.id}
-                            />
-                        </SimulationProvider>
+                        />
                     ) : (
                         <ChannelBoot />
                     )}

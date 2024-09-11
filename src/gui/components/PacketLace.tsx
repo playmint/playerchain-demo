@@ -244,7 +244,7 @@ export const PacketLace = memo(function PacketLace({
                 .finally(() => {
                     fetching = false;
                 });
-        }, 2000);
+        }, 500);
         return () => {
             clearInterval(timer);
         };

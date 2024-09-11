@@ -64,7 +64,7 @@ export async function createSocketCluster({
         clusterId: info.clusterId,
         keepalive: info.keepalive,
         signingKeys: keys,
-        // worker: false,
+        worker: false,
         ...ports,
         ...(config || {}),
         // config: config
@@ -321,14 +321,11 @@ export type SocketCluster = Omit<EventEmitter, 'emit'> & {
 export type SocketClusterConstructor = (cfg: any) => Promise<SocketCluster>;
 
 export type SocketRPCGetMessagesByHeight = {
-    id: string;
-    name: 'requestMessagesByHeight';
-    sender: string;
+    name: 'requestMessagesBySig';
     timestamp: number;
+    sender: string;
     args: {
-        peerId: string;
-        fromHeight: number;
-        toHeight: number;
+        sig: Uint8Array;
     };
 };
 

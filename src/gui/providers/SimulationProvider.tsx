@@ -14,8 +14,10 @@ export default memo(function SimulationProvider({
     rate,
     children,
     peerId,
+    channelPeerIds,
 }: {
     peerId: string;
+    channelPeerIds: string[];
     channelId: string;
     src: string;
     rate: number;
@@ -55,6 +57,7 @@ export default memo(function SimulationProvider({
                 rate,
                 peerId,
                 mode: SequencerMode.CORDIAL,
+                channelPeerIds,
             });
             await s.init();
             defer(async () => {
@@ -64,7 +67,7 @@ export default memo(function SimulationProvider({
 
             return s;
         },
-        [src, rate, dbname, keys, channelId],
+        [src, rate, dbname, keys, channelId, channelPeerIds.join('|')],
     );
 
     const mod = useAsyncMemo(async () => load(src), [src]);
