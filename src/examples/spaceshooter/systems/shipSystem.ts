@@ -15,6 +15,7 @@ export const SHIP_MAX_VELOCITY = 80;
 
 export default system<ShooterSchema>(
     ({
+        t,
         rotation,
         players,
         addEntity,
@@ -27,6 +28,7 @@ export default system<ShooterSchema>(
         entity,
         velocity,
         deltaTime,
+        startTimer,
     }) => {
         // create a ship entity for each player
         for (const player of players) {
@@ -64,7 +66,7 @@ export default system<ShooterSchema>(
                 });
             }
 
-            if (entity.active[player.ship]) {
+            if (entity.active[player.ship] && (startTimer[player.ship] != 0 && startTimer[player.ship] < t)) {
                 // calc thurst for input
                 const thrust = hasInput(player.input, Input.Forward)
                     ? SHIP_THRUST_RATE

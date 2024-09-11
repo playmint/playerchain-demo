@@ -1,8 +1,11 @@
 import { memo } from 'react';
-import { PlayerData } from '../../../runtime/ecs';
+import { EntityId, PlayerData, World } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
+import Countdown from './Countdown';
+import React from 'react';
+import { WorldRef } from './ShooterRenderer';
 
 export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
     id: string;
@@ -13,9 +16,15 @@ export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
 export default memo(function PlayerHUD({
     peerId,
     players,
+    tick,
+    entities,
+    worldRef,
 }: {
     players: PlayerInfo[];
     peerId: string;
+    tick: number;
+    entities: EntityId[];
+    worldRef: WorldRef;
 }) {
     const player = players.find((p) => p.id === peerId);
     if (!player) {
@@ -37,6 +46,11 @@ export default memo(function PlayerHUD({
         >
             <div></div>
             <div style={{ flexGrow: 1 }}></div>
+            <div style={{
+                        flexGrow: 1,
+                        marginRight: '1rem',
+                        marginLeft: '1rem',
+                    }}><Countdown currentTick={tick} entities={entities} worldRef={worldRef}/></div>
             <div
                 style={{
                     display: 'flex',
