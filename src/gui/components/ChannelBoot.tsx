@@ -62,7 +62,7 @@ export function ChannelBoot() {
                                 reject('network info not found');
                                 return;
                             }
-                            const { peerId, natType } = net;
+                            const { peerId, natName } = net;
                             resolve(
                                 <>
                                     <p>
@@ -74,7 +74,7 @@ export function ChannelBoot() {
                                     <p>
                                         natType:{' '}
                                         <span style={{ color: 'white' }}>
-                                            {natType}
+                                            {natName}
                                         </span>
                                     </p>
                                     <br />
