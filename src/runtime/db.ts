@@ -26,6 +26,7 @@ export interface PeerInfo {
     channels: string[];
     proxy: boolean | null; // if true, then messages are bouncing off someone else
     sees: string[]; // list of peers this peer has told us it knows about
+    playerName: string;
 }
 
 export enum SearchStatus {

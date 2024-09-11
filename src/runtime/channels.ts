@@ -164,6 +164,7 @@ export class Channel {
                 this.client.db.peers
                     .update(peerId, {
                         lastSeen: p.timestamp,
+                        playerName: p.playerName,
                         sees: p.sees.map((s) => Buffer.from(s).toString('hex')),
                     })
                     .catch((err) => {

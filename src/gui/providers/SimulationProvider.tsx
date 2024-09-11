@@ -3,6 +3,7 @@ import React, { memo, useMemo } from 'react';
 import { load } from '../../runtime/game';
 import { SequencerMode } from '../../runtime/sequencer';
 import { Simulation } from '../../runtime/simulation';
+import { TerminalStyle } from '../components/Terminal';
 import { useAsyncMemo } from '../hooks/use-async';
 import { useCredentials } from '../hooks/use-credentials';
 import { SimulationContext } from '../hooks/use-simulation';
@@ -73,11 +74,11 @@ export default memo(function SimulationProvider({
     }, [sim, rate, mod]);
 
     if (!sim) {
-        return <div>Loading simulation...</div>;
+        return <div style={TerminalStyle}>Loading simulation...</div>;
     }
 
     if (!mod) {
-        return <div>Loading module...</div>;
+        return <div style={TerminalStyle}>Loading module...</div>;
     }
 
     return (

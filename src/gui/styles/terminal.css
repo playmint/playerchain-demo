@@ -1,0 +1,26 @@
+.carat {
+    animation: fadeInOut 1s infinite;
+
+    position: relative;
+    display: inline-block;
+    height: 100%;
+}
+
+.carat > .inner {
+    background-color: orange;
+
+    position: absolute;
+    top: 0px;
+    left: 1px;
+    width: 0.4em;
+    height: 100%;
+}
+
+.errorText {
+    color: rgb(221, 37, 185);
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
