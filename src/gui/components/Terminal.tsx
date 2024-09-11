@@ -342,7 +342,8 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
                                             {currentChoice == index - 1 ? (
                                                 '> '
                                             ) : (
-                                                <span>&nbsp;&nbsp;</span>
+                                                <span>. </span>
+                                                // &nbsp;&nbsp; was failing with embedded font
                                             )}
                                             {t}
                                         </div>

@@ -93,10 +93,6 @@ export function ChannelView({
         [channelId],
     );
 
-    if (!channel) {
-        return <div>failed to load channel data</div>;
-    }
-
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const readyPeers = useMemo(() => {
@@ -120,6 +116,10 @@ export function ChannelView({
                 : acc;
         }, 0);
     }, [channel, peerId, peers]);
+
+    if (!channel) {
+        return <div>failed to load channel data</div>;
+    }
 
     const required = channel.peers.length == 2 ? 2 : channel.peers.length / 2;
     const majorityReady = readyPeers >= required;
