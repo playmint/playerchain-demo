@@ -9,6 +9,7 @@ import {
     PostSignMessageProps,
 } from '../../runtime/messages';
 import { useDatabase } from '../hooks/use-database';
+import { usePacketLace } from '../hooks/use-packetlace';
 
 const PACKET_SCALE = 0.1;
 const SPREAD_X = 5;
@@ -207,10 +208,14 @@ export const PacketLace = memo(function PacketLace({
     peers: string[];
 }) {
     const [data, setData] = useState<any>(null);
+    const packetLace = usePacketLace();
 
     const db = useDatabase();
 
     useEffect(() => {
+        if (!packetLace) {
+            return;
+        }
         let fetching = false;
         const timer = setInterval(() => {
             if (fetching) {
@@ -218,37 +223,24 @@ export const PacketLace = memo(function PacketLace({
                 return;
             }
             fetching = true;
-            db.messages
-                .where(['channel', 'round'])
-                .between([channelId, Dexie.minKey], [channelId, Dexie.maxKey])
-                .reverse()
-                .limit(64)
-                .toArray()
-                .then((messages) => {
-                    const minRound = Math.min(
-                        ...messages.map((msg: any) => msg.round),
-                    );
-                    const maxRound = Math.max(
-                        ...messages.map((msg: any) => msg.round),
-                    );
-                    const messagesWithOffsetRound = messages.map(
-                        (msg: any) => ({
-                            ...msg,
-                            round: msg.round - minRound,
-                        }),
-                    );
-                    return { minRound, maxRound, messagesWithOffsetRound };
-                })
+            console.time('lace-fetch');
+
+            console.time('worker-fetch');
+
+            packetLace
+                .fetchPackets(channelId, 2500)
                 .then(setData)
-                .catch((err) => console.error('lace-fetch-err', err))
+                .catch((err) => console.error('fetchPackets-err', err))
                 .finally(() => {
+                    console.timeEnd('worker-fetch');
                     fetching = false;
                 });
-        }, 1000);
+        }, 1100);
         return () => {
             clearInterval(timer);
+            console.timeEnd('lace-fetch');
         };
-    }, [channelId, db]);
+    }, [channelId, db, packetLace]);
 
     if (!data) {
         return;
