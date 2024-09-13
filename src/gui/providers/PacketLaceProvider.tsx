@@ -23,7 +23,7 @@ export const PackerLaceProvider = ({
                 return;
             }
             const w = new Worker(
-                new URL('../workers/packetlace.worker.ts', import.meta.url),
+                new URL('../workers/packetlace.worker.tsx', import.meta.url),
                 {
                     type: 'module',
                     /* @vite-ignore */

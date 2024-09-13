@@ -224,7 +224,17 @@ export const PacketLace = memo(function PacketLace({
             return;
         }
 
-        console.log('main: setting offscreen canvas');
+        const canvas = canvasRef.current;
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+
+        console.log(
+            'main: setting offscreen canvas: ',
+            canvas.width,
+            canvas.height,
+            canvas.clientWidth,
+            canvas.clientHeight,
+        );
         const offscreen = canvasRef.current.transferControlToOffscreen();
         packetLace
             .setCanvas(Comlink.transfer(offscreen, [offscreen]))
@@ -244,7 +254,6 @@ export const PacketLace = memo(function PacketLace({
                 return;
             }
             fetching = true;
-            console.time('lace-fetch');
 
             console.time('worker-fetch');
 
@@ -259,7 +268,7 @@ export const PacketLace = memo(function PacketLace({
         }, 1100);
         return () => {
             clearInterval(timer);
-            console.timeEnd('lace-fetch');
+            console.timeEnd('worker-fetch');
         };
     }, [channelId, db, packetLace]);
 
@@ -283,7 +292,10 @@ export const PacketLace = memo(function PacketLace({
                     // setHoveredMessage={setHoveredMessage}
                 />
             </Canvas> */}
-            <canvas ref={canvasRef} />
+            <canvas
+                ref={canvasRef}
+                style={{ position: 'relative', width: '100%', height: '100%' }}
+            />
         </div>
     );
 });
