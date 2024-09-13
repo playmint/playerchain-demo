@@ -11,9 +11,11 @@ import { useSimulation } from '../hooks/use-simulation';
 export default memo(function Renderer({
     channelId,
     channelPeerIds,
+    interlace,
 }: {
     channelId: string;
     channelPeerIds: string[];
+    interlace: number;
 }) {
     const db = useDatabase();
     const { peerId } = useCredentials();
@@ -53,11 +55,12 @@ export default memo(function Renderer({
             mod,
             committer: {
                 commit: async (...args) => client.commit(...args),
+                send: async (...args) => client.send(...args),
             },
             channelId,
             rate,
             mode: SequencerMode.CORDIAL,
-            interlace: 6,
+            interlace,
             channelPeerIds,
             peerId,
             db,
@@ -68,7 +71,7 @@ export default memo(function Renderer({
             seq.destroy();
             console.log('stopping sequencer');
         };
-    }, [client, channelId, rate, mod, peerId, db, channelPeerIds]);
+    }, [client, channelId, rate, mod, peerId, db, channelPeerIds, interlace]);
 
     // configure event handlers
     useEffect(() => {

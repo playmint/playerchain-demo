@@ -1,3 +1,5 @@
+import Dexie from 'dexie';
+
 export type AsyncFunction = (...args: any[]) => Promise<any>;
 export type CancelFunction = () => void;
 
@@ -126,8 +128,19 @@ export function peerIdTo64bitBigNum(peerId: string): bigint {
 // wipe all the state
 export async function hardReset() {
     localStorage.clear();
-    const dbs = await window.indexedDB.databases();
-    await Promise.all(
-        dbs.map((db: any) => window.indexedDB.deleteDatabase(db.name)),
-    );
+    const names = await Dexie.getDatabaseNames();
+    console.log('database names: ', names);
+    names.forEach(function (name) {
+        const db = new Dexie(name);
+        db.delete()
+            .then(function () {
+                console.log('Database successfully deleted: ', name);
+            })
+            .catch(function (err) {
+                console.error('Could not delete database: ', name, err);
+            })
+            .finally(function () {
+                console.log('Done. Now executing callback if passed.');
+            });
+    });
 }

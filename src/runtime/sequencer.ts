@@ -5,10 +5,12 @@ import type { Client } from './client';
 import { DB } from './db';
 import { GameModule } from './game';
 import { InputMessage, Message, MessageType } from './messages';
+import { PacketType } from './transport';
 import { CancelFunction, setPeriodic } from './utils';
 
 export interface Committer {
     commit: Client['commit'];
+    send: Client['send'];
 }
 
 export enum SequencerMode {
@@ -28,6 +30,8 @@ export interface SequencerConfig {
     mode: SequencerMode;
     interlace: number;
 }
+
+const MIN_SEQUENCE_RATE = 25;
 
 // the current input
 export class Sequencer {
@@ -68,10 +72,18 @@ export class Sequencer {
         this.channelId = channelId;
         this.channelPeerIds = channelPeerIds;
         this.fixedUpdateRate = rate;
+        if (
+            this.mode === SequencerMode.CORDIAL &&
+            this.fixedUpdateRate < MIN_SEQUENCE_RATE
+        ) {
+            throw new Error(
+                `fixedUpdatedRate must be greater than ${MIN_SEQUENCE_RATE}`,
+            );
+        }
         this.loopInterval =
             this.mode === SequencerMode.WALLCLOCK
                 ? this.fixedUpdateRate
-                : this.fixedUpdateRate - 25; // shoudl be faster?
+                : MIN_SEQUENCE_RATE;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 1; // 1s warmup
     }
 
@@ -108,6 +120,18 @@ export class Sequencer {
         // can we write a block?
         const [canWrite, ackIds] = await this.canWriteInputBlock(input, round);
         if (!canWrite) {
+            if (this.prev) {
+                // resend the prev message again
+                this.committer.send(
+                    {
+                        type: PacketType.MESSAGE,
+                        msgs: [this.prev],
+                    },
+                    {
+                        ttl: 200,
+                    },
+                );
+            }
             return;
         }
         // console.log('writing-input-block', round, input);
@@ -197,31 +221,35 @@ export class Sequencer {
         // unless we are lagging behind
         if (Date.now() - this.lastCommitted < this.fixedUpdateRate) {
             const latestKnownRound = await this.getLatestKnownRound();
-            const weAreLagging = round - latestKnownRound < 0;
+            const weAreLagging = round < latestKnownRound;
             if (weAreLagging) {
                 console.log('ALLOW FASTFORWARD');
             } else {
                 // console.log(
-                //     `BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound}`,
+                //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound}`,
                 // );
                 return [false, null];
             }
         }
         // we can write the block if we have seen enough blocks from the previous round
-        const prevInterlaceRoundMessageCount = await this.db.messages
-            .where(['channel', 'round', 'peer'])
-            .between(
-                [this.channelId, round - this.interlace, Dexie.minKey],
-                [this.channelId, round - this.interlace, Dexie.maxKey],
-            )
-            .count();
-        const requiredCount = this.channelPeerIds.length;
-        if (prevInterlaceRoundMessageCount < requiredCount) {
-            // console.log(
-            //     `BLOCKED CORDIAL round=${round} waiton=${round - this.interlace} got=${prevInterlaceRoundMessageCount} need=${requiredCount}`,
-            // );
-            return [false, null];
-        }
+        // FIXME: this is currently in lockstep
+        const requiredCount =
+            this.channelPeerIds.length > 2
+                ? this.channelPeerIds.length - 1 // maybe 2
+                : this.channelPeerIds.length - 1;
+        // const prevInterlaceRoundMessageCount = await this.db.messages
+        //     .where(['channel', 'round', 'peer'])
+        //     .between(
+        //         [this.channelId, round - this.interlace, Dexie.minKey],
+        //         [this.channelId, round - this.interlace, Dexie.maxKey],
+        //     )
+        //     .count();
+        // if (prevInterlaceRoundMessageCount < requiredCount) {
+        //     console.log(
+        //         `BLOCKED CORDIAL round=${round} waiton=${round - this.interlace} got=${prevInterlaceRoundMessageCount} need=${requiredCount}`,
+        //     );
+        //     return [false, null];
+        // }
         // fetch all the messages we have from round - interlace to ack
         const ackIds = (
             await this.db.messages
@@ -235,10 +263,10 @@ export class Sequencer {
             .filter((m) => Buffer.from(m.peer).toString('hex') !== this.peerId)
             .map((m) => m.sig);
         // we can't write a block if we do not have enough acks
-        if (ackIds.length < requiredCount - 1) {
-            console.log(
-                `BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
-            );
+        if (ackIds.length < requiredCount) {
+            // console.log(
+            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
+            // );
             return [false, null];
         }
         return [true, ackIds];

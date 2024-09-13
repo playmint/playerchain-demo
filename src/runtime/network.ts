@@ -1,7 +1,7 @@
 import type EventEmitter from 'socket:events';
-import { NAT } from 'socket:latica';
 import { NETWORK_ID } from './config';
 import { DB, NetworkInfo } from './db';
+import * as NAT from './network/nat';
 
 export type Ports = {
     port?: number;
@@ -64,7 +64,7 @@ export async function createSocketCluster({
         clusterId: info.clusterId,
         keepalive: info.keepalive,
         signingKeys: keys,
-        worker: false,
+        // worker: false,
         ...ports,
         ...(config || {}),
         // config: config
@@ -214,19 +214,9 @@ export async function createSocketCluster({
             // }
 
             // everything expect the SENDS
-            if (
-                str.includes('>> SEND') ||
-                str.includes('WRITE') ||
-                str.includes('DROP') ||
-                str.includes('STREAM') ||
-                str.includes('PUBLISH')
-            ) {
-                return;
-            } else {
-                const delta = Date.now() - clock;
-                console.log(pid, str, `[${delta}ms]`);
-                clock = Date.now();
-            }
+            const delta = Date.now() - clock;
+            console.log(pid, str, `[${delta}ms]`);
+            clock = Date.now();
         });
     }
 

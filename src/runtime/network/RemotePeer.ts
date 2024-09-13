@@ -1,6 +1,6 @@
 import { Encryption } from './encryption';
 import * as NAT from './nat';
-import Packet, { PacketStream } from './packets';
+import Packet, { PacketPublish } from './packets';
 
 const MAX_BANDWIDTH = 1024 * 32;
 
@@ -83,10 +83,15 @@ export class RemotePeer {
 
         const cache = new Map();
         const packets = await this.localPeer._message2packets(
-            PacketStream,
+            PacketPublish,
             args.message,
             args,
         );
+        if (packets.length > 1) {
+            throw new Error(
+                '<<<< STREAM COMPOSE DISABLED AND PACKET TOO LARGE FOR ONE >>>>',
+            );
+        }
 
         if (this.proxy) {
             this.localPeer._onDebug(
@@ -114,8 +119,8 @@ export class RemotePeer {
             );
         }
 
-        const head = packets.find((p) => p.index === 0); // has a head, should compose
-        const p = await this.localPeer.cache.compose(head, cache);
-        return [p];
+        // const head = packets.find((p) => p.index === 0); // has a head, should compose
+        // const p = await this.localPeer.cache.compose(head, cache);
+        return [];
     }
 }

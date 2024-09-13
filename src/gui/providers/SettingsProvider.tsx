@@ -9,7 +9,7 @@ export const SettingsProvider = ({
     children: React.ReactNode;
 }) => {
     const db = useDatabase();
-    const settings = useLiveQuery(() => db.settings.get(1), [db]);
+    const settings = useLiveQuery(() => db.settings.get(1), []);
     console.log('settings render');
 
     useEffect(() => {

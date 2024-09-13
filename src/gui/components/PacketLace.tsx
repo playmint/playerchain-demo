@@ -222,7 +222,7 @@ export const PacketLace = memo(function PacketLace({
                 .where(['channel', 'round'])
                 .between([channelId, Dexie.minKey], [channelId, Dexie.maxKey])
                 .reverse()
-                .limit(32)
+                .limit(64)
                 .toArray()
                 .then((messages) => {
                     const minRound = Math.min(
@@ -244,7 +244,7 @@ export const PacketLace = memo(function PacketLace({
                 .finally(() => {
                     fetching = false;
                 });
-        }, 500);
+        }, 1000);
         return () => {
             clearInterval(timer);
         };

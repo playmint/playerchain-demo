@@ -29,6 +29,7 @@ export interface SimulationConfig {
     mode: SequencerMode;
     peerId: string;
     channelPeerIds: string[];
+    inputDelay: number;
 }
 
 export class Simulation {
@@ -41,6 +42,7 @@ export class Simulation {
     private mode: SequencerMode;
     private peerId: string;
     private channelPeerIds: string[];
+    private inputDelay: number; // in "ticks"
     private db: DB;
     cueing = false;
 
@@ -53,11 +55,13 @@ export class Simulation {
         mode,
         peerId,
         channelPeerIds,
+        inputDelay,
         // inputBuffer,
     }: SimulationConfig) {
         this.peerId = peerId;
         this.channelPeerIds = channelPeerIds;
         this.mode = mode;
+        this.inputDelay = inputDelay;
         this.mod = load(src);
         this.channelId = channelId;
         this.db = database.open(dbname);
@@ -240,7 +244,7 @@ export class Simulation {
         if (!ourLatest) {
             return 1;
         }
-        return ourLatest.round - 3; // FIXME: how can we be smart about the offset
+        return ourLatest.round - this.inputDelay; // FIXME: how can we be smart about the offset
     }
 
     private async getCurrentRoundLimitFromTime(): Promise<number> {

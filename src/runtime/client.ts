@@ -25,8 +25,7 @@ import {
     createSocketCluster,
 } from './network';
 import { Peer } from './peer';
-import { sleep } from './timers';
-import { Packet, PacketType } from './transport';
+import { Packet, PacketType, TransportEmitOpts } from './transport';
 import { CancelFunction, bufferedCall, setPeriodic } from './utils';
 
 await _sodium.ready;
@@ -43,6 +42,7 @@ export interface ClientConfig {
     network: SocketClusterConstructor;
     clusterId: Uint8Array;
     config?: SocketPersistedState;
+    enableSync?: boolean;
 }
 
 export class Client {
@@ -57,6 +57,7 @@ export class Client {
     seqNum: number | null = null;
     height: number | null = null;
     parent: Message | null = null;
+    parentParent: Message | null = null;
     committing: boolean = false;
     peers: Map<string, Peer> = new Map();
     channels: Map<string, Channel> = new Map();
@@ -73,8 +74,10 @@ export class Client {
         max: 10,
         ttl: 1000,
     });
+    verifiedHeight: Map<string, number> = new Map();
     _ready: null | Promise<void>;
     _onPeersChanged?: (peers: Peer[]) => void;
+    enableSync: boolean;
 
     constructor(config: ClientConfig) {
         this.id = config.keys.publicKey;
@@ -82,6 +85,7 @@ export class Client {
         this.shortId = this.peerId.slice(0, 8);
         this.key = config.keys.privateKey;
         this.db = database.open(config.dbname);
+        this.enableSync = config.enableSync !== false;
         this._ready = this.init(config);
     }
 
@@ -95,9 +99,6 @@ export class Client {
     }
 
     async init(config: Omit<ClientConfig, 'socket'>) {
-        // disconnect all the peers
-        this.debug('resetting-peer-states');
-        await this.db.peers.clear();
         // setup network
         this.debug('configuring-network');
         this.net = await createSocketCluster({
@@ -110,17 +111,19 @@ export class Client {
         this.net.socket.on('#disconnect', this.onPeerDisconnect);
         this.debug('starting-head-reporter');
         // on channel
-        this.threads.push(
-            setPeriodic(async () => {
-                await this.emitHeads();
-            }, 10000),
-        );
-        this.debug('starting-ch-sync');
-        this.threads.push(
-            setPeriodic(async () => {
-                await this.syncChannels();
-            }, 2000),
-        );
+        if (this.enableSync) {
+            this.threads.push(
+                setPeriodic(async () => {
+                    await this.emitHeads();
+                }, 1000),
+            );
+            this.debug('starting-ch-sync');
+            this.threads.push(
+                setPeriodic(async () => {
+                    await this.syncChannels();
+                }, 2000),
+            );
+        }
         // load any existing channels we know about
         this.debug('load-channels');
         const channels = await this.db.channels.toArray();
@@ -173,8 +176,6 @@ export class Client {
                     sockets: new Map(),
                     channels: new Map(),
                     client: this,
-                    validHeight: -1,
-                    knownHeight: -1,
                     lastSeen: -1,
                     onPacket: this.onPacket,
                     Buffer: Buffer,
@@ -267,38 +268,67 @@ export class Client {
         };
         await this.db.messages.add(stored);
         this.height = signed.height + 1;
-        const msgs = [signed];
         // include the parent too for good measure, double the bandwidth, double the fun
-        if (this.parent) {
-            msgs.unshift(this.parent);
-        }
-        this.parent = signed;
         acks.forEach((ack) => {
             this.recentlyAckedMessage.set(
                 Buffer.from(ack).toString('hex'),
                 true,
             );
         });
-        for (const [_id, ch] of this.channels) {
-            ch.send(
+        // if (this.parentParent) {
+        //     this.send(
+        //         {
+        //             type: PacketType.MESSAGE,
+        //             msgs: [this.parentParent],
+        //         },
+        //         {
+        //             ttl: 1000,
+        //         },
+        //     );
+        // }
+        // if (this.parent) {
+        //     this.send(
+        //         {
+        //             type: PacketType.MESSAGE,
+        //             msgs: [this.parent],
+        //         },
+        //         {
+        //             ttl: 1000,
+        //         },
+        //     );
+        // }
+        this.send(
+            {
+                type: PacketType.MESSAGE,
+                msgs: [signed],
+            },
+            {
+                ttl: 1000,
+            },
+        );
+        this.parentParent = this.parent;
+        this.parent = signed;
+        setTimeout(() => {
+            this.send(
                 {
                     type: PacketType.MESSAGE,
-                    msgs,
+                    msgs: [signed],
                 },
                 {
-                    ttl: 1000,
+                    ttl: 500,
                 },
             );
-        }
+        }, 40);
         return signed;
     }
 
     async sign(msg: PresignedMessage): Promise<Message> {
-        const hash = await this.hash(msg);
-        const sig = sodium.crypto_sign_detached(
-            Buffer.from(hash),
-            Buffer.from(this.key),
-        );
+        // const hash = await this.hash(msg);
+        // const sig = sodium.crypto_sign_detached(
+        //     Buffer.from(hash),
+        //     Buffer.from(this.key),
+        // );
+        const sig = Buffer.from(`${this.shortId}-${msg.height}`);
         // console.log('-----SIGN>', {
         //     sig: Buffer.from(sig).toString('hex'),
         //     hsh: Buffer.from(hash).toString('hex'),
@@ -310,20 +340,21 @@ export class Client {
         };
     }
 
-    async verify(msg: Message): Promise<boolean> {
-        try {
-            const { sig, ...unsigned } = msg;
-            const hash = await this.hash(unsigned);
-            const pk = msg.peer;
-            return sodium.crypto_sign_verify_detached(sig, hash, pk);
-        } catch (err) {
-            console.error(`
-                verify-error
-                msg=${msg}
-                err=${err}
-            `);
-            return false;
-        }
+    async verify(_msg: Message): Promise<boolean> {
+        return true;
+        // try {
+        //     const { sig, ...unsigned } = msg;
+        //     const hash = await this.hash(unsigned);
+        //     const pk = msg.peer;
+        //     return sodium.crypto_sign_verify_detached(sig, hash, pk);
+        // } catch (err) {
+        //     console.error(`
+        //         verify-error
+        //         msg=${msg}
+        //         err=${err}
+        //     `);
+        //     return false;
+        // }
     }
 
     async hash(msg: PresignedMessage): Promise<Uint8Array> {
@@ -345,24 +376,20 @@ export class Client {
         );
     }
 
-    private onPacket = bufferedCall(
-        async (packet: Packet) => {
-            switch (packet.type) {
-                case PacketType.SYNC_NEED:
-                    return;
-                case PacketType.MESSAGE:
-                    await this.onMessages(packet.msgs);
-                    return;
-                case PacketType.KEEP_ALIVE:
-                    return;
-                default:
-                    console.warn('unhandled-packet', packet);
-                    return;
-            }
-        },
-        1024,
-        'onPacket',
-    );
+    private onPacket = async (packet: Packet) => {
+        switch (packet.type) {
+            case PacketType.SYNC_NEED:
+                return;
+            case PacketType.MESSAGE:
+                await this.onMessages(packet.msgs);
+                return;
+            case PacketType.KEEP_ALIVE:
+                return;
+            default:
+                console.warn('unhandled-packet', packet);
+                return;
+        }
+    };
 
     onMessages = async (msgs: Message[]): Promise<Message[]> => {
         for (const msg of msgs) {
@@ -409,34 +436,11 @@ export class Client {
         if (parentSig) {
             const parent = await this.db.messages.get(parentSig);
             if (!parent) {
-                // start search for parent shortly, not immediately
-                // the packets may already be on the way
-                setTimeout(() => {
-                    (async () => {
-                        for (;;) {
-                            try {
-                                const parent =
-                                    await this.db.messages.get(parentSig);
-                                if (parent) {
-                                    this.debug('AGRESSIVE-REQ-MISSING-FOUND');
-                                    return;
-                                }
-                                this.debug('AGRESSIVE-REQ-MISSING-TRY');
-                                await this.requestMissingParent(msg);
-                                await sleep(90);
-                            } catch (err) {
-                                console.error('mark-missing-loop-err', err);
-                                await sleep(1000);
-                            }
-                        }
-                    })().catch((err) =>
-                        console.error('mark-missing-parent-err', err),
-                    );
-                }, 5);
+                this.requestMissingParent(msg).catch((err) =>
+                    console.error('quick-req-missing-parent-error', err),
+                );
             }
         }
-
-        // if this msg in the missing list, remove it
 
         switch (msg.type) {
             case MessageType.CREATE_CHANNEL:
@@ -459,9 +463,17 @@ export class Client {
             console.warn('set-peers-unknown-channel', msg.channel);
             return;
         }
-        await this.db.channels.update(channel.id, {
-            peers: msg.peers.map((p) => Buffer.from(p).toString('hex')),
-        });
+        // if channel peers has changed update it
+        if (
+            channel.peers.length !== msg.peers.length ||
+            !msg.peers.every((p) =>
+                channel.peers.includes(Buffer.from(p).toString('hex')),
+            )
+        ) {
+            await this.db.channels.update(channel.id, {
+                peers: msg.peers.map((p) => Buffer.from(p).toString('hex')),
+            });
+        }
     }
 
     async requestMissingParent(child: Message) {
@@ -578,19 +590,64 @@ export class Client {
     private async emitHeads() {
         // collect all the heads
         const heads = await this.getHeads();
-        // tell everyone about the heads
-        for (const [_, ch] of this.channels) {
+        for (const head of heads) {
+            // tell everyone about the heads
             // console.log('peersendhead', ch.shortId);
-            ch.send(
+            this.send(
                 {
                     type: PacketType.MESSAGE,
-                    msgs: heads,
+                    msgs: [head],
                 },
                 { ttl: 1000 },
             );
         }
         this.debug(`emit-peer-heads count=${heads.length}`);
     }
+
+    private checkChain = async (peerId: string) => {
+        const pk = Buffer.from(peerId, 'hex');
+        this.debug(`checking-chain peer=${peerId.slice(0, 8)}`);
+        let child = await this.db.messages
+            .where(['peer', 'height'])
+            .between([pk, Dexie.minKey], [pk, Dexie.maxKey])
+            .last();
+        if (!child) {
+            this.debug(`no-chain-yet peer=${peerId.slice(0, 8)}`);
+            return;
+        }
+        const prevVerified = this.verifiedHeight.get(peerId) || -1;
+        const tip = child.height;
+        for (;;) {
+            if (!child) {
+                throw new Error('invalid value for child');
+            }
+            if (!child.parent) {
+                this.debug(`full-chain-ok! peer=${peerId.slice(0, 8)}`);
+                this.verifiedHeight.set(peerId, tip);
+                await this.db.peers.update(peerId, {
+                    validHeight: tip,
+                });
+                return;
+            }
+            if (child.height <= prevVerified) {
+                this.debug(`updated-chain-ok! peer=${peerId.slice(0, 8)}`);
+                this.verifiedHeight.set(peerId, tip);
+                await this.db.peers.update(peerId, {
+                    validHeight: tip,
+                });
+                return;
+            }
+            const parent = await this.db.messages.get(child.parent);
+            if (!parent) {
+                this.debug(
+                    `chain-broken at=${child.height - 1} peer=${peerId.slice(0, 8)}`,
+                );
+                await this.requestMissingParent(child);
+                return;
+            }
+            child = parent;
+        }
+    };
 
     private async syncChannels() {
         for (const [_, ch] of this.channels) {
@@ -604,26 +661,28 @@ export class Client {
 
             const connectedPeers = await this.db.peers.toArray();
             const settings = await this.db.settings.get(1);
-            ch.send(
+            await ch.emit(
+                'bytes',
+                Buffer.from(
+                    cbor.encode({
+                        type: PacketType.KEEP_ALIVE,
+                        peer: this.id,
+                        timestamp: Date.now(),
+                        sees: connectedPeers.map((p) =>
+                            Buffer.from(p.peerId.slice(0, 8), 'hex'),
+                        ),
+                        playerName: settings?.name || '',
+                    }),
+                ),
                 {
-                    type: PacketType.KEEP_ALIVE,
-                    peer: this.id,
-                    timestamp: Date.now(),
-                    sees: connectedPeers.map((p) =>
-                        Buffer.from(p.peerId, 'hex'),
-                    ),
-                    playerName: settings?.name || '',
-                },
-                {
-                    channels: [ch.id],
                     ttl: 1000,
                 },
             );
             this.debug('keep-alive');
             // send channel join
-            if (ch.socket) {
-                ch.socket.join();
-            }
+            // if (ch.socket) {
+            //     ch.socket.join();
+            // }
             // sync channel name with genesis and rebroadcast it
             const channelSig = Uint8Array.from(atob(ch.id), (c) =>
                 c.charCodeAt(0),
@@ -654,9 +713,24 @@ export class Client {
                             channels: [ch.id],
                             ttl: 1000,
                         },
-                    );
+                    ).catch((err) => {
+                        console.error('emit-genesis-error', err);
+                    });
                 }
             }
+            const socketPeers = Array.from(ch.socket.peers.keys())
+                .map((peerId) => peerId.slice(0, 8))
+                .sort()
+                .join(',');
+            const ourPeers = connectedPeers
+                .map((p) => p.peerId.slice(0, 8))
+                .sort()
+                .join(',');
+            this.debug(`
+                peer-info
+                socketPeers=${socketPeers}
+                ourPeers=${ourPeers}
+            `);
             // sync channel peers and rebroadcast it
             const info = await this.db.channels.get(ch.id);
             if (info) {
@@ -678,6 +752,12 @@ export class Client {
                 // check we have the peer set
             } else {
                 this.debug('NO CHANNEL FOR ID', ch.id);
+            }
+            // check each channel peer chain
+            if (info?.peers) {
+                for (const peerId of info.peers) {
+                    await this.checkChain(peerId);
+                }
             }
         }
     }
@@ -713,7 +793,6 @@ export class Client {
             this.debug('monitor-channel', channel.shortId, socket.subclusterId);
         }
         this.channels.set(config.id, channel);
-        channel.socket.join();
     }
 
     async joinChannel(channelId: Base64ID) {
@@ -778,13 +857,9 @@ export class Client {
             sender: this.peerId,
         };
         for (const [_, ch] of this.channels) {
-            ch.socket
-                .emit(`rpc`, Buffer.from(cbor.encode(r)), {
-                    ttl: 1000,
-                })
-                .catch((err) => {
-                    this.debug('rpc-err', err);
-                });
+            ch.emit(`rpc`, Buffer.from(cbor.encode(r)), {
+                ttl: 1000,
+            });
         }
     };
 
@@ -833,16 +908,22 @@ export class Client {
         this.debug(
             `res-missing sent=${Buffer.from(msg.sig).toString('hex').slice(0, 8)}`,
         );
-        for (const [_, ch] of this.channels) {
-            ch.send(
-                {
-                    type: PacketType.MESSAGE,
-                    msgs: [msg],
-                },
-                { ttl: 1000 },
-            );
-        }
+        this.send(
+            {
+                type: PacketType.MESSAGE,
+                msgs: [msg],
+            },
+            { ttl: 1000 },
+        );
         return 1;
+    };
+
+    send = (packet: Packet, opts?: TransportEmitOpts) => {
+        for (const [_, ch] of this.channels) {
+            ch.send(packet, opts).catch((err) => {
+                console.error('send-err:', err);
+            });
+        }
     };
 
     // call this if you never want to use this instance again

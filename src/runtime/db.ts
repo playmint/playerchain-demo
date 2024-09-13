@@ -85,7 +85,7 @@ export function open(name: string): DB {
 
     db.version(1).stores({
         channels: 'id',
-        peers: 'peerId, connected',
+        peers: 'peerId',
         messages:
             'sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+arrived]',
         missing: 'sig',

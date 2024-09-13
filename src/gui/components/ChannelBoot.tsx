@@ -157,7 +157,7 @@ export function ChannelBoot() {
 
             promise: (input: string) =>
                 new Promise((resolve, reject) => {
-                    if (input.length < 60) {
+                    if (input.length < 5) {
                         reject(
                             <span className={'errorText'}>invalid key</span>,
                         );
@@ -176,7 +176,7 @@ export function ChannelBoot() {
                         reject('client is not ready');
                         return;
                     }
-                    if (groupKey.length < 60) {
+                    if (groupKey.length < 5) {
                         reject('invalid key');
                         return;
                     }

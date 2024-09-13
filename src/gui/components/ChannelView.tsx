@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { useClient } from '../hooks/use-client';
@@ -12,7 +12,9 @@ import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
 import { Operation, TerminalStyle, TerminalView } from './Terminal';
 
-const FIXED_UPDATE_RATE = 50;
+const FIXED_UPDATE_RATE = 60;
+const INTERLACE = 4;
+const SIM_INPUT_DELAY = 4; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export function ChannelView({
@@ -77,7 +79,8 @@ export function ChannelView({
         () =>
             allPeers.filter(
                 (p) =>
-                    p.channels.includes(channelId) && p.sees.includes(peerId),
+                    p.channels.includes(channelId) &&
+                    p.sees.includes(peerId.slice(0, 8)),
             ),
         [allPeers, channelId, peerId],
     );
@@ -122,7 +125,8 @@ export function ChannelView({
             }
             const seesChannelPeers = channel.peers.every(
                 (channelPeerId) =>
-                    channelPeerId === pid || info.sees.includes(channelPeerId),
+                    channelPeerId === pid ||
+                    info.sees.includes(channelPeerId.slice(0, 8)),
             );
             return seesChannelPeers ? acc + 1 : acc;
         }, 0);
@@ -294,11 +298,13 @@ export function ChannelView({
                         channelId={channel.id}
                         peerId={peerId}
                         channelPeerIds={channelPeers}
+                        inputDelay={SIM_INPUT_DELAY}
                     >
                         <Renderer
                             key={channel.id}
                             channelId={channel.id}
                             channelPeerIds={channelPeers}
+                            interlace={INTERLACE}
                         />
                     </SimulationProvider>
                 )}
@@ -394,10 +400,18 @@ function PeerStatus({
     peerCount: number;
     selfName?: string;
 }) {
+    const [_tick, setTick] = useState(0);
     const isSelf = peerId === selfId;
     const outbound = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
     const inbound = (outbound && info?.sees.includes(selfId)) || isSelf;
     const isWellConnected = info?.sees.length === peerCount - 1 || isSelf;
+    const lastSeen = isSelf
+        ? 1
+        : Math.max(Date.now() - (info?.lastSeen || 0), 1);
+    useEffect(() => {
+        const interval = setInterval(() => setTick((t) => t + 1), 1000);
+        return () => clearInterval(interval);
+    }, []);
     return (
         <div
             style={{
@@ -432,7 +446,7 @@ function PeerStatus({
                 {outbound ? (isWellConnected ? '>>' : '->') : '--'}
             </span>
             <span>{info?.validHeight}</span>
-            <span>{info?.knownHeight}</span>
+            <span>{Math.floor(lastSeen / 1000)}s</span>
         </div>
     );
 }

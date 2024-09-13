@@ -77,7 +77,6 @@ export class Channel {
         this.socket = socket;
         this.client = client;
         socket.on('bytes', this.onChannelBytes);
-        socket.on('bytes2', this.onChannelBytes2);
         // socket.on('#join', this.onPeerJoin); // this is broken
         this.threads.push(setPeriodic(this.updatePeers, 1000));
     }
@@ -98,6 +97,10 @@ export class Channel {
         }
         // check for added peers
         for (const [_, peer] of this.socket.peers) {
+            // if (!(peer as any).__onbytes) {
+            //     peer.on('bytes', this.onChannelBytes);
+            //     (peer as any).__onbytes = true;
+            // }
             // since we can't trust the peer list from the network
             // we track keep alives to filter out invalid peers
             if (!this.alivePeerIds.has(peer.peerId)) {
@@ -137,7 +140,6 @@ export class Channel {
         const ppp: any = peer;
         if (!ppp.__listening) {
             // peer.on('bytes', this.onChannelBytes);
-            // peer.on('bytes2', this.onChannelBytes2);
             ppp.__listening = true;
         }
         if (!this._onPeerJoin) {
@@ -167,9 +169,6 @@ export class Channel {
                         playerName: p.playerName,
                         sees: p.sees.map((s) => Buffer.from(s).toString('hex')),
                     })
-                    .then(() => {
-                        console.log('updated-peer:', peerId, p.timestamp);
-                    })
                     .catch((err) => {
                         console.error('update-peer-err:', err);
                     });
@@ -181,28 +180,32 @@ export class Channel {
         'onChannelBytes',
     );
 
-    private onChannelBytes2 = bufferedCall(
-        async (b: Uint8Array) => {
-            if (!this._onPacket) {
-                return;
-            }
-            const p = unknownToPacket(cbor.decode(this.Buffer.from(b)));
-            this._onPacket(p);
-        },
-        1000,
-        'onChannelBytes2',
-    );
+    send = async (packet: Packet, opts?: TransportEmitOpts) => {
+        const bytes = this.Buffer.from(cbor.encode(packet));
+        this.emit('bytes', bytes, opts);
+    };
 
-    send = bufferedCall(
-        async (packet: Packet, opts?: TransportEmitOpts) => {
-            const bytes = this.Buffer.from(cbor.encode(packet));
-            this.socket.emit('bytes', bytes, opts).catch((err) => {
+    emit = (evt: string, buf: Uint8Array, opts?: TransportEmitOpts) => {
+        const alivePeerIds = Array.from(this.alivePeerIds.keys());
+        if (alivePeerIds.length === 0) {
+            console.log(`${this.client.shortId} USING CRAPPY SEND`);
+            this.socket.emit(evt, buf, opts).catch((err) => {
                 console.error('send-err:', err);
             });
-        },
-        100,
-        'channelSend',
-    );
+        } else {
+            for (const [peerId, peer] of this.socket.peers) {
+                if (!alivePeerIds.includes(peerId)) {
+                    continue;
+                }
+                // console.log(
+                //     `${this.client.shortId} ---> ${peerId.slice(0, 8)}`,
+                // );
+                peer.emit(evt, buf, opts).catch((err) => {
+                    console.error('send-err:', err);
+                });
+            }
+        }
+    };
 
     destroy() {
         this.threads.forEach((cancel) => cancel());

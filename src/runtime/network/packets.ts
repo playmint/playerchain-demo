@@ -337,8 +337,8 @@ export class Packet {
                 return new PacketJoin(packet);
             case PacketPublish.type:
                 return new PacketPublish(packet);
-            case PacketStream.type:
-                return new PacketStream(packet);
+            // case PacketStream.type:
+            //     return new PacketStream(packet);
             case PacketSync.type:
                 return new PacketSync(packet);
             case PacketQuery.type:
@@ -613,12 +613,12 @@ export class PacketPublish extends Packet {
     }
 }
 
-export class PacketStream extends Packet {
-    static type = 6;
-    constructor(args) {
-        super({ ...args, type: PacketStream.type });
-    }
-}
+// export class PacketStream extends Packet {
+//     static type = 6;
+//     constructor(args) {
+//         super({ ...args, type: PacketStream.type });
+//     }
+// }
 
 export class PacketSync extends Packet {
     static type = 7;

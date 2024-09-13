@@ -466,7 +466,7 @@ declare module "socket:buffer" {
             type: string;
             data: any;
         };
-        slice(start: any, end: any): any;
+        slice(start: any, end?: any): any;
         readUintLE: (offset: any, byteLength: any, noAssert: any) => any;
         readUIntLE(offset: any, byteLength: any, noAssert: any): any;
         readUintBE: (offset: any, byteLength: any, noAssert: any) => any;
@@ -476,7 +476,7 @@ declare module "socket:buffer" {
         readUint16LE: (offset: any, noAssert: any) => number;
         readUInt16LE(offset: any, noAssert: any): number;
         readUint16BE: (offset: any, noAssert: any) => number;
-        readUInt16BE(offset: any, noAssert: any): number;
+        readUInt16BE(offset: any, noAssert?: any): number;
         readUint32LE: (offset: any, noAssert: any) => number;
         readUInt32LE(offset: any, noAssert: any): number;
         readUint32BE: (offset: any, noAssert: any) => number;
@@ -501,11 +501,11 @@ declare module "socket:buffer" {
         writeUintBE: (value: any, offset: any, byteLength: any, noAssert: any) => any;
         writeUIntBE(value: any, offset: any, byteLength: any, noAssert: any): any;
         writeUint8: (value: any, offset: any, noAssert: any) => any;
-        writeUInt8(value: any, offset: any, noAssert: any): any;
+        writeUInt8(value: any, offset?: any, noAssert?: any): any;
         writeUint16LE: (value: any, offset: any, noAssert: any) => any;
         writeUInt16LE(value: any, offset: any, noAssert: any): any;
         writeUint16BE: (value: any, offset: any, noAssert: any) => any;
-        writeUInt16BE(value: any, offset: any, noAssert: any): any;
+        writeUInt16BE(value: any, offset?: any, noAssert?: any): any;
         writeUint32LE: (value: any, offset: any, noAssert: any) => any;
         writeUInt32LE(value: any, offset: any, noAssert: any): any;
         writeUint32BE: (value: any, offset: any, noAssert: any) => any;
@@ -544,7 +544,7 @@ declare module "socket:buffer" {
          * Creates a new filled Buffer instance.
          * alloc(size[, fill[, encoding]])
          **/
-        export function alloc(size: any, fill: any, encoding: any): Uint8Array;
+        export function alloc(size: any, fill?: any, encoding?: any): Buffer;
         /**
          * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
          * */
@@ -556,7 +556,7 @@ declare module "socket:buffer" {
         export function isBuffer(b: any): boolean;
         export function compare(a: any, b: any): 0 | 1 | -1;
         export function isEncoding(encoding: any): boolean;
-        export function concat(list: any, length: any): Uint8Array;
+        export function concat(list: any, length?: any): Uint8Array;
         export { byteLength };
     }
     export const kMaxLength: 2147483647;

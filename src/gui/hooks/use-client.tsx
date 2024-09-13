@@ -8,6 +8,7 @@ export type ClientUserConfig = Omit<
 
 export interface ClientContextType {
     commit: Client['commit'];
+    send: Client['send'];
     createChannel: Client['createChannel'];
     joinChannel: Client['joinChannel'];
     setPeers: Client['setPeers'];

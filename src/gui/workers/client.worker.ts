@@ -1,10 +1,16 @@
 import * as Comlink from 'comlink';
-import { Encryption, network } from 'socket:network';
+import dgram from 'socket:dgram';
+import events from 'socket:events';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { Client, ClientConfig } from '../../runtime/client';
 import { CLUSTER_ID } from '../../runtime/config';
 import { Message, UnsignedMessage } from '../../runtime/messages';
+import { Encryption } from '../../runtime/network/Peer';
+import api from '../../runtime/network/api';
+import { Packet, TransportEmitOpts } from '../../runtime/transport';
 import type { ClientUserConfig } from '../hooks/use-client';
+
+const network = (options) => api(options, events, dgram);
 
 // socket is broken
 // globalThis.window = self;
@@ -41,6 +47,10 @@ export async function commit(
     ackIds?: Uint8Array[] | null,
 ): Promise<Message> {
     return client!.commit(msg, ackIds);
+}
+
+export async function send(packet: Packet, opts?: TransportEmitOpts) {
+    return client!.send(packet, opts);
 }
 
 export async function createChannel(name: string) {

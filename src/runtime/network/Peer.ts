@@ -29,7 +29,7 @@ export { Packet, sha256, Cache, Encryption, NAT };
  * Retry delay in milliseconds for ping.
  * @type {number}
  */
-export const PING_RETRY = 500;
+export const PING_RETRY = 250;
 
 /**
  * Probe wait timeout in milliseconds.
@@ -135,7 +135,7 @@ export class Peer {
     unpublished = {};
     cache: Cache;
     uptime = 0;
-    maxHops = 16;
+    maxHops = 3; // should be 16
     bdpCache: number[] = [];
     indexed: boolean = false;
     clusterId?: Uint8Array;
@@ -148,7 +148,6 @@ export class Peer {
     onListening?: () => void;
     onDelete?: (packet: Packet) => void;
 
-    sendQueue: any[] = [];
     // firewall = null;
     rates = new Map();
     streamBuffer = new Map();
@@ -180,7 +179,6 @@ export class Peer {
     onSync?: (...args: any[]) => void;
     onData?: (...args: any[]) => void;
     onLimit?: (...args: any[]) => boolean | undefined;
-    onStream?: (...args: any[]) => void;
     onIntro?: (...args: any[]) => void;
     onNat?: (...args: any[]) => void;
     onAnswer?: (...args: any[]) => void;
@@ -239,7 +237,8 @@ export class Peer {
         }
 
         this.cache = new Cache(cacheData, config.siblingResolver);
-        this.cache.onEjected = (p) => this.mcast(p);
+        // this.cache.onEjected = (p) => this.mcast(p);
+        this.cache.onEjected = (_p) => {};
 
         this.unpublished = persistedState?.unpublished || {};
         this._onError = (err) => this.onError && this.onError(err);
@@ -467,45 +466,8 @@ export class Peer {
      * @ignore
      */
     send(data, port, address, socket = this.socket) {
-        this.sendQueue.push({ data, port, address, socket });
-        this._scheduleSend();
-    }
-
-    /**
-     * @private
-     */
-    async stream(peerId, sharedKey, args) {
-        const p = this.peers.find((p) => p.peerId === peerId);
-        if (p) {
-            return p.write(sharedKey, args);
-        }
-    }
-
-    /**
-     * @private
-     */
-    _scheduleSend() {
-        if (this.sendTimeout) {
-            clearTimeout(this.sendTimeout);
-        }
-        this.sendTimeout = setTimeout(() => {
-            this._dequeue();
-        });
-    }
-
-    /**
-     * @private
-     */
-    _dequeue() {
-        if (!this.sendQueue.length) {
-            return;
-        }
-        const { data, port, address, socket } = this.sendQueue.shift();
-
+        const t = Date.now();
         socket.send(data, port, address, (err) => {
-            if (this.sendQueue.length) {
-                this._scheduleSend();
-            }
             if (err) {
                 return this._onError(err);
             }
@@ -520,10 +482,21 @@ export class Peer {
             if (this.onSend && packet.type) {
                 this.onSend(packet, port, address);
             }
+            const elapsed = Date.now() - t;
             this._onDebug(
-                `>> SEND (from=${this.address}:${this.port}, to=${address}:${port}, type=${packet.type})`,
+                `>> SENT (from=${this.address}:${this.port}, to=${address}:${port}, type=${packet.type} took=${elapsed}ms)`,
             );
         });
+    }
+
+    /**
+     * @private
+     */
+    async stream(peerId, sharedKey, args) {
+        const p = this.peers.find((p) => p.peerId === peerId);
+        if (p) {
+            return p.write(sharedKey, args);
+        }
     }
 
     /**
@@ -1442,14 +1415,14 @@ export class Peer {
                 first = true;
             }
 
-            const lastSyncSeconds = (now - this.syncs[key]) / 1000;
+            // const lastSyncSeconds = (now - this.syncs[key]) / 1000;
             const syncWindow = this.config.syncWindow ?? 6000;
 
             if (first || now - this.syncs[key] > syncWindow) {
-                await this.sync(peer.peerId, this.syncs[key]);
-                this._onDebug(
-                    `-> SYNC SEND (peerId=${peer.peerId.slice(0, 6)}, address=${key}, since=${lastSyncSeconds} seconds ago)`,
-                );
+                // await this.sync(peer.peerId, this.syncs[key]);
+                // this._onDebug(
+                //     `-> SYNC SEND (peerId=${peer.peerId.slice(0, 6)}, address=${key}, since=${lastSyncSeconds} seconds ago)`,
+                // );
                 this.syncs[key] = now;
             }
         }
@@ -1460,105 +1433,105 @@ export class Peer {
      * @return {undefined}
      * @ignore
      */
-    async _onSync(packet, port, address, _data) {
-        this.metrics.i[packet.type]++;
+    // async _onSync(packet, port, address, _data) {
+    //     this.metrics.i[packet.type]++;
 
-        this.lastSync = Date.now();
-        const pid = packet.packetId.toString('hex');
+    //     this.lastSync = Date.now();
+    //     const pid = packet.packetId.toString('hex');
 
-        let ptime = Date.now();
+    //     let ptime = Date.now();
 
-        if (packet.usr4.byteLength > 8 || packet.usr4.byteLength < 16) {
-            const usr4 = parseInt(Buffer.from(packet.usr4).toString(), 10);
-            ptime = Math.min(ptime - Packet.ttl, usr4);
-        }
+    //     if (packet.usr4.byteLength > 8 || packet.usr4.byteLength < 16) {
+    //         const usr4 = parseInt(Buffer.from(packet.usr4).toString(), 10);
+    //         ptime = Math.min(ptime - Packet.ttl, usr4);
+    //     }
 
-        if (!isBufferLike(packet.message)) {
-            return;
-        }
-        if (this.gate.has(pid)) {
-            return;
-        }
+    //     if (!isBufferLike(packet.message)) {
+    //         return;
+    //     }
+    //     if (this.gate.has(pid)) {
+    //         return;
+    //     }
 
-        this.gate.set(pid, 1);
+    //     this.gate.set(pid, 1);
 
-        const remote = Cache.decodeSummary(packet.message);
-        const local = await this.cache.summarize(
-            remote.prefix,
-            this.cachePredicate(ptime),
-        );
+    //     const remote = Cache.decodeSummary(packet.message);
+    //     const local = await this.cache.summarize(
+    //         remote.prefix,
+    //         this.cachePredicate(ptime),
+    //     );
 
-        if (
-            !remote ||
-            !remote.hash ||
-            !local ||
-            !local.hash ||
-            local.hash === remote.hash
-        ) {
-            if (this.onSyncFinished) {
-                this.onSyncFinished(packet, port, address);
-            }
-            return;
-        }
+    //     if (
+    //         !remote ||
+    //         !remote.hash ||
+    //         !local ||
+    //         !local.hash ||
+    //         local.hash === remote.hash
+    //     ) {
+    //         if (this.onSyncFinished) {
+    //             this.onSyncFinished(packet, port, address);
+    //         }
+    //         return;
+    //     }
 
-        if (this.onSync) {
-            this.onSync(packet, port, address, { remote, local });
-        }
+    //     if (this.onSync) {
+    //         this.onSync(packet, port, address, { remote, local });
+    //     }
 
-        const remoteBuckets = remote.buckets.filter(Boolean).length;
-        this._onDebug(
-            `<- ON SYNC (from=${address}:${port}, local=${local.hash.slice(0, 8)}, remote=${remote.hash.slice(0, 8)} remote-buckets=${remoteBuckets})`,
-        );
+    //     const remoteBuckets = remote.buckets.filter(Boolean).length;
+    //     this._onDebug(
+    //         `<- ON SYNC (from=${address}:${port}, local=${local.hash.slice(0, 8)}, remote=${remote.hash.slice(0, 8)} remote-buckets=${remoteBuckets})`,
+    //     );
 
-        for (let i = 0; i < local.buckets.length; i++) {
-            // continue; //--------------------------------- HACKY SKIP
+    //     for (let i = 0; i < local.buckets.length; i++) {
+    //         // continue; //--------------------------------- HACKY SKIP
 
-            //
-            // nothing to send/sync, expect peer to send everything they have
-            //
-            if (!local.buckets[i] && !remote.buckets[i]) {
-                continue;
-            }
+    //         //
+    //         // nothing to send/sync, expect peer to send everything they have
+    //         //
+    //         if (!local.buckets[i] && !remote.buckets[i]) {
+    //             continue;
+    //         }
 
-            //
-            // you dont have any of these, im going to send them to you
-            //
-            if (!remote.buckets[i]) {
-                for (const [key, p] of this.cache.data.entries()) {
-                    if (!key.startsWith(local.prefix + i.toString(16))) {
-                        continue;
-                    }
+    //         //
+    //         // you dont have any of these, im going to send them to you
+    //         //
+    //         if (!remote.buckets[i]) {
+    //             for (const [key, p] of this.cache.data.entries()) {
+    //                 if (!key.startsWith(local.prefix + i.toString(16))) {
+    //                     continue;
+    //                 }
 
-                    const packet: any = Packet.from(p);
-                    if (!this.cachePredicate(ptime)(packet)) {
-                        continue;
-                    }
+    //                 const packet: any = Packet.from(p);
+    //                 if (!this.cachePredicate(ptime)(packet)) {
+    //                     continue;
+    //                 }
 
-                    const pid = packet.packetId.toString('hex');
-                    this._onDebug(
-                        `-> SYNC SEND PACKET (type=data, packetId=${pid.slice(0, 8)}, to=${address}:${port})`,
-                    );
+    //                 const pid = packet.packetId.toString('hex');
+    //                 this._onDebug(
+    //                     `-> SYNC SEND PACKET (type=data, packetId=${pid.slice(0, 8)}, to=${address}:${port})`,
+    //                 );
 
-                    this.send(await Packet.encode(packet), port, address);
-                }
-            } else {
-                //
-                // need more details about what exactly isn't synce'd
-                //
-                const nextLevel = await this.cache.summarize(
-                    local.prefix + i.toString(16),
-                    this.cachePredicate(ptime),
-                );
-                const data = await Packet.encode(
-                    new PacketSync({
-                        message: Cache.encodeSummary(nextLevel),
-                        usr4: Buffer.from(String(Date.now())),
-                    }),
-                );
-                this.send(data, port, address);
-            }
-        }
-    }
+    //                 this.send(await Packet.encode(packet), port, address);
+    //             }
+    //         } else {
+    //             //
+    //             // need more details about what exactly isn't synce'd
+    //             //
+    //             const nextLevel = await this.cache.summarize(
+    //                 local.prefix + i.toString(16),
+    //                 this.cachePredicate(ptime),
+    //             );
+    //             const data = await Packet.encode(
+    //                 new PacketSync({
+    //                     message: Cache.encodeSummary(nextLevel),
+    //                     usr4: Buffer.from(String(Date.now())),
+    //                 }),
+    //             );
+    //             this.send(data, port, address);
+    //         }
+    //     }
+    // }
 
     /**
      * Received a Ping Packet
@@ -1664,7 +1637,7 @@ export class Peer {
         );
         const peer = this.getPeer(responderPeerId);
         if (!peer) {
-            throw new Error('peer not found');
+            return;
         }
 
         if (packet.message.isConnection) {
@@ -1673,10 +1646,6 @@ export class Peer {
             }
             this._onDebug('<- CONNECTION (source=pong)');
             await this._onConnection(packet, responderPeerId, port, address);
-            return;
-        }
-
-        if (!peer) {
             return;
         }
 
@@ -2403,6 +2372,9 @@ export class Peer {
 
         if (this.gate.has(pid)) {
             this.metrics.i.DROPPED++;
+            // this._onDebug(
+            //     `<- DROP GATE (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+            // );
             return;
         }
 
@@ -2411,7 +2383,7 @@ export class Peer {
         if (this.cache.has(pid)) {
             this.metrics.i.DROPPED++;
             this._onDebug(
-                `<- DROP (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+                `<- DROP CACHED (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
             );
             return;
         }
@@ -2454,118 +2426,6 @@ export class Peer {
 
         await this.mcast(packet, ignorelist);
 
-        // }
-    }
-
-    /**
-     * Received an Stream Packet
-     * @return {undefined}
-     * @ignore
-     */
-    async _onStream(packet, port, address, _data) {
-        this.metrics.i[packet.type]++;
-
-        const pid = packet.packetId.toString('hex');
-
-        const streamTo = packet.usr3.toString('hex');
-        const streamFrom = packet.usr4.toString('hex');
-
-        // only help packets with a higher hop count if they are in our cluster
-        // if (packet.hops > 2 && !this.clusters[packet.cluster]) return
-
-        this._onDebug(
-            `<- STREAM (from=${address}:${port}, pid=${pid}, hops=${packet.hops}, to=${streamTo}, from=${streamFrom})`,
-        );
-
-        // stream message is for this peer
-        if (streamTo === this.peerId) {
-            if (this.gate.has(pid)) {
-                return;
-            }
-            this.gate.set(pid, 1);
-
-            this._onDebug(
-                `<- STREAM ACCEPTED (received=true, from=${address}:${port})`,
-            );
-            const scid = packet.subclusterId.toString('base64');
-
-            if (this.encryption.has(scid)) {
-                let p = packet.copy(); // clone the packet so it's not modified
-
-                if (packet.index > -1) {
-                    // if it needs to be composed...
-                    if (packet.index === 0) {
-                        this.streamBuffer.clear();
-                    }
-                    p.timestamp = Date.now();
-                    this.streamBuffer.set(pid, p); // cache the partial
-
-                    p = await this.cache.compose(p, this.streamBuffer); // try to compose
-                    if (!p) {
-                        return;
-                    } // could not compose
-
-                    this._onDebug(
-                        `<- STREAM COMPOSED (pid=${pid.slice(0, 6)}, bufsize=${this.streamBuffer.size})`,
-                    );
-
-                    const previousId =
-                        p.index === 0 ? p.packetId : p.previousId;
-                    const parentId = previousId.toString('hex');
-
-                    this.streamBuffer.forEach((v, k) => {
-                        if (k === parentId) {
-                            this.streamBuffer.delete(k);
-                        }
-                        if (v.previousId.compare(previousId) === 0) {
-                            this.streamBuffer.delete(k);
-                        }
-                    });
-                }
-
-                this._onDebug(
-                    `<- STREAM COMPLETE (pid=${pid.slice(0, 6)}, bufsize=${this.streamBuffer.size})`,
-                );
-
-                if (this.onStream) {
-                    const peerFrom = this.peers.find(
-                        (p) => p.peerId === streamFrom,
-                    );
-                    if (peerFrom) {
-                        this.onStream(p, peerFrom, port, address);
-                    }
-                }
-            }
-
-            return;
-        }
-
-        // stream message is for another peer
-        const peerTo = this.peers.find((p) => p.peerId === streamTo);
-        if (!peerTo) {
-            this._onDebug(
-                `XX STREAM RELAY FORWARD DESTINATION NOT REACHABLE (to=${streamTo})`,
-            );
-            return;
-        }
-
-        if (packet.hops >= this.maxHops) {
-            this._onDebug(`XX STREAM RELAY MAX HOPS EXCEEDED (to=${streamTo})`);
-            return;
-        }
-
-        this._onDebug(
-            `>> STREAM RELAY (to=${peerTo.address}:${peerTo.port}, id=${peerTo.peerId.slice(0, 6)})`,
-        );
-        // I am the proxy!
-        this.send(await Packet.encode(packet), peerTo.port, peerTo.address);
-
-        //
-        // What % of packets hit the server.
-        //
-
-        // if (packet.hops === 1 && this.natType === NAT.UNRESTRICTED) {
-        //   this.mcast(packet, [{ port, address }, { port: peerFrom.port, address: peerFrom.address }])
         // }
     }
 
@@ -2660,6 +2520,7 @@ export class Peer {
     async _onMessage(data, { port, address }) {
         const packet: any = Packet.decode(data);
         if (!packet || packet.version !== VERSION) {
+            console.log('XXX invalid packet', packet);
             return;
         }
 
@@ -2719,8 +2580,8 @@ export class Peer {
                 return this._onJoin(packet, port, address, data);
             case PacketPublish.type:
                 return this._onPublish(packet, port, address, data);
-            case PacketSync.type:
-                return this._onSync(packet, port, address, data);
+            // case PacketSync.type:
+            //     return this._onSync(packet, port, address, data);
             // case PacketQuery.type:
             //     return this._onQuery(packet, port, address, data);
         }

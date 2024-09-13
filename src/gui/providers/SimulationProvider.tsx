@@ -15,16 +15,18 @@ export default memo(function SimulationProvider({
     children,
     peerId,
     channelPeerIds,
+    inputDelay,
 }: {
     peerId: string;
     channelPeerIds: string[];
     channelId: string;
     src: string;
     rate: number;
+    inputDelay: number; // in "ticks" not ms
     children: React.ReactNode;
 }) {
     const { keys, dbname } = useCredentials();
-    console.log(`SimulationProvider ${src} ${rate}`);
+    // console.log(`SimulationProvider ${src} ${rate}`);
 
     const sim = useAsyncMemo<Comlink.Remote<Simulation> | undefined>(
         async (defer) => {
@@ -58,6 +60,7 @@ export default memo(function SimulationProvider({
                 peerId,
                 mode: SequencerMode.CORDIAL,
                 channelPeerIds,
+                inputDelay,
             });
             await s.init();
             defer(async () => {

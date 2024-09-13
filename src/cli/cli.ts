@@ -1,14 +1,15 @@
 import { Buffer } from 'socket:buffer';
+import { Encryption } from 'socket:node/index';
 import { BOOTSTRAP_PEERS } from '../runtime/bootstrap';
 import { CLUSTER_ID } from '../runtime/config';
+import { network } from './network';
 
 // using dynamic imports here to ensure that the polyfill is loaded before the dexie library
 async function imports() {
     await import('fake-indexeddb/auto');
     const Dexie = await import('dexie');
-    const { Encryption, network } = await import('socket:node/index');
     const { Client } = await import('../runtime/client');
-    return { Dexie, Encryption, network, Client };
+    return { Dexie, Client };
 }
 
 function env(name: string): string {
@@ -30,7 +31,7 @@ const SS_ADDRESS = env('SS_ADDRESS');
 const SS_SECRET = env('SS_SECRET');
 
 async function main() {
-    const { Encryption, network, Client } = await imports();
+    const { Client } = await imports();
     const clusterId = await Encryption.createClusterId(CLUSTER_ID);
     const keys = await Encryption.createKeyPair(SS_SECRET);
     const peerId = Buffer.from(keys.publicKey).toString('hex');
@@ -38,6 +39,7 @@ async function main() {
     const dbname = `client/${shortId}`;
 
     console.log('--------------------');
+    console.log('version: subfi-v0.1.0');
     console.log('peerId:', peerId);
     console.log('address:', SS_ADDRESS);
     console.log('port:', SS_PORT);
@@ -57,6 +59,7 @@ async function main() {
             indexed: true,
             limitExempt: true,
         },
+        enableSync: false,
     });
     console.log('client', client.shortId);
 }

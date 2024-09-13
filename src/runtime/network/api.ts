@@ -68,13 +68,13 @@ async function api(options: any = {}, events, dgram) {
         bus._emit('#packet', packet, ...args);
     };
 
-    _peer.onStream = (packet, ...args) => {
-        packet = Packet.from(packet);
-        if (packet.clusterId.compare(clusterId) !== 0) {
-            return;
-        }
-        bus._emit('#stream', packet, ...args);
-    };
+    // _peer.onStream = (packet, ...args) => {
+    //     packet = Packet.from(packet);
+    //     if (packet.clusterId.compare(clusterId) !== 0) {
+    //         return;
+    //     }
+    //     bus._emit('#stream', packet, ...args);
+    // };
 
     _peer.onData = (...args) => bus._emit('#data', ...args);
     _peer.onDebug = (...args) => bus._emit('#debug', ...args);
@@ -279,6 +279,7 @@ async function api(options: any = {}, events, dgram) {
         sub.stream = async (eventName, value, opts: any = {}) => {
             opts.clusterId = opts.clusterId || clusterId;
             opts.subclusterId = opts.subclusterId || sub.subclusterId;
+            opts.hops = opts.hops || 1;
 
             const args = await pack(eventName, value, opts);
 
@@ -304,44 +305,10 @@ async function api(options: any = {}, events, dgram) {
             const args = await pack(eventName, value, opts);
 
             if (sub.peers.values().length) {
-                let packets: any[] = [];
-
-                for (const p of sub.peers.values()) {
-                    const r = await _peer.stream(p.peerId, sub.sharedKey, args);
-                    if (packets.length === 0) {
-                        if (!r) {
-                            throw new Error('expected r defined');
-                        }
-                        packets = r;
-                    }
-                }
-
-                for (const packet of packets) {
-                    const p = Packet.from(packet);
-                    const pid = packet.packetId.toString('hex');
-                    _peer.cache.insert(pid, p);
-
-                    _peer.unpublished[pid] = Date.now();
-                    if (!Peer.onLine()) {
-                        continue;
-                    }
-
-                    await _peer.mcast(packet);
-                }
-
-                const head = packets.find((p) => p.index === 0);
-
-                if (_peer.onPacket && head) {
-                    // try to emit a single packet
-                    const p = await _peer.cache.compose(head);
-                    _peer.onPacket(p, _peer.port, _peer.address, true);
-                    return [p];
-                }
-
-                return packets;
+                console.log('NOPE-------');
+                // return sub.steram(eventName, value, opts);
             } else {
-                const packets = await _peer.publish(sub.sharedKey, args);
-                return packets;
+                return _peer.publish(sub.sharedKey, args);
             }
         };
 
@@ -446,7 +413,6 @@ async function api(options: any = {}, events, dgram) {
         if (verified) {
             packet.verified = true;
         }
-        console.log('-----------------> handlePacket');
 
         sub._emit(eventName, opened, packet);
 
