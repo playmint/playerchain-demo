@@ -1,5 +1,6 @@
 import { Line, OrthographicCamera } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
+import * as Comlink from 'comlink';
 import Dexie from 'dexie';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Vector3 } from 'three';
@@ -207,10 +208,30 @@ export const PacketLace = memo(function PacketLace({
     channelId: string;
     peers: string[];
 }) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const hasRef = !!canvasRef.current;
     const [data, setData] = useState<any>(null);
     const packetLace = usePacketLace();
 
     const db = useDatabase();
+
+    useEffect(() => {
+        if (!packetLace) {
+            return;
+        }
+
+        if (!hasRef) {
+            return;
+        }
+
+        console.log('main: setting offscreen canvas');
+        const offscreen = canvasRef.current.transferControlToOffscreen();
+        packetLace
+            .setCanvas(Comlink.transfer(offscreen, [offscreen]))
+            .catch(console.error);
+        // Comlink.transfer(data, [data.buffer])
+        // console.log('offscreen:', offscreen.width, offscreen.height);
+    }, [packetLace, hasRef]);
 
     useEffect(() => {
         if (!packetLace) {
@@ -253,7 +274,7 @@ export const PacketLace = memo(function PacketLace({
     const camY = 0.5 + camYBase + 0 * SPREAD_Y * PACKET_SCALE;
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <Canvas>
+            {/* <Canvas>
                 <ambientLight intensity={2} />
                 <PacketsCamera camTargetY={camY} camTargetX={1} />
                 <PacketVisualization
@@ -261,7 +282,8 @@ export const PacketLace = memo(function PacketLace({
                     messages={messagesWithOffsetRound || []} // `fakeMessageData2`, `dataSet`
                     // setHoveredMessage={setHoveredMessage}
                 />
-            </Canvas>
+            </Canvas> */}
+            <canvas ref={canvasRef} />
         </div>
     );
 });

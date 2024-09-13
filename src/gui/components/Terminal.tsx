@@ -1,3 +1,4 @@
+import { useFrame } from '@react-three/fiber';
 import {
     FunctionComponent,
     isValidElement,
@@ -217,6 +218,32 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
         userInput,
     ]);
 
+    const spinner = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!spinner.current) {
+            return;
+        }
+        const spinFrames = ['-', '\\', '|', '/'];
+        let spinFrame = 0;
+
+        let animationFrameId;
+        const updateFrame = () => {
+            if (!spinner.current) {
+                return;
+            }
+            spinner.current.innerText = spinFrames[spinFrame];
+            spinFrame = (spinFrame + 1) % spinFrames.length;
+            animationFrameId = requestAnimationFrame(updateFrame);
+        };
+
+        updateFrame();
+
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, []);
+
     // keyboard listener for up and down
     useEffect(() => {
         if (flow === undefined) {
@@ -371,6 +398,8 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
                             ))}
                         </div>
                     ))}
+                    <div ref={spinner} />
+                    <Carat />
                 </div>
             </div>
         </>
