@@ -21,18 +21,13 @@ let fetching = false;
 let canvas: OffscreenCanvas | undefined;
 let aspectRatio: number;
 let packets: any;
-let prevPackets: any;
 let peers: string[] = [];
+const threeObjects: Map<string, any> = new Map();
+const hasRendered: Map<string, boolean> = new Map();
 
 export async function init(dbname: string) {
     db = database.open(dbname);
 }
-
-// export async function fetchPackets(_channelId: string, limit: number = 300) {
-//     console.time('fetchPackets');
-//     await new Promise((resolve) => setTimeout(resolve, limit));
-//     console.timeEnd('fetchPackets');
-// }
 
 export async function fetchPackets(channelId: string, limit: number = 300) {
     if (fetching) {
@@ -41,7 +36,6 @@ export async function fetchPackets(channelId: string, limit: number = 300) {
     }
 
     fetching = true;
-    prevPackets = packets;
     packets = await db.messages
         .where(['channel', 'round'])
         .between([channelId, Dexie.minKey], [channelId, Dexie.maxKey])
@@ -73,7 +67,9 @@ export async function setCanvas(_canvas: OffscreenCanvas) {
     console.log('packetlace.worker: offscreen canvas set:', width, height);
 
     scene = new THREE.Scene();
-    renderer = new THREE.WebGLRenderer({ canvas });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setClearColor(0x000000, 0);
+
     aspectRatio = height / width;
     camera = new THREE.OrthographicCamera(
         -1,
@@ -97,6 +93,9 @@ export async function setCanvas(_canvas: OffscreenCanvas) {
 export async function unsetCanvas() {
     renderer.dispose();
     canvas = undefined;
+    threeObjects.clear();
+    hasRendered.clear();
+    peers = [];
 }
 
 function render() {
@@ -104,9 +103,29 @@ function render() {
         return;
     }
 
-    renderPackets(packets.messagesWithOffsetRound);
-    renderer.render(scene, camera);
+    hasRendered.forEach((_, key) => {
+        hasRendered.set(key, false);
+    });
 
+    const renderedPackets = renderPackets(packets.messagesWithOffsetRound);
+    renderLines(renderedPackets);
+
+    // remove objects that were not rendered
+    const removedPacketKeys: string[] = [];
+    hasRendered.forEach((rendered, key) => {
+        if (!rendered) {
+            const packetMesh = threeObjects.get(key);
+            scene.remove(packetMesh);
+            threeObjects.delete(key);
+            removedPacketKeys.push(key);
+        }
+    });
+
+    removedPacketKeys.forEach((key) => {
+        hasRendered.delete(key);
+    });
+
+    // We use this because we offset the rounds of the packets with (round - minRound)
     const roundDelta =
         packets.maxRound && packets.minRound
             ? packets.maxRound - packets.minRound
@@ -118,6 +137,8 @@ function render() {
     camera.position.y = cameraYOffset + roundDelta * SPREAD_Y * PACKET_SCALE;
     camera.position.x = (peers.length - 1) * SPREAD_X * PACKET_SCALE * 0.5;
 
+    renderer.render(scene, camera);
+
     requestAnimationFrame(render);
 }
 
@@ -126,7 +147,7 @@ function renderPackets(messages: any[]) {
         return;
     }
 
-    const messageMap = messages.reduce((data, m) => {
+    const packets = messages.reduce((data, m) => {
         const msgId = Buffer.from(m.sig).toString('hex');
         const peerId = Buffer.from(m.peer).toString('hex');
 
@@ -139,20 +160,105 @@ function renderPackets(messages: any[]) {
         const yPos = m.round * SPREAD_Y * PACKET_SCALE;
         const position = [xPos, yPos, 0];
 
-        const packetMesh = new THREE.Mesh(packetGeometry, packetMat);
+        let packetMesh: THREE.Mesh;
+        if (threeObjects.has(msgId)) {
+            packetMesh = threeObjects.get(msgId);
+        } else {
+            packetMesh = new THREE.Mesh(packetGeometry, packetMat);
+            scene.add(packetMesh);
+            threeObjects.set(msgId, packetMesh);
+        }
+
+        // FIXME: We have to always set position as we position the packets by offset round
         packetMesh.position.set(position[0], position[1], position[2]);
-        scene.add(packetMesh);
+
+        hasRendered.set(msgId, true);
 
         const props = {
             key: msgId,
             acks: m.acks.map((ack) => Buffer.from(ack).toString('hex')),
             parent: m.parent ? Buffer.from(m.parent).toString('hex') : null,
             position,
-            mesh: packetMesh,
         };
         data.set(msgId, props);
         return data;
     }, new Map());
+
+    return packets;
+}
+
+function renderLines(packets: Map<string, any>) {
+    const lines = Array.from(packets.values()).reduce((data, packet) => {
+        const fromPos = [...packet.position];
+        const parentPos =
+            packet.parent && packets.has(packet.parent)
+                ? [...packets.get(packet.parent).position]
+                : null;
+        if (parentPos) {
+            // console.log('line', fromPos, parentPos);
+            data.push({
+                key: `${packet.key}-${packet.parent}`,
+                points: [fromPos, parentPos],
+            });
+        }
+        packet.acks.forEach((ack) => {
+            const toAckPos =
+                ack && packets.has(ack) ? [...packets.get(ack).position] : null;
+            if (toAckPos) {
+                data.push({
+                    key: `${packet.key}-${ack}`,
+                    points: [fromPos, toAckPos],
+                    color: 0xefefef,
+                });
+            }
+        });
+        return data;
+    }, []);
+
+    lines.forEach(({ key, ...props }) => {
+        if (threeObjects.has(key)) {
+            // Redraw line in new pos if exists
+            let line = threeObjects.get(key);
+
+            // Didn't work!
+            // line.geometry.setFromPoints([
+            //     new THREE.Vector3(...props.points[0]),
+            //     new THREE.Vector3(...props.points[1]),
+            // ]);
+
+            scene.remove(line);
+            line.geometry.dispose();
+            line.material.dispose();
+            line = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(...props.points[0]),
+                    new THREE.Vector3(...props.points[1]),
+                ]),
+                new THREE.LineBasicMaterial({
+                    color: props.color || DEFAULT_LINE_COLOR,
+                    linewidth: LINE_WIDTH,
+                }),
+            );
+            scene.add(line);
+            threeObjects.set(key, line);
+        } else {
+            // Create new line
+            const line = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(...props.points[0]),
+                    new THREE.Vector3(...props.points[1]),
+                ]),
+                new THREE.LineBasicMaterial({
+                    color: props.color || DEFAULT_LINE_COLOR,
+                    linewidth: LINE_WIDTH,
+                }),
+            );
+            scene.add(line);
+            threeObjects.set(key, line);
+        }
+
+        hasRendered.set(key, true);
+    });
 }
 
 const exports = {
