@@ -213,49 +213,49 @@ jobs:
             ##############################
             # disabled as ssc build  fails ... wait til 0.6 released
             ###################################
-            # - name: cache socket build
-            #   id: cache-ssc
-            #   uses: actions/cache@v3
-            #   env:
-            #       cache-name: cache-ssc
-            #   with:
-            #       path: './socket/build'
-            #       key: ${{ runner.os }}-ssc-${{ hashFiles('socket/.git/refs/heads/*') }}
-            #       restore-keys: |
-            #           ${{ runner.os }}-ssc-${{ env.cache-name }}-
-            #           ${{ runner.os }}-ssc-
-            #           ${{ runner.os }}-
-            # - name: build ssc
-            #   working-directory: './socket'
-            #   shell: pwsh
-            #   run: |
-            #       ./bin/install.ps1 -verbose -yesdeps
-            #   env:
-            #       NO_ANDROID: '1'
-            #       SSC_ANDROID_CI: 'false'
-            #       CI: 'true'
-            #       WindowsSDKVersion: '10.0.22621.0'
-            # - name: ssc env
-            #   working-directory: './socket'
-            #   shell: pwsh
-            #   run: |
-            #       echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
-            #       echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
-            #   env:
-            #       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-            # - name: build app
-            #   working-directory: './app'
-            #   run: |
-            #       ssc --version
-            #       pnpm install
-            #       pnpm run build
-            #       ls build/**/*
-            # - name: Upload Release Asset
-            #   uses: actions/upload-release-asset@v1
-            #   env:
-            #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            #   with:
-            #       upload_url: '${{ github.event.release.upload_url }}'
-            #       asset_path: './app/build/win/${{ env.APP_NAME }}.appx'
-            #       asset_name: '${{ env.APP_NAME }}-win-x64.appx'
-            #       asset_content_type: 'application/appx'
+            - name: cache socket build
+              id: cache-ssc
+              uses: actions/cache@v3
+              env:
+                  cache-name: cache-ssc
+              with:
+                  path: './socket/build'
+                  key: ${{ runner.os }}-ssc-${{ hashFiles('socket/.git/refs/heads/*') }}
+                  restore-keys: |
+                      ${{ runner.os }}-ssc-${{ env.cache-name }}-
+                      ${{ runner.os }}-ssc-
+                      ${{ runner.os }}-
+            - name: build ssc
+              working-directory: './socket'
+              shell: pwsh
+              run: |
+                  ./bin/install.ps1 -verbose -yesdeps
+              env:
+                  NO_ANDROID: '1'
+                  SSC_ANDROID_CI: 'false'
+                  CI: 'true'
+                  WindowsSDKVersion: '10.0.22621.0'
+            - name: ssc env
+              working-directory: './socket'
+              shell: pwsh
+              run: |
+                  echo "::add-path::$env:LOCALAPPDATA\Programs\socketsupply\bin"
+                  echo "$env:LOCALAPPDATA\Programs\socketsupply\bin" >> $env:GITHUB_PATH
+              env:
+                  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+            - name: build app
+              working-directory: './app'
+              run: |
+                  ssc --version
+                  pnpm install
+                  pnpm run build
+                  ls build/**/*
+            - name: Upload Release Asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: '${{ github.event.release.upload_url }}'
+                  asset_path: './app/build/win/${{ env.APP_NAME }}.appx'
+                  asset_name: '${{ env.APP_NAME }}-win-x64.appx'
+                  asset_content_type: 'application/appx'

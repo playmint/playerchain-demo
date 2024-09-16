@@ -5,10 +5,10 @@ import application from 'socket:application';
 import gc from 'socket:gc';
 import App from './App';
 import './styles/reset.css';
-import { setSystemMenu } from './system/menu';
+import { setContextMenu, setSystemMenu } from './system/menu';
 
 async function init() {
-    // await setContextMenu();
+    await setContextMenu();
     await setSystemMenu();
 
     // await hello(); //.then((x) => alert(`got ${JSON.stringify(x)}`));
