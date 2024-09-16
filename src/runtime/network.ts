@@ -1,8 +1,6 @@
-import type EventEmitter from 'socket:events';
 import { NETWORK_ID } from './config';
 import { DB, NetworkInfo } from './db';
-import Peer from './network/Peer';
-import { RemotePeer } from './network/RemotePeer';
+import Peer, { Keys, PeerConfig } from './network/Peer';
 import * as NAT from './network/nat';
 
 export type Ports = {
@@ -25,22 +23,22 @@ async function getPorts(): Promise<Ports> {
 }
 
 export type SocketNetwork = {
-    socket: SocketCluster;
+    socket: Peer;
     shutdown: () => void;
 };
 
 export async function createSocketCluster({
     db,
     keys,
-    network,
+    dgram,
     clusterId,
     config,
 }: {
     db: DB;
-    keys: ClientKeys;
-    network: SocketClusterConstructor;
+    keys: Keys;
     clusterId: Uint8Array;
-    config?: SocketPersistedState;
+    config: PeerConfig;
+    dgram: typeof import('node:dgram');
 }): Promise<SocketNetwork> {
     const onShutdown: any[] = [];
     const defer = (fn: any) => {
@@ -61,34 +59,20 @@ export async function createSocketCluster({
 
     await db.network.put(info);
 
-    const socket = await network({
-        peerId: info.peerId,
-        clusterId: info.clusterId,
-        keepalive: info.keepalive,
-        signingKeys: keys,
-        // worker: false,
-        ...ports,
-        ...(config || {}),
-        // config: config
-        //     ? {
-        //           ...ports,
-        //           peerId: info.peerId,
-        //           clusterId: info.clusterId,
-        //           signingKeys: keys,
-        //           keepalive: info.keepalive,
-        //       }
-        //     : undefined,
-    });
+    const socket = new Peer(config, dgram);
+    await socket.init();
+
     console.log('started net');
     defer(() => {
-        socket.disconnect();
         socket.close();
     });
 
     const onApplicationResume = () => {
         console.log('APPLICATION RESUME');
         if (socket) {
-            socket.reconnect();
+            socket.reconnect().catch((err) => {
+                console.error('reconnect-err:', err);
+            });
         }
     };
     globalThis.addEventListener('applicationresume', onApplicationResume);
@@ -110,7 +94,9 @@ export async function createSocketCluster({
     const onOnline = () => {
         console.log('APPLICATION ONLINE');
         if (socket) {
-            socket.reconnect();
+            socket.reconnect().catch((err) => {
+                console.error('reconnect-err:', err);
+            });
         }
         db.network.update(NETWORK_ID, { online: true }).catch((err) => {
             console.error('network-online-update-err:', err);
@@ -145,25 +131,8 @@ export async function createSocketCluster({
                 console.error('network-ready-update-err:', err);
             });
     };
-    socket.on('#ready', onReady);
-    defer(() => socket.off('#ready', onReady));
+    socket.onReady = onReady;
 
-    // store the nat type
-    const onNat = (natType: number) => {
-        console.log('nat updated');
-        db.network
-            .update(NETWORK_ID, {
-                natType,
-                natName: NAT.toString(natType),
-            })
-            .catch((err) => {
-                console.error('network-nat-update-err:', err);
-            });
-    };
-    socket.on('#nat', onNat);
-    defer(() => socket.off('#nat', onNat));
-
-    //
     // Debugging! Just tweak to filter logs, this is a firehose!
     // Don't listen to debug in production, it can strain the CPU.
     // eslint-disable-next-line no-constant-condition
@@ -172,7 +141,7 @@ export async function createSocketCluster({
         globalThis.process?.env?.SS_DEBUG === 'true'
     ) {
         let clock = Date.now();
-        socket.on('#debug', (pid, str) => {
+        socket.onDebug = (pid, str) => {
             pid = pid.slice(0, 6);
 
             // if (str.includes('SYNC')) {
@@ -219,12 +188,12 @@ export async function createSocketCluster({
             const delta = Date.now() - clock;
             console.log(pid, str, `[${delta}ms]`);
             clock = Date.now();
-        });
+        };
     }
 
-    socket.on('#error', (err) => {
+    socket.onError = (err) => {
         console.error('SOCKET ERROR', err);
-    });
+    };
     // socket.on('#packet', (...args) => console.log('PACKET', ...args))
     // socket.on('#send', (...args) => console.log('SEND', ...args))
 
@@ -237,81 +206,9 @@ export async function createSocketCluster({
     return { socket, shutdown };
 }
 
-// better socket types
-export interface ClientKeys {
-    publicKey: Uint8Array;
-    privateKey: Uint8Array;
-}
-
-export type SocketPeer = Omit<EventEmitter, 'emit'> & {
-    peerId: string; // 32 byte hex string
-    address: string;
-    port: number;
-    _peer?: {
-        connected: boolean;
-        proxies: Map<string, RemotePeer>; // if set then we are proxying to get to this peer
-        localPeer?: any;
-        lastUpdate: number;
-        lastRequest: number;
-        natType: number;
-    };
-    emit(
-        eventName: string,
-        value: Uint8Array | Buffer,
-        opts?: SocketEmitOpts,
-    ): Promise<unknown>;
-    stream(
-        eventName: string,
-        value: Uint8Array | Buffer,
-        opts?: SocketEmitOpts,
-    ): Promise<unknown>;
-};
 export interface SocketEmitOpts {
     ttl?: number;
 }
-export type SocketSubcluster = Omit<EventEmitter, 'emit'> & {
-    // peerId: string; // 32 byte hex string
-    subclusterId: Buffer; // bufferize public key from the derived key
-    sharedKey: Uint8Array; // the shared secret
-    derivedKeys: ClientKeys; // the keypair derived from the shared key
-    peers: Map<string, SocketPeer>;
-    emit(
-        eventName: string,
-        value: Uint8Array | Buffer,
-        opts?: SocketEmitOpts,
-    ): Promise<unknown>;
-    stream(
-        eventName: string,
-        value: Uint8Array | Buffer,
-        opts?: SocketEmitOpts,
-    ): Promise<unknown>;
-    join(): any;
-};
-export type SocketCluster = Omit<EventEmitter, 'emit'> & {
-    subclusters: Map<string, SocketSubcluster>; // subclusterId => subcluster
-    emit(
-        eventName: string,
-        value: Uint8Array | Buffer,
-        opts?: SocketEmitOpts,
-    ): Promise<unknown>;
-    subcluster(opts: { sharedKey: Uint8Array }): Promise<SocketSubcluster>;
-    getInfo(): object;
-    getMetrics(): object;
-    getState(): object;
-    addIndexedPeer(peerInfo: {
-        peerId: string;
-        address: string;
-        port: number;
-    }): void;
-    close(): void;
-    sync(peerId: string): void;
-    reconnect(): void;
-    disconnect(): void;
-    _peer: Peer;
-    MAX_CACHE_TTL: number;
-};
-
-export type SocketClusterConstructor = (cfg: any) => Promise<SocketCluster>;
 
 export type SocketRPCGetMessagesByHeight = {
     name: 'requestMessagesBySig';
@@ -327,19 +224,4 @@ export type SocketRPCRequest = SocketRPCGetMessagesByHeight;
 export type SocketRPCResponse = {
     err?: string;
     result?: any;
-};
-
-export type SocketPeerState = {
-    address: string;
-    port: number;
-    peerId: string; // hex enc
-    natType: number;
-    indexed: boolean;
-};
-export type SocketPersistedState = {
-    address?: string;
-    port?: number;
-    indexed?: boolean;
-    natType?: number;
-    limitExempt?: boolean;
 };

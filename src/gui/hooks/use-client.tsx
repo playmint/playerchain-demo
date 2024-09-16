@@ -3,7 +3,7 @@ import type { Client, ClientConfig } from '../../runtime/client';
 
 export type ClientUserConfig = Omit<
     ClientConfig,
-    'network' | 'NAT' | 'Buffer' | 'crypto' | 'clusterId'
+    'clusterId' | 'dgram' | 'config'
 >;
 
 export interface ClientContextType {

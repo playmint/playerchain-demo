@@ -1,16 +1,11 @@
 import * as Comlink from 'comlink';
 import dgram from 'socket:dgram';
-import events from 'socket:events';
 import { Client, ClientConfig } from '../../runtime/client';
 import { CLUSTER_ID } from '../../runtime/config';
 import { Message, UnsignedMessage } from '../../runtime/messages';
 import { Encryption } from '../../runtime/network/Peer';
-import api from '../../runtime/network/api';
 import { Packet, TransportEmitOpts } from '../../runtime/transport';
 import type { ClientUserConfig } from '../hooks/use-client';
-
-const network = (options) =>
-    api(options, events, dgram as unknown as typeof import('node:dgram'));
 
 // socket is broken
 // globalThis.window = self;
@@ -21,11 +16,14 @@ let client: Client;
 export async function init(userConfig: ClientUserConfig) {
     const clusterId = await Encryption.createClusterId(CLUSTER_ID);
     const cfg: ClientConfig = {
-        ...userConfig,
+        dbname: userConfig.dbname,
         clusterId,
-        network,
+        keys: userConfig.keys,
+        dgram: dgram as any,
         config: {
             limitExempt: true,
+            signingKeys: userConfig.keys,
+            clusterId,
         },
     };
     // client = await Client.from(cfg);

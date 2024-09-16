@@ -4,7 +4,7 @@ import _sodium from 'libsodium-wrappers';
 import { LRUCache } from 'lru-cache';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:latica';
-import { Channel, ChannelInfo, PeerStatus } from './channels';
+import { Channel, ChannelInfo } from './channels';
 import database, { DB, StoredMessage } from './db';
 import {
     Base64ID,
@@ -16,15 +16,12 @@ import {
     UnsignedMessage,
 } from './messages';
 import {
-    SocketClusterConstructor,
     SocketNetwork,
-    SocketPeer,
-    SocketPersistedState,
     SocketRPCGetMessagesByHeight,
     SocketRPCRequest,
     createSocketCluster,
 } from './network';
-import { Peer } from './peer';
+import { PeerConfig } from './network/Peer';
 import { Packet, PacketType, TransportEmitOpts } from './transport';
 import { CancelFunction, bufferedCall, setPeriodic } from './utils';
 
@@ -39,9 +36,9 @@ export interface ClientKeys {
 export interface ClientConfig {
     keys: ClientKeys;
     dbname: string;
-    network: SocketClusterConstructor;
+    dgram: typeof import('node:dgram');
     clusterId: Uint8Array;
-    config?: SocketPersistedState;
+    config: PeerConfig;
     enableSync?: boolean;
 }
 
@@ -59,7 +56,6 @@ export class Client {
     parent: Message | null = null;
     parentParent: Message | null = null;
     committing: boolean = false;
-    peers: Map<string, Peer> = new Map();
     channels: Map<string, Channel> = new Map();
     threads: CancelFunction[] = [];
     recentlyAckedMessage = new LRUCache<string, boolean>({
@@ -103,9 +99,9 @@ export class Client {
         this.net = await createSocketCluster({
             db: this.db,
             keys: config.keys,
-            network: config.network,
             clusterId: config.clusterId,
             config: config.config,
+            dgram: config.dgram,
         });
         // this.net.socket.on('#disconnect', this.onPeerDisconnect);
         this.debug('starting-head-reporter');
@@ -131,80 +127,6 @@ export class Client {
         }
         this.debug('init-ready');
     }
-
-    private onPeerLeave = bufferedCall(
-        async (peerId: string, channel: Channel) => {
-            this.debug(
-                `peer-leave peer=${peerId.slice(0, 8)} channel=${channel.id.slice(0, 8)}`,
-            );
-            return; // FIXME: ignore leaves for now
-            // const peer = this.peers.get(peerId);
-            // if (!peer) {
-            //     return;
-            // }
-            // peer.sockets.delete(channel.id);
-            // peer.channels.delete(channel.id);
-        },
-        10,
-        'onPeerLeave',
-    );
-
-    private onPeerJoin = bufferedCall(
-        async (socket: SocketPeer, status: PeerStatus, channel: Channel) => {
-            const pk = Buffer.from(socket.peerId, 'hex');
-            this.debug(
-                `peer-join peer=${socket.peerId.slice(0, 8)} channel=${channel.id.slice(0, 8)}`,
-            );
-            let peer = this.peers.get(socket.peerId);
-            if (!peer) {
-                let info = await this.db.peers.get(socket.peerId);
-                if (!info) {
-                    info = {
-                        peerId: socket.peerId,
-                        lastSeen: -1,
-                        validHeight: -1,
-                        knownHeight: -1,
-                        channels: [channel.id],
-                        proxy: status.proxy,
-                        sees: [],
-                        playerName: '',
-                    };
-                    await this.db.peers.put(info);
-                }
-                peer = new Peer({
-                    pk,
-                    sockets: new Map(),
-                    channels: new Map(),
-                    client: this,
-                    lastSeen: -1,
-                    onPacket: this.onPacket,
-                    Buffer: Buffer,
-                });
-                this.peers.set(socket.peerId, peer);
-            }
-            // add peer to socket list
-            peer.sockets.set(channel.id, socket);
-            peer.channels.set(channel.id, channel);
-            await this.db.peers.update(socket.peerId, {
-                proxy: status.proxy,
-            });
-        },
-        100,
-        'onPeerJoin',
-    );
-
-    private onPeerDisconnect = bufferedCall(
-        async (socket: SocketPeer) => {
-            this.debug('peer-disconnected', socket.peerId.slice(0, 8));
-            const peer = this.peers.get(socket.peerId);
-            if (peer) {
-                await peer.destroy();
-                this.peers.delete(socket.peerId);
-            }
-        },
-        10,
-        'onPeerDisconnect',
-    );
 
     // commit will sign, store and broadcast the message
     async commit(
@@ -381,9 +303,11 @@ export class Client {
             case PacketType.SYNC_NEED:
                 return;
             case PacketType.MESSAGE:
+                // this.debug('GOT onPacket', 'MESSAGE', packet.msgs.length);
                 await this.onMessages(packet.msgs);
                 return;
             case PacketType.KEEP_ALIVE:
+                // this.debug('GOT onPacket', 'KEEP_ALIVE');
                 return;
             default:
                 console.warn('unhandled-packet', packet);
@@ -680,11 +604,6 @@ export class Client {
                     ttl: 1000,
                 },
             );
-            // this.debug('keep-alive');
-            // send channel join
-            if (ch.socket) {
-                ch.socket.join();
-            }
             // sync channel name with genesis and rebroadcast it
             const channelSig = Uint8Array.from(atob(ch.id), (c) =>
                 c.charCodeAt(0),
@@ -720,8 +639,9 @@ export class Client {
                     });
                 }
             }
-            const socketPeers = Array.from(ch.socket.peers.keys())
-                .map((peerId) => peerId.slice(0, 8))
+            const subclusterPeers = ch.subcluster
+                .peers()
+                .map((p) => p.peerId.slice(0, 8))
                 .sort()
                 .join(',');
             const ourPeers = connectedPeers
@@ -736,13 +656,14 @@ export class Client {
                 .map((peerId) => peerId.slice(0, 8))
                 .sort()
                 .join(',');
-            const netPeers = Array.from(this.net.socket._peer.peers.keys())
+            const netPeers = Array.from(this.net.socket.peers.keys())
                 .map((peerId) => peerId.slice(0, 8))
                 .sort()
                 .join(',');
             this.debug(`
                 peer-info
-                socketPeers=${socketPeers}
+                scid=${ch.subcluster.scid.slice(0, 6)}
+                subclusterPeers=${subclusterPeers}
                 ourPeers=${ourPeers}
                 alivePeers=${alivePeers}
                 lastKnowPeers=${lastKnowPeers}
@@ -782,7 +703,11 @@ export class Client {
     private async updateChannelConfig(id: string): Promise<ChannelInfo> {
         let info = await this.db.channels.get(id);
         if (!info) {
-            info = { id, name: '', peers: [], creator: '' };
+            const sharedKey = await Encryption.createSharedKey(id);
+            const signingKeys = await Encryption.createKeyPair(sharedKey);
+            const subclusterId = signingKeys.publicKey;
+            const scid = Buffer.from(subclusterId).toString('base64');
+            info = { id, name: '', peers: [], creator: '', scid };
             await this.db.channels.put(info);
         }
         return info;
@@ -793,21 +718,21 @@ export class Client {
         if (!channel) {
             this.debug('creating-channel', config.id);
             const sharedKey = await Encryption.createSharedKey(config.id);
-            const socket = await this.net.socket.subcluster({
+            const subcluster = await this.net.socket.join({
                 sharedKey,
             });
-            socket.on(`rpc`, this.onRPCRequest);
+            subcluster.onRPC = this.onRPCRequest;
             channel = new Channel({
                 id: config.id,
                 client: this,
-                socket,
+                subcluster,
                 name: config.name || '',
-                onPeerJoin: this.onPeerJoin,
-                onPeerLeave: this.onPeerLeave,
                 onPacket: this.onPacket,
                 Buffer: Buffer,
             });
-            this.debug('monitor-channel', channel.shortId, socket.subclusterId);
+            this.debug(
+                `monitor-channel chid=${config.id.slice(0, 6)} scid=${subcluster.scid.slice(0, 6)}`,
+            );
         }
         this.channels.set(config.id, channel);
     }
@@ -880,7 +805,7 @@ export class Client {
         }
     };
 
-    private onRPCRequest = bufferedCall(async (b: Uint8Array) => {
+    private onRPCRequest = bufferedCall(async (b: Buffer) => {
         const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
         if (req.sender === this.peerId) {
             // don't answer own requests!
@@ -949,14 +874,8 @@ export class Client {
         for (const cancel of this.threads) {
             cancel();
         }
-        if (this.net.socket) {
-            this.net.socket.off('#disconnect', this.onPeerDisconnect);
-        }
         for (const ch of this.channels.values()) {
             ch.destroy();
-        }
-        for (const peer of this.peers.values()) {
-            await peer.destroy();
         }
         if (this.active) {
             this.active = false;

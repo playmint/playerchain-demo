@@ -457,7 +457,7 @@ declare module "socket:buffer" {
         toLocaleString: any;
         equals(b: any): boolean;
         inspect(): string;
-        compare(target: any, start: any, end: any, thisStart: any, thisEnd: any): 0 | 1 | -1;
+        compare(target: any, start?: any, end?: any, thisStart?: any, thisEnd?: any): 0 | 1 | -1;
         includes(val: any, byteOffset: any, encoding: any): boolean;
         indexOf(val: any, byteOffset: any, encoding: any): any;
         lastIndexOf(val: any, byteOffset: any, encoding: any): any;

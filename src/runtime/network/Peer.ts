@@ -6,7 +6,9 @@ import { randomBytes, sodium } from 'socket:crypto';
 import { isBufferLike } from 'socket:util';
 import { BOOTSTRAP_PEERS } from '../bootstrap';
 import { RemotePeer } from './RemotePeer';
+import { Subcluster, SubclusterConfig } from './Subcluster';
 import { Cache } from './cache';
+import type { defaultSiblingResolver } from './cache';
 import { Encryption } from './encryption';
 import * as NAT from './nat';
 import {
@@ -45,7 +47,6 @@ export const DEFAULT_RATE_LIMIT_THRESHOLD: number = 8000;
 
 const PRIV_PORTS = 1024;
 const MAX_PORTS = 65535 - PRIV_PORTS;
-const MAX_BANDWIDTH = 1024 * 32;
 
 const PEERID_REGEX = /^([A-Fa-f0-9]{2}){32}$/;
 
@@ -78,12 +79,13 @@ interface Rate {
     quota: number;
     used: number;
 }
+
 export function rateLimit(
     rates: Map<string, Rate>,
     type: number,
     port: number,
     address: string,
-    subclusterIdQuota,
+    subclusterIdQuota?: number,
 ): boolean {
     const R = isReplicatable(type);
     const key = (R ? 'R' : 'C') + ':' + address + ':' + port;
@@ -109,15 +111,41 @@ export function rateLimit(
     return rate.used >= rate.quota;
 }
 
+export interface Keys {
+    publicKey: Uint8Array;
+    privateKey: Uint8Array;
+}
+
+export type PeerConfig = {
+    signingKeys: Keys;
+    clusterId: Uint8Array;
+    address?: string;
+    port?: number;
+    probeInternalPort?: number;
+    indexed?: boolean;
+    natType?: number;
+    limitExempt?: boolean;
+    siblingResolver?: typeof defaultSiblingResolver;
+    keepalive?: number;
+};
+
 export class Peer {
-    port: number;
-    address: string;
-    natType = NAT.UNKNOWN;
+    port: number | null;
+    address: string | null;
+    indexed: boolean;
+    limitExempt: boolean;
+    natType: number | null = NAT.UNKNOWN;
     nextNatType = NAT.UNKNOWN;
-    clusters: Record<string, any> = {};
+    clusterId: Uint8Array;
+    cid: string;
+    peers: Map<string, RemotePeer>;
+    subclusters: Map<string, Subcluster> = new Map();
+    peerMapping: Map<string, Set<string>> = new Map(); // peerId -> Set<subclusterId>
     reflectionId = null;
     reflectionTimeout: any = null;
     probeReflectionTimeout: any = null;
+    probeInternalPort: number | null;
+    probeExternalPort?: number;
     reflectionStage = 0;
     reflectionRetry = 1;
     reflectionFirstResponder: any = null;
@@ -133,13 +161,11 @@ export class Peer {
     uptime = 0;
     maxHops = 8; // should be 16
     bdpCache: number[] = [];
-    indexed: boolean = false;
-    clusterId?: Uint8Array;
     sendTimeout?: any;
     mainLoopTimer?: any;
+    keepalive: number;
 
     dgram: typeof import('node:dgram');
-    config: any;
 
     onListening?: () => void;
     onDelete?: (packet: Packet) => void;
@@ -159,11 +185,9 @@ export class Peer {
     onDisconnection?: (peer: RemotePeer) => void;
     onReady?: (info: object) => void;
     onMessage?: (msg: Buffer, rinfo: any) => void;
-    onPacket?: (...args: any[]) => void;
     onData?: (...args: any[]) => void;
     onLimit?: (...args: any[]) => boolean | undefined;
     onClose?: () => void;
-    onJoin?: (...args: any[]) => void;
     onConnection?: (...args: any[]) => void;
 
     metrics = {
@@ -171,15 +195,21 @@ export class Peer {
         o: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 },
     };
 
-    peers: Map<string, RemotePeer>;
-
-    constructor(persistedState: any, dgram: typeof import('node:dgram')) {
+    constructor(config: PeerConfig, dgram: typeof import('node:dgram')) {
         if (!dgram) {
             throw new Error(
                 'dgram implementation required in constructor as second argument',
             );
         }
         this.dgram = dgram;
+
+        this.peerId = Buffer.from(config.signingKeys.publicKey).toString('hex');
+        this.encryption = new Encryption();
+        this.clusterId = config.clusterId;
+        this.cid = Buffer.from(this.clusterId).toString('base64');
+        this.limitExempt = !!config.limitExempt;
+        this.indexed = !!config.indexed;
+        this.keepalive = config.keepalive ?? DEFAULT_KEEP_ALIVE;
 
         // initial peer list
         // hardcoding this is temporary, you need at least one peer to connect to
@@ -188,49 +218,32 @@ export class Peer {
         this.peers = new Map(
             BOOTSTRAP_PEERS.map((o) => [
                 o.peerId,
-                new RemotePeer({ ...o, indexed: true, localPeer: this }),
+                new RemotePeer({
+                    ...o,
+                    indexed: true,
+                    localPeer: this,
+                    clock: 0,
+                    clusterId: this.clusterId,
+                }),
             ]),
         );
 
-        const config = persistedState?.config ?? persistedState ?? {};
-
-        this.encryption = new Encryption();
-
-        if (!config.peerId) {
-            throw new Error('constructor expected .peerId');
-        }
-        if (!Peer.isValidPeerId(config.peerId)) {
-            throw new Error(`invalid .peerId (${config.peerId})`);
-        }
-
-        //
-        // The purpose of this.config is to seperate transitioned state from initial state.
-        //
-        this.config = {
-            keepalive: DEFAULT_KEEP_ALIVE,
-            ...config,
-        };
-
         let cacheData;
-
-        if (persistedState?.data?.length > 0) {
-            cacheData = new Map(persistedState.data);
-        }
-
+        // if (persistedState?.data?.length > 0) {
+        //     cacheData = new Map(persistedState.data);
+        // }
         this.cache = new Cache(cacheData, config.siblingResolver);
         this.cache.onEjected = (p) => this.mcast(p);
         // this.cache.onEjected = (_p) => {};
 
-        this.unpublished = persistedState?.unpublished || {};
-
-        this.peerId = config.peerId;
-        Object.assign(this, config); // FIXME: do this properly
+        this.unpublished = {};
 
         if (!this.indexed && !this.clusterId) {
             throw new Error('constructor expected .clusterId');
         }
 
         this.port = config.port || null;
+        this.probeInternalPort = config.probeInternalPort || null;
         this.natType = config.natType || null;
         this.address = config.address || null;
 
@@ -284,13 +297,13 @@ export class Peer {
             new Promise((resolve) => this.probeSocket.on('listening', resolve)),
         ]);
 
-        this.socket.bind(this.config.port || 0);
-        this.probeSocket.bind(this.config.probeInternalPort || 0);
+        this.socket.bind(this.port || 0);
+        this.probeSocket.bind(this.probeInternalPort || 0);
 
         await listening;
 
-        this.config.port = this.socket.address().port;
-        this.config.probeInternalPort = this.probeSocket.address().port;
+        this.port = this.socket.address().port;
+        this.probeInternalPort = this.probeSocket.address().port;
 
         if (this.onListening) {
             this.onListening();
@@ -298,7 +311,7 @@ export class Peer {
         this.isListening = true;
 
         this._onDebug(
-            `++ INIT (config.internalPort=${this.config.port}, config.probeInternalPort=${this.config.probeInternalPort})`,
+            `++ INIT (config.internalPort=${this.port}, config.probeInternalPort=${this.probeInternalPort})`,
         );
     }
 
@@ -314,7 +327,7 @@ export class Peer {
         await this._mainLoop(Date.now());
         this.mainLoopTimer = setInterval(
             () => this._mainLoop(Date.now()),
-            this.config.keepalive,
+            this.keepalive,
         );
 
         if (this.indexed && this.onReady) {
@@ -339,7 +352,7 @@ export class Peer {
             await this.requestReflection();
         }
 
-        this.uptime += this.config.keepalive;
+        this.uptime += this.keepalive;
 
         // heartbeat
         for (const [_, peer] of this.peers) {
@@ -357,16 +370,15 @@ export class Peer {
         }
 
         for (const [k, packet] of [...this.cache.data]) {
-            const p: any = Packet.from(packet);
+            const p = Packet.from(packet);
             if (!p) {
                 continue;
             }
             if (!p.timestamp) {
                 p.timestamp = ts;
             }
-            const clusterId = p.clusterId.toString('base64');
-
-            const mult = this.clusters[clusterId] ? 2 : 1;
+            const cid = p.clusterId.toString('base64');
+            const mult = this.cid === cid ? 2 : 1;
             const ttl = p.ttl < Packet.ttl ? p.ttl : Packet.ttl * mult;
             const deadline = p.timestamp + ttl;
 
@@ -396,8 +408,7 @@ export class Peer {
             if (peer.indexed) {
                 continue;
             }
-            const expired =
-                peer.lastUpdate + this.config.keepalive * 4 < Date.now();
+            const expired = peer.lastUpdate + this.keepalive * 4 < Date.now();
             if (!expired) {
                 continue;
             }
@@ -431,14 +442,7 @@ export class Peer {
 
         // if this peer has previously tried to join any clusters, multicast a
         // join messages for each into the network so we are always searching.
-        for (const cluster of Object.values(this.clusters)) {
-            for (const subcluster of Object.values(cluster)) {
-                await this.join(
-                    (subcluster as any).sharedKey,
-                    subcluster as any,
-                );
-            }
-        }
+        await this.reconnect();
         return true;
     }
 
@@ -472,10 +476,10 @@ export class Peer {
         });
     }
 
-    async stream(peerId, sharedKey, args) {
+    async stream(peerId: string, subcluster: Subcluster, args: any) {
         const p = this.peers.get(peerId);
         if (p) {
-            return p.write(sharedKey, args);
+            return p.write(subcluster, args);
         }
     }
 
@@ -504,7 +508,7 @@ export class Peer {
      * Get the serializable state of the peer (can be passed to the constructor or create method)
      */
     getState() {
-        this.config.clock = this.clock; // save off the clock
+        const clock = this.clock; // save off the clock
 
         const peers = Array.from(this.peers.values()).map((p) => {
             const p2: any = { ...p };
@@ -514,9 +518,10 @@ export class Peer {
 
         return {
             peers,
-            config: this.config,
+            clock,
             data: [...this.cache.data.entries()],
             unpublished: this.unpublished,
+            // FIXME: this is missing most of the stuff since refactoring
         };
     }
 
@@ -533,7 +538,10 @@ export class Peer {
     }
 
     async cacheInsert(packet) {
-        const p: any = Packet.from(packet);
+        const p = Packet.from(packet);
+        if (!p) {
+            return;
+        }
         this.cache.insert(p.packetId.toString('hex'), p);
     }
 
@@ -552,13 +560,8 @@ export class Peer {
     }
 
     async reconnect() {
-        for (const cluster of Object.values(this.clusters)) {
-            for (const subcluster of Object.values(cluster)) {
-                await this.join(
-                    (subcluster as any).sharedKey,
-                    subcluster as any,
-                );
-            }
+        for (const [_, subcluster] of this.subclusters) {
+            await this.join(subcluster);
         }
     }
 
@@ -608,7 +611,7 @@ export class Peer {
             if (p.lastUpdate === 0) {
                 return false;
             }
-            if (p.lastUpdate < Date.now() - this.config.keepalive * 4) {
+            if (p.lastUpdate < Date.now() - this.keepalive * 4) {
                 return false;
             }
             if (this.peerId === p.peerId) {
@@ -636,9 +639,9 @@ export class Peer {
             }
         }
 
-        const clusterId = packet.clusterId.toString('base64');
+        const cid = packet.clusterId.toString('base64');
         const friends = candidates.filter(
-            (p) => p.clusters && p.clusters[clusterId] && !list.includes(p),
+            (p) => p.cid === cid && !list.includes(p),
         );
         if (friends.length) {
             list.unshift(friends[0]);
@@ -685,7 +688,7 @@ export class Peer {
         if (
             this.natType &&
             this.lastUpdate > 0 &&
-            Date.now() - this.config.keepalive * 4 < this.lastUpdate
+            Date.now() - this.keepalive * 4 < this.lastUpdate
         ) {
             this._onDebug(
                 `<> REFLECT NOT NEEDED (last-recv=${Date.now() - this.lastUpdate}ms)`,
@@ -808,7 +811,7 @@ export class Peer {
         //
         if (this.reflectionStage === 1) {
             this.reflectionStage = 2;
-            const { probeExternalPort } = this.config;
+            const probeExternalPort = this.probeExternalPort;
 
             // peer1 is the most recently probed (likely the same peer used in step1)
             // using the most recent guarantees that the the NAT mapping is still open
@@ -880,7 +883,7 @@ export class Peer {
         props.message.requesterPeerId = this.peerId;
         props.message.uptime = this.uptime;
         props.message.timestamp = Date.now();
-        props.clusterId = this.config.clusterId;
+        props.clusterId = this.clusterId;
 
         const packet = new PacketPing(props);
         const data = await Packet.encode(packet);
@@ -916,44 +919,48 @@ export class Peer {
      * this peer, and starts querying the network to discover peers.
      */
     async join(
-        sharedKey: Uint8Array,
-        args: any = { rateLimit: MAX_BANDWIDTH },
-    ) {
-        const keys = await Encryption.createKeyPair(sharedKey);
-        this.encryption.add(keys.publicKey, keys.privateKey);
+        config: Omit<
+            SubclusterConfig,
+            'clusterId' | 'signingKeys' | 'localPeer'
+        >,
+    ): Promise<Subcluster> {
+        const signingKeys = await Encryption.createKeyPair(config.sharedKey);
+        const subclusterId = signingKeys.publicKey;
+        this.encryption.add(signingKeys.publicKey, signingKeys.privateKey);
+        const scid = Buffer.from(subclusterId).toString('base64');
 
-        if (!this.port || !this.natType) {
-            return;
+        let subcluster = this.subclusters.get(scid);
+        if (!subcluster) {
+            subcluster = new Subcluster({
+                ...config,
+                clusterId: this.clusterId,
+                localPeer: this,
+                signingKeys,
+            });
+            this.subclusters.set(subcluster.scid, subcluster);
         }
 
-        args.sharedKey = sharedKey;
-
-        const clusterId = args.clusterId || this.config.clusterId;
-        const subclusterId = keys.publicKey;
-
-        const cid = Buffer.from(clusterId || '').toString('base64');
-        const scid = Buffer.from(subclusterId || '').toString('base64');
-
-        this.clusters[cid] ??= {};
-        this.clusters[cid][scid] = args;
+        if (!this.port || !this.natType) {
+            return subcluster;
+        }
 
         this.clock += 1;
 
         const packet = new PacketJoin({
             clock: this.clock,
-            clusterId,
-            subclusterId,
+            clusterId: this.clusterId,
+            subclusterId: subcluster.subclusterId,
             message: {
                 requesterPeerId: this.peerId,
                 natType: this.natType,
                 address: this.address,
                 port: this.port,
-                key: [cid, scid].join(':'),
+                key: [this.cid, subcluster.scid].join(':'),
             },
         });
 
         this._onDebug(
-            `-> JOIN (clusterId=${cid.slice(0, 6)}, subclusterId=${scid.slice(0, 6)}, clock=${(packet as any).clock}/${this.clock})`,
+            `-> JOIN (clusterId=${this.cid.slice(0, 6)}, subclusterId=${scid.slice(0, 6)}, clock=${(packet as any).clock}/${this.clock})`,
         );
         if (this.onState) {
             this.onState();
@@ -961,6 +968,8 @@ export class Peer {
 
         await this.mcast(packet);
         this.gate.set(packet.packetId.toString('hex'), 1);
+
+        return subcluster;
     }
 
     async _message2packets(T: any, message: any, args) {
@@ -1081,32 +1090,26 @@ export class Peer {
      * it provided it has has not exceeded their maximum number of allowed hops.
      */
     async publish(
-        sharedKey,
+        subcluster: Subcluster,
         args: {
             message: Buffer;
             packet?: Packet | undefined;
-            clusterId?: string;
+            clusterId?: Uint8Array;
             subclusterId?: Uint8Array;
             usr1: Buffer;
             usr2: Buffer;
         },
     ): Promise<Array<PacketPublish>> {
-        // wtf to do here, we need subclusterId and the actual user keys
-        if (!sharedKey) {
-            throw new Error(
-                '.publish() expected "sharedKey" argument in first position',
-            );
-        }
         if (!isBufferLike(args.message)) {
             throw new Error(
                 '.publish() will only accept a message of type buffer',
             );
         }
 
-        const keys = await Encryption.createKeyPair(sharedKey);
+        const keys = subcluster.signingKeys;
 
         args.subclusterId = keys.publicKey;
-        args.clusterId = args.clusterId || this.config.clusterId;
+        args.clusterId = this.clusterId;
 
         const cache = new Map();
         const message = this.encryption.seal(args.message, keys);
@@ -1118,12 +1121,11 @@ export class Peer {
 
         for (let packet of packets) {
             packet = Packet.from(packet);
+            if (!packet) {
+                continue;
+            }
             cache.set(packet.packetId.toString('hex'), packet);
             await this.cacheInsert(packet);
-
-            if (this.onPacket && packet.index === -1) {
-                this.onPacket(packet, this.port, this.address, true);
-            }
 
             if (!Peer.onLine()) {
                 this.unpublished[packet.packetId.toString('hex')] = Date.now();
@@ -1208,9 +1210,6 @@ export class Peer {
             return;
         }
 
-        const cid = packet.clusterId.toString('base64');
-        const scid = packet.subclusterId.toString('base64');
-
         let peer = this.peers.get(peerId);
         const firstContact = !peer;
         if (!peer) {
@@ -1220,6 +1219,9 @@ export class Peer {
                 port,
                 natType,
                 localPeer: this,
+                clock: 0,
+                indexed: false,
+                clusterId: packet.clusterId,
             });
             this._onDebug(
                 `<- CONNECTION ADDING PEER (id=${peer.peerId}, address=${address}:${port})`,
@@ -1232,6 +1234,10 @@ export class Peer {
         peer.port = port;
         peer.natType = natType;
         peer.address = address;
+
+        // assign the peer any cluster we know about right now
+        const cid: string = packet.clusterId.toString('base64');
+        const scid: string = packet.subclusterId.toString('base64');
 
         if (proxy) {
             if (peer.proxies.has(proxy.peerId)) {
@@ -1260,15 +1266,6 @@ export class Peer {
             peer.socket = socket;
         }
 
-        if (cid) {
-            peer.clusters[cid] ??= {};
-        }
-
-        if (cid && scid) {
-            const cluster = peer.clusters[cid];
-            cluster[scid] = { rateLimit: MAX_BANDWIDTH };
-        }
-
         this._onDebug(
             '<- CONNECTION (' +
                 `peerId=${peer.peerId.slice(0, 6)}, ` +
@@ -1277,12 +1274,6 @@ export class Peer {
                 `clusterId=${cid.slice(0, 6)}, ` +
                 `subclusterId=${scid.slice(0, 6)})`,
         );
-
-        // THIS ONE CAUSES WRONG PEERS IN THE SUBCLUSTER LIST
-        // BUT REMOVING IT BREAKS EVERYTHING
-        if (this.onJoin && this.clusters[cid]) {
-            this.onJoin(packet, peer, port, address);
-        }
 
         if (firstContact && this.onConnection) {
             this.onConnection(packet, peer, port, address);
@@ -1546,7 +1537,7 @@ export class Peer {
         if (packet.hops >= this.maxHops) {
             return;
         }
-        if (!isNaN(ts) && ts + this.config.keepalive * 4 < Date.now()) {
+        if (!isNaN(ts) && ts + this.keepalive * 4 < Date.now()) {
             return;
         }
         if (packet.message.requesterPeerId === this.peerId) {
@@ -1580,8 +1571,8 @@ export class Peer {
                 address: peerAddress,
                 clock,
                 clusterId,
-                subclusterId,
                 localPeer: this,
+                indexed: false,
             });
         }
         peer.clock = clock;
@@ -1887,8 +1878,15 @@ export class Peer {
             return;
         }
 
-        const cid = clusterId.toString('base64');
-        const scid = subclusterId.toString('base64');
+        // register peer's interest in the subcluster
+        const cid: string = clusterId.toString('base64');
+        const scid: string = subclusterId.toString('base64');
+        let subs = this.peerMapping.get(peerId);
+        if (!subs) {
+            subs = new Set();
+            this.peerMapping.set(peerId, subs);
+        }
+        subs.add(scid);
 
         this._onDebug(
             '<- JOIN (' +
@@ -1900,18 +1898,13 @@ export class Peer {
                 `address=${address}:${port})`,
         );
 
-        // THIS ONE DOESN"T RESULT IN PEERS SHOWING UP IN THE CONNECTED SET?
-        if (this.onJoin && this.clusters[cid]) {
-            this.onJoin(packet, peer, port, address);
-        }
-
         //
         // This packet represents a peer who wants to join the network and is a
         // member of our cluster. The packet was replicated though the network
         // and contains the details about where the peer can be reached, in this
         // case we want to ping that peer so we can be introduced to them.
         //
-        if (rendezvousDeadline && !this.indexed && this.clusters[cid]) {
+        if (rendezvousDeadline && !this.indexed && this.cid === cid) {
             if (!packet.message.rendezvousRequesterPeerId) {
                 const pid = packet.packetId.toString('hex');
                 this.gate.set(pid, 2);
@@ -2060,8 +2053,7 @@ export class Peer {
             packet.message.rendezvousPort = this.port;
             packet.message.rendezvousType = this.natType;
             packet.message.rendezvousPeerId = this.peerId;
-            packet.message.rendezvousDeadline =
-                Date.now() + this.config.keepalive * 4;
+            packet.message.rendezvousDeadline = Date.now() + this.keepalive * 4;
         }
 
         this._onDebug(
@@ -2090,12 +2082,28 @@ export class Peer {
         this.metrics.i[packet.type]++;
 
         // only cache if this packet if i am part of this subclusterId
-        // const cluster = this.clusters[packet.clusterId]
+        // const cluster = this.clusters.get(packet.clusterId)
         // if (cluster && cluster[packet.subclusterId]) {
 
         const pid = packet.packetId.toString('hex');
         const cid = packet.clusterId.toString('base64');
         const scid = packet.subclusterId.toString('base64');
+
+        if (cid !== this.cid) {
+            this.metrics.i.DROPPED++;
+            this._onDebug(
+                `<- DROP IGNORED CID (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+            );
+            return;
+        }
+
+        // if (!this.subclusters.has(scid)) {
+        //     this.metrics.i.DROPPED++;
+        //     this._onDebug(
+        //         `<- DROP IGNORED SCID (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+        //     );
+        //     return;
+        // }
 
         if (this.gate.has(pid)) {
             this.metrics.i.DROPPED++;
@@ -2119,6 +2127,7 @@ export class Peer {
         if (isProxied) {
             const recipientId = packet.usr3.toString('hex');
             if (!recipientId) {
+                this.metrics.i.DROPPED++;
                 this._onDebug(
                     `<- DROP PROXIED NO RECIPIENT (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
                 );
@@ -2127,12 +2136,14 @@ export class Peer {
 
             const recipient = this.peers.get(recipientId);
             if (!recipient) {
+                this.metrics.i.DROPPED++;
                 this._onDebug(
                     `<- DROP PROXIED NO PATH (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
                 );
                 return;
             }
             if (recipient.address === address && recipient.port === port) {
+                this.metrics.i.DROPPED++;
                 this._onDebug(
                     `<- DROP PROXIED LOOP (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
                 );
@@ -2174,11 +2185,11 @@ export class Peer {
                 // }
             }
 
-            if (p?.index === -1 && this.onPacket) {
+            if (p?.index === -1) {
                 this._onDebug(
                     `<- PUBLISH (packetId=${pid.slice(0, 6)}, from=${address}:${port})`,
                 );
-                this.onPacket(p, port, address);
+                await this.processSubclusterPacket(p);
             }
         } else {
             this._onDebug(
@@ -2192,6 +2203,25 @@ export class Peer {
         // await this.mcast(packet, ignorelist);
 
         // }
+    }
+
+    private async processSubclusterPacket(b: Buffer) {
+        const packet = Packet.from(b);
+        if (!packet) {
+            console.warn('ignoring invalid packet');
+            return;
+        }
+        if (packet.clusterId.compare(this.clusterId) !== 0) {
+            console.warn('ignoring wrong cluster');
+            return;
+        }
+        const scid = packet.subclusterId.toString('base64');
+        for (const [_, subcluster] of this.subclusters) {
+            if (subcluster.scid !== scid) {
+                continue;
+            }
+            await subcluster.onPacket(packet);
+        }
     }
 
     /**
@@ -2237,7 +2267,7 @@ export class Peer {
             } // message must include a port number
 
             // successfully discovered the probe socket external port
-            this.config.probeExternalPort = packet.message.port;
+            this.probeExternalPort = packet.message.port;
 
             // move to next reflection stage
             this.reflectionStage = 1;
@@ -2278,9 +2308,15 @@ export class Peer {
         data: Buffer | Uint8Array,
         { port, address }: { port: number; address: string },
     ) {
-        const packet: any = Packet.decode(data);
-        if (!packet || packet.version !== VERSION) {
-            console.log('XXX invalid packet', packet);
+        const packet = Packet.decode(data);
+        if (!packet) {
+            console.log(`XXX invalid packet failed decode`);
+            return;
+        }
+        if (packet.version !== VERSION) {
+            console.log(
+                `XXX invalid packet version want=${VERSION} got=${packet.version}`,
+            );
             return;
         }
 
@@ -2291,17 +2327,24 @@ export class Peer {
             peer.lastUpdate = Date.now();
         }
 
-        const cid = Buffer.from(packet.clusterId).toString('base64');
+        // const cid = Buffer.from(packet.clusterId).toString('base64');
         const scid = Buffer.from(packet.subclusterId).toString('base64');
 
         // this._onDebug(
         //     `<- RECV MESSAGE type=${packet.type} from=${address}:${port}`,
         // );
-        const clusters = this.clusters[cid];
-        const subcluster = clusters && clusters[scid];
 
-        if (!this.config.limitExempt) {
-            if (rateLimit(this.rates, packet.type, port, address, subcluster)) {
+        if (!this.limitExempt) {
+            const subcluster = this.subclusters.get(scid);
+            if (
+                rateLimit(
+                    this.rates,
+                    packet.type,
+                    port,
+                    address,
+                    subcluster?.rateLimit,
+                )
+            ) {
                 this._onDebug(
                     `XX RATE LIMIT HIT (from=${address}, type=${packet.type})`,
                 );

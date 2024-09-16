@@ -1,19 +1,16 @@
 import { ByRandom } from '../utils';
 import type Peer from './Peer';
-import { Encryption } from './encryption';
+import { Subcluster } from './Subcluster';
 import Packet, { PacketPublish, PacketPublishProxied } from './packets';
-
-const MAX_BANDWIDTH = 1024 * 32;
 
 export type RemotePeerConfig = {
     peerId: string;
     address: string;
     port: number;
     natType: number;
-    indexed?: boolean;
-    clusterId?: string;
-    subclusterId?: string;
-    clock?: number;
+    indexed: boolean;
+    clusterId: Uint8Array;
+    clock: number;
     localPeer: Peer;
 };
 
@@ -26,7 +23,8 @@ export class RemotePeer {
     address: string;
     port = 0;
     natType: number;
-    clusters = {};
+    clusterId: Uint8Array;
+    cid: string;
     pingId = null;
     distance = 0;
     connected: boolean = false;
@@ -46,24 +44,18 @@ export class RemotePeer {
      */
     constructor(o: RemotePeerConfig) {
         this.localPeer = o.localPeer;
+        this.clusterId = o.clusterId;
+        this.cid = Buffer.from(this.clusterId).toString('hex');
         this.peerId = o.peerId;
         this.address = o.address;
         this.port = o.port;
         this.indexed = o.indexed;
         this.natType = o.natType;
         this.clock = o.clock || 0;
-
-        const cid = Buffer.from(o.clusterId || '').toString('base64');
-        const scid = Buffer.from(o.subclusterId || '').toString('base64');
-        if (cid && scid) {
-            this.clusters[cid] = { [scid]: { rateLimit: MAX_BANDWIDTH } };
-        }
-
-        // Object.assign(this, o); // FIXME: do this properly
     }
 
-    async write(sharedKey, args) {
-        const keys = await Encryption.createKeyPair(sharedKey);
+    async write(subcluster: Subcluster, args: any) {
+        const keys = subcluster.signingKeys;
 
         if (!this.localPeer) {
             throw new Error('expected .localPeer');
@@ -106,7 +98,7 @@ export class RemotePeer {
             );
             cache.set(pid, packet);
             this.localPeer.gate.set(pid, 1);
-            await this.localPeer.send(
+            this.localPeer.send(
                 await Packet.encode(packet),
                 port,
                 address,

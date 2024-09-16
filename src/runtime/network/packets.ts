@@ -375,7 +375,7 @@ export class Packet {
             // case PacketQuery.type:
             //     return new PacketQuery(packet);
             default:
-                throw new Error('invalid packet type', packet.type);
+                return null;
         }
     }
 

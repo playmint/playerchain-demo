@@ -21,6 +21,7 @@ export interface PeerInfo {
     peerId: string;
     lastSeen: number;
     sendQueueLength?: number;
+    connected?: boolean;
     validHeight: number;
     knownHeight: number;
     channels: string[];

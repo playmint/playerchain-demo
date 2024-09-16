@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
+import dgram from 'node:dgram';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:node/index';
 import { CLUSTER_ID } from '../runtime/config';
-import { network } from './network';
 
 // using dynamic imports here to ensure that the polyfill is loaded before the dexie library
 async function imports() {
@@ -46,16 +46,18 @@ async function main() {
     console.log('--------------------');
 
     const client = await Client.from({
-        keys,
         dbname,
         clusterId,
-        network,
+        keys,
+        dgram,
         config: {
             address: SS_ADDRESS,
             port: Number(SS_PORT),
             natType: 31,
             indexed: true,
             limitExempt: true,
+            signingKeys: keys,
+            clusterId,
         },
         enableSync: false,
     });
