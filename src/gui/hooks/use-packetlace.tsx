@@ -4,6 +4,7 @@ export interface PacketLaceContextType {
     init(dbname: string): Promise<void>;
     fetchPackets(channelId: string, limit: number): Promise<unknown>;
     setCanvas(_canvas: OffscreenCanvas): Promise<void>;
+    onResize(width: number, height: number): Promise<void>;
 }
 
 // using a default empty value and letting the provider ensure that the value is not used

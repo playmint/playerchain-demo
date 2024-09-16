@@ -6,7 +6,7 @@ import database, { DB } from '../../runtime/db';
 const PACKET_SCALE = 0.1;
 const SPREAD_X = 5;
 const SPREAD_Y = 2;
-const LINE_WIDTH = 2;
+const LINE_WIDTH = 2; // NOTE: Due to limitations of the OpenGL Core Profile with the WebGL renderer on most platforms linewidth will always be 1 regardless of the set value.
 const DEFAULT_LINE_COLOR = 'grey';
 
 const packetGeometry = new THREE.BoxGeometry(
@@ -98,8 +98,43 @@ export async function unsetCanvas() {
     peers = [];
 }
 
+export async function onResize(width: number, height: number) {
+    if (!canvas) {
+        return;
+    }
+    canvas.width = width;
+    canvas.height = height;
+
+    aspectRatio = height / width;
+
+    // camera = new THREE.OrthographicCamera(
+    //     -1,
+    //     1,
+    //     aspectRatio,
+    //     -aspectRatio,
+    //     0.1,
+    //     2000,
+    // );
+
+    // camera.position.z = 5;
+    // camera.zoom = 100;
+
+    camera.top = aspectRatio;
+    camera.bottom = -aspectRatio;
+
+    // renderer.setViewport(0, 0, width, height);
+    // renderer.dispose();
+    // renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // renderer.setClearColor(0x00ff00, 1);
+}
+
 function render() {
     if (!canvas) {
+        return;
+    }
+
+    if (!packets) {
+        requestAnimationFrame(render);
         return;
     }
 
@@ -265,5 +300,6 @@ const exports = {
     init,
     fetchPackets,
     setCanvas,
+    onResize,
 };
 Comlink.expose(exports);
