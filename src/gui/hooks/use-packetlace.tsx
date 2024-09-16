@@ -8,6 +8,7 @@ export interface PacketLaceContextType {
         channelID: string,
         packetLimit: number,
         fetchIntervalMs: number,
+        peers: string[],
     ): Promise<void>;
     stopGraph(): Promise<void>;
     onResize(width: number, height: number): Promise<void>;

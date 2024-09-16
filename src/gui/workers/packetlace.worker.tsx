@@ -8,14 +8,15 @@ const SPREAD_X = 5;
 const SPREAD_Y = 2;
 const LINE_WIDTH = 2; // NOTE: Due to limitations of the OpenGL Core Profile with the WebGL renderer on most platforms linewidth will always be 1 regardless of the set value. (taken from Three.js doc)
 const DEFAULT_LINE_COLOR = 'grey';
+const DEFAULT_PACKET_COLOR_1 = 0xffffff;
+const DEFAULT_PACKET_COLOR_2 = 0x888888;
+const PARENTLESS_PACKET_COLOR = 0xff0000;
 
 const packetGeometry = new THREE.BoxGeometry(
     PACKET_SCALE,
     PACKET_SCALE,
     PACKET_SCALE,
 );
-const packetMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const parentlessPacketMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
 let db: DB;
 let fetching = false;
@@ -28,7 +29,7 @@ let peerColors: string[] = [];
 let scene: THREE.Scene | undefined;
 let renderer: THREE.WebGLRenderer | undefined;
 let camera: THREE.OrthographicCamera | undefined;
-const threeObjects: Map<string, any> = new Map();
+const threeObjects: Map<string, THREE.Object3D> = new Map();
 const hasRendered: Map<string, boolean> = new Map();
 
 let fetchTimer: any;
@@ -48,11 +49,13 @@ export async function startGraph(
     channelID: string,
     packetLimit: number,
     fetchIntervalMs: number,
+    _peers: string[],
 ) {
     canvas = _canvas;
     const { width, height } = canvas;
-
     // console.log('packetlace.worker: offscreen canvas set:', width, height);
+
+    peers = _peers;
 
     scene = new THREE.Scene();
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -72,8 +75,6 @@ export async function startGraph(
     camera.zoom = 100;
 
     scene.add(camera);
-
-    peers = [];
 
     fetchTimer = setInterval(async () => {
         try {
@@ -121,6 +122,7 @@ async function fetchPackets(channelId: string, limit: number = 300) {
             const messagesWithOffsetRound = messages.map((msg: any) => ({
                 ...msg,
                 round: msg.round - minRound,
+                originalRound: msg.round,
             }));
             return { minRound, maxRound, messagesWithOffsetRound };
         });
@@ -150,8 +152,15 @@ function render() {
     const removedPacketKeys: string[] = [];
     hasRendered.forEach((rendered, key) => {
         if (!rendered) {
-            const packetMesh = threeObjects.get(key);
-            scene?.remove(packetMesh);
+            const object3d = threeObjects.get(key) as THREE.Mesh | THREE.Line;
+            if (object3d instanceof THREE.Line) {
+                // NOTE: We reuse the same geometry for all the packet meshes so we only dispose the line geometry
+                object3d.geometry.dispose();
+            }
+            if (object3d.material instanceof THREE.Material) {
+                object3d.material.dispose();
+            }
+            scene?.remove(object3d);
             threeObjects.delete(key);
             removedPacketKeys.push(key);
         }
@@ -205,14 +214,29 @@ function renderPackets(messages: any[]) {
 
         let packetMesh: THREE.Mesh;
         if (threeObjects.has(msgId)) {
-            packetMesh = threeObjects.get(msgId);
+            packetMesh = threeObjects.get(msgId) as THREE.Mesh;
         } else {
             packetMesh = new THREE.Mesh(
                 packetGeometry,
-                m.parent ? packetMat : parentlessPacketMat,
+                new THREE.MeshBasicMaterial(),
             );
             scene?.add(packetMesh);
             threeObjects.set(msgId, packetMesh);
+        }
+
+        // Update colour
+        const packetColor = m.parent
+            ? m.originalRound % 6 > 2
+                ? DEFAULT_PACKET_COLOR_1
+                : DEFAULT_PACKET_COLOR_2
+            : PARENTLESS_PACKET_COLOR;
+        if (
+            m.parent &&
+            packetMesh.material instanceof THREE.MeshBasicMaterial
+        ) {
+            packetMesh.material.setValues({
+                color: packetColor,
+            });
         }
 
         // FIXME: We have to always set position as we position the packets by offset round
@@ -263,9 +287,9 @@ function renderLines(packets: Map<string, any>) {
     }, []);
 
     lines.forEach(({ key, ...props }) => {
+        // Redraw line in new pos if exists
         if (threeObjects.has(key)) {
-            // Redraw line in new pos if exists
-            let line = threeObjects.get(key);
+            const line = threeObjects.get(key) as THREE.Line;
 
             // Didn't work!
             // line.geometry.setFromPoints([
@@ -275,34 +299,24 @@ function renderLines(packets: Map<string, any>) {
 
             scene?.remove(line);
             line.geometry.dispose();
-            line.material.dispose();
-            line = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(...props.points[0]),
-                    new THREE.Vector3(...props.points[1]),
-                ]),
-                new THREE.LineBasicMaterial({
-                    color: props.color || DEFAULT_LINE_COLOR,
-                    linewidth: LINE_WIDTH,
-                }),
-            );
-            scene?.add(line);
-            threeObjects.set(key, line);
-        } else {
-            // Create new line
-            const line = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(...props.points[0]),
-                    new THREE.Vector3(...props.points[1]),
-                ]),
-                new THREE.LineBasicMaterial({
-                    color: props.color || DEFAULT_LINE_COLOR,
-                    linewidth: LINE_WIDTH,
-                }),
-            );
-            scene?.add(line);
-            threeObjects.set(key, line);
+            if (line.material instanceof THREE.Material) {
+                line.material.dispose();
+            }
         }
+
+        // Create new line
+        const line = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(...props.points[0]),
+                new THREE.Vector3(...props.points[1]),
+            ]),
+            new THREE.LineBasicMaterial({
+                color: props.color || DEFAULT_LINE_COLOR,
+                linewidth: LINE_WIDTH,
+            }),
+        );
+        scene?.add(line);
+        threeObjects.set(key, line);
 
         hasRendered.set(key, true);
     });
@@ -334,6 +348,10 @@ const getPeerColor = (peerId: string) => {
     }
 
     const index = peers.indexOf(peerId);
+    if (index === -1) {
+        return 'white';
+    }
+
     return peerColors[index % peerColors.length];
 };
 

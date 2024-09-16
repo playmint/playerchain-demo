@@ -1,6 +1,5 @@
 import * as Comlink from 'comlink';
-import { memo, useEffect, useRef, useState } from 'react';
-import { useDatabase } from '../hooks/use-database';
+import { useEffect, useRef, useState } from 'react';
 import { usePacketLace } from '../hooks/use-packetlace';
 
 // const HIGHLIGHTED_LINE_COLOR = 'cyan';
@@ -17,22 +16,17 @@ export function PacketLace({
     peers: string[];
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [offscreenCanvas, setOffscreenCanvas] = useState<OffscreenCanvas>();
     const packetLace = usePacketLace();
 
-    // const db = useDatabase();
-
     useEffect(() => {
-        if (!packetLace) {
-            console.log('no packetlace');
-            return;
-        }
-
         if (!canvasRef.current) {
-            console.log('no canvas ref');
             return;
         }
 
-        console.log('packetlace canvas setup');
+        if (offscreenCanvas) {
+            return;
+        }
 
         const pixelRatio = window.devicePixelRatio || 1;
 
@@ -40,20 +34,33 @@ export function PacketLace({
         canvas.width = canvas.clientWidth * pixelRatio;
         canvas.height = canvas.clientHeight * pixelRatio;
 
-        const offscreen = canvasRef.current.transferControlToOffscreen();
+        const offscreen = canvas.transferControlToOffscreen();
+        setOffscreenCanvas(offscreen);
+    }, [offscreenCanvas]);
+
+    useEffect(() => {
+        if (!packetLace) {
+            return;
+        }
+
+        if (!offscreenCanvas) {
+            return;
+        }
+
         packetLace
             .startGraph(
-                Comlink.transfer(offscreen, [offscreen]),
+                Comlink.transfer(offscreenCanvas, [offscreenCanvas]),
                 channelId,
                 300,
                 1000,
+                peers,
             )
             .catch(console.error);
 
         return () => {
             packetLace.stopGraph().catch(console.error);
         };
-    }, [channelId, packetLace]);
+    }, [channelId, packetLace, peers, offscreenCanvas]);
 
     // window resize listener
     useEffect(() => {
