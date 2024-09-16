@@ -1,5 +1,6 @@
 import * as Comlink from 'comlink';
 import React from 'react';
+import { PLAYER_COLORS } from '../fixtures/player-colors';
 import { useAsyncMemo } from '../hooks/use-async';
 import { useCredentials } from '../hooks/use-credentials';
 import {
@@ -37,7 +38,7 @@ export const PackerLaceProvider = ({
             console.log(`packetLace worker started`);
             const c: PacketLaceContextType =
                 Comlink.wrap<PacketLaceContextType>(w);
-            await c.init(dbname);
+            await c.init(dbname, PLAYER_COLORS);
             console.log(`packetLace worker init`);
             defer(async () => {
                 // await c.shutdown();

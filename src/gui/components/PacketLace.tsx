@@ -9,11 +9,6 @@ import { usePacketLace } from '../hooks/use-packetlace';
 
 // type Message = InputMessage & ChainMessageProps & PostSignMessageProps;
 
-export interface PacketLineProps {
-    points: any;
-    color?: any;
-}
-
 export function PacketLace({
     channelId,
     peers,
@@ -22,10 +17,9 @@ export function PacketLace({
     peers: string[];
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const hasRef = !!canvasRef.current;
     const packetLace = usePacketLace();
 
-    const db = useDatabase();
+    // const db = useDatabase();
 
     useEffect(() => {
         if (!packetLace) {
@@ -48,38 +42,18 @@ export function PacketLace({
 
         const offscreen = canvasRef.current.transferControlToOffscreen();
         packetLace
-            .setCanvas(Comlink.transfer(offscreen, [offscreen]))
+            .startGraph(
+                Comlink.transfer(offscreen, [offscreen]),
+                channelId,
+                300,
+                1000,
+            )
             .catch(console.error);
-    }, [packetLace]);
 
-    // TODO: Move the interval inside the worker
-    useEffect(() => {
-        if (!packetLace) {
-            return;
-        }
-        let fetching = false;
-        const timer = setInterval(() => {
-            if (fetching) {
-                console.log('lace fetch skip');
-                return;
-            }
-            fetching = true;
-
-            console.time('worker-fetch');
-
-            packetLace
-                .fetchPackets(channelId, 2500)
-                .catch((err) => console.error('fetchPackets-err', err))
-                .finally(() => {
-                    console.timeEnd('worker-fetch');
-                    fetching = false;
-                });
-        }, 1100);
         return () => {
-            clearInterval(timer);
-            console.timeEnd('worker-fetch');
+            packetLace.stopGraph().catch(console.error);
         };
-    }, [channelId, db, packetLace]);
+    }, [channelId, packetLace]);
 
     // window resize listener
     useEffect(() => {
@@ -109,6 +83,7 @@ export function PacketLace({
                 position: 'relative',
                 width: '100%',
                 height: '100%',
+                backgroundColor: 'black',
             }}
         >
             <canvas

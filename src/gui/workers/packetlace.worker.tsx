@@ -6,7 +6,7 @@ import database, { DB } from '../../runtime/db';
 const PACKET_SCALE = 0.1;
 const SPREAD_X = 5;
 const SPREAD_Y = 2;
-const LINE_WIDTH = 2; // NOTE: Due to limitations of the OpenGL Core Profile with the WebGL renderer on most platforms linewidth will always be 1 regardless of the set value.
+const LINE_WIDTH = 2; // NOTE: Due to limitations of the OpenGL Core Profile with the WebGL renderer on most platforms linewidth will always be 1 regardless of the set value. (taken from Three.js doc)
 const DEFAULT_LINE_COLOR = 'grey';
 
 const packetGeometry = new THREE.BoxGeometry(
@@ -15,6 +15,7 @@ const packetGeometry = new THREE.BoxGeometry(
     PACKET_SCALE,
 );
 const packetMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const parentlessPacketMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
 let db: DB;
 let fetching = false;
@@ -22,49 +23,36 @@ let canvas: OffscreenCanvas | undefined;
 let aspectRatio: number;
 let packets: any;
 let peers: string[] = [];
+let peerColors: string[] = [];
+
+let scene: THREE.Scene | undefined;
+let renderer: THREE.WebGLRenderer | undefined;
+let camera: THREE.OrthographicCamera | undefined;
 const threeObjects: Map<string, any> = new Map();
 const hasRendered: Map<string, boolean> = new Map();
 
-export async function init(dbname: string) {
+let fetchTimer: any;
+
+// let cameraFromY = 0;
+// let cameraTargetY = 0;
+// const lerpSpeedMs = 1000;
+
+// Called by the provider
+export async function init(dbname: string, _peerColors: string[]) {
     db = database.open(dbname);
+    peerColors = _peerColors;
 }
 
-export async function fetchPackets(channelId: string, limit: number = 300) {
-    if (fetching) {
-        console.log('worker: lace fetch skip');
-        return;
-    }
-
-    fetching = true;
-    packets = await db.messages
-        .where(['channel', 'round'])
-        .between([channelId, Dexie.minKey], [channelId, Dexie.maxKey])
-        .reverse()
-        .limit(limit)
-        .toArray()
-        .then((messages) => {
-            const minRound = Math.min(...messages.map((msg: any) => msg.round));
-            const maxRound = Math.max(...messages.map((msg: any) => msg.round));
-            const messagesWithOffsetRound = messages.map((msg: any) => ({
-                ...msg,
-                round: msg.round - minRound,
-            }));
-            return { minRound, maxRound, messagesWithOffsetRound };
-        });
-
-    fetching = false;
-    return packets;
-}
-
-let scene: THREE.Scene;
-let renderer: THREE.WebGLRenderer;
-let camera: THREE.OrthographicCamera;
-
-export async function setCanvas(_canvas: OffscreenCanvas) {
+export async function startGraph(
+    _canvas: OffscreenCanvas,
+    channelID: string,
+    packetLimit: number,
+    fetchIntervalMs: number,
+) {
     canvas = _canvas;
     const { width, height } = canvas;
 
-    console.log('packetlace.worker: offscreen canvas set:', width, height);
+    // console.log('packetlace.worker: offscreen canvas set:', width, height);
 
     scene = new THREE.Scene();
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -87,49 +75,62 @@ export async function setCanvas(_canvas: OffscreenCanvas) {
 
     peers = [];
 
+    fetchTimer = setInterval(async () => {
+        try {
+            packets = await fetchPackets(channelID, packetLimit);
+        } catch (e) {
+            console.error('packetlace.worker: fetchPackets error:', e);
+        }
+    }, fetchIntervalMs);
     requestAnimationFrame(render);
 }
 
-export async function unsetCanvas() {
-    renderer.dispose();
+export async function stopGraph() {
+    if (fetchTimer !== undefined) {
+        clearInterval(fetchTimer);
+        fetchTimer = undefined;
+    }
+    renderer?.dispose();
+    renderer = undefined;
+    camera = undefined;
+    scene?.clear();
+    scene = undefined;
+
     canvas = undefined;
     threeObjects.clear();
     hasRendered.clear();
     peers = [];
 }
 
-export async function onResize(width: number, height: number) {
-    if (!canvas) {
+async function fetchPackets(channelId: string, limit: number = 300) {
+    if (fetching) {
+        console.log('worker: lace fetch skip');
         return;
     }
-    canvas.width = width;
-    canvas.height = height;
 
-    aspectRatio = height / width;
+    fetching = true;
+    const packets = await db.messages
+        .where(['channel', 'round'])
+        .between([channelId, Dexie.minKey], [channelId, Dexie.maxKey])
+        .reverse()
+        .limit(limit)
+        .toArray()
+        .then((messages) => {
+            const minRound = Math.min(...messages.map((msg: any) => msg.round));
+            const maxRound = Math.max(...messages.map((msg: any) => msg.round));
+            const messagesWithOffsetRound = messages.map((msg: any) => ({
+                ...msg,
+                round: msg.round - minRound,
+            }));
+            return { minRound, maxRound, messagesWithOffsetRound };
+        });
 
-    // camera = new THREE.OrthographicCamera(
-    //     -1,
-    //     1,
-    //     aspectRatio,
-    //     -aspectRatio,
-    //     0.1,
-    //     2000,
-    // );
-
-    // camera.position.z = 5;
-    // camera.zoom = 100;
-
-    camera.top = aspectRatio;
-    camera.bottom = -aspectRatio;
-
-    // renderer.setViewport(0, 0, width, height);
-    // renderer.dispose();
-    // renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    // renderer.setClearColor(0x00ff00, 1);
+    fetching = false;
+    return packets;
 }
 
 function render() {
-    if (!canvas) {
+    if (!canvas || !scene || !renderer || !camera) {
         return;
     }
 
@@ -150,7 +151,7 @@ function render() {
     hasRendered.forEach((rendered, key) => {
         if (!rendered) {
             const packetMesh = threeObjects.get(key);
-            scene.remove(packetMesh);
+            scene?.remove(packetMesh);
             threeObjects.delete(key);
             removedPacketKeys.push(key);
         }
@@ -166,9 +167,16 @@ function render() {
             ? packets.maxRound - packets.minRound
             : 0;
 
+    // CameraYOffset is us focussing the camera 3 rows above the last packet
     const rowsOfSpace = 3;
     const cameraYOffset =
         (aspectRatio - rowsOfSpace * SPREAD_Y * PACKET_SCALE) * -1;
+
+    // FIXME: We cannot lerp yet because we draw the packets by offset round so they draw in the same space
+    // cameraFromY = camera.position.y;
+    // cameraTargetY = cameraYOffset + roundDelta * SPREAD_Y * PACKET_SCALE;
+    // camera.position.y = cameraFromY + (cameraTargetY - cameraFromY) * 0.1;
+
     camera.position.y = cameraYOffset + roundDelta * SPREAD_Y * PACKET_SCALE;
     camera.position.x = (peers.length - 1) * SPREAD_X * PACKET_SCALE * 0.5;
 
@@ -199,8 +207,11 @@ function renderPackets(messages: any[]) {
         if (threeObjects.has(msgId)) {
             packetMesh = threeObjects.get(msgId);
         } else {
-            packetMesh = new THREE.Mesh(packetGeometry, packetMat);
-            scene.add(packetMesh);
+            packetMesh = new THREE.Mesh(
+                packetGeometry,
+                m.parent ? packetMat : parentlessPacketMat,
+            );
+            scene?.add(packetMesh);
             threeObjects.set(msgId, packetMesh);
         }
 
@@ -214,6 +225,7 @@ function renderPackets(messages: any[]) {
             acks: m.acks.map((ack) => Buffer.from(ack).toString('hex')),
             parent: m.parent ? Buffer.from(m.parent).toString('hex') : null,
             position,
+            peerId,
         };
         data.set(msgId, props);
         return data;
@@ -243,7 +255,7 @@ function renderLines(packets: Map<string, any>) {
                 data.push({
                     key: `${packet.key}-${ack}`,
                     points: [fromPos, toAckPos],
-                    color: 0xefefef,
+                    color: getPeerColor(packet.peerId),
                 });
             }
         });
@@ -261,7 +273,7 @@ function renderLines(packets: Map<string, any>) {
             //     new THREE.Vector3(...props.points[1]),
             // ]);
 
-            scene.remove(line);
+            scene?.remove(line);
             line.geometry.dispose();
             line.material.dispose();
             line = new THREE.Line(
@@ -274,7 +286,7 @@ function renderLines(packets: Map<string, any>) {
                     linewidth: LINE_WIDTH,
                 }),
             );
-            scene.add(line);
+            scene?.add(line);
             threeObjects.set(key, line);
         } else {
             // Create new line
@@ -288,7 +300,7 @@ function renderLines(packets: Map<string, any>) {
                     linewidth: LINE_WIDTH,
                 }),
             );
-            scene.add(line);
+            scene?.add(line);
             threeObjects.set(key, line);
         }
 
@@ -296,10 +308,39 @@ function renderLines(packets: Map<string, any>) {
     });
 }
 
+export async function onResize(width: number, height: number) {
+    if (!canvas) {
+        return;
+    }
+
+    // FIXME: This isn't working correctly
+
+    canvas.width = width;
+    canvas.height = height;
+
+    aspectRatio = height / width;
+
+    if (camera) {
+        camera.top = aspectRatio;
+        camera.bottom = -aspectRatio;
+    }
+
+    renderer?.setViewport(0, 0, width, height);
+}
+
+const getPeerColor = (peerId: string) => {
+    if (peers.length === 0) {
+        return 'white';
+    }
+
+    const index = peers.indexOf(peerId);
+    return peerColors[index % peerColors.length];
+};
+
 const exports = {
     init,
-    fetchPackets,
-    setCanvas,
+    startGraph,
+    stopGraph,
     onResize,
 };
 Comlink.expose(exports);
