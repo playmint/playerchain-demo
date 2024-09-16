@@ -107,7 +107,7 @@ export class Channel {
                 continue;
             }
             const connected = !!peer._peer?.connected;
-            const proxy = !!peer._peer?.proxy;
+            const proxy = !!peer._peer?.proxies.size;
             let status = this.lastKnowPeers.get(peer.peerId);
             if (!status) {
                 status = { connected, proxy };
@@ -182,28 +182,27 @@ export class Channel {
 
     send = async (packet: Packet, opts?: TransportEmitOpts) => {
         const bytes = this.Buffer.from(cbor.encode(packet));
-        this.emit('bytes', bytes, opts);
+        this.emit('bytes', bytes, opts).catch((err) => {
+            console.error('send-err:', err);
+        });
     };
 
-    emit = (evt: string, buf: Uint8Array, opts?: TransportEmitOpts) => {
-        const alivePeerIds = Array.from(this.alivePeerIds.keys());
-        if (alivePeerIds.length === 0) {
+    emit = async (evt: string, buf: Uint8Array, opts?: TransportEmitOpts) => {
+        // const ourPeerIds = ourPeers.map((p) => p.peerId);
+        if (this.socket.peers.size === 0) {
             console.log(`${this.client.shortId} USING CRAPPY SEND`);
-            this.socket.emit(evt, buf, opts).catch((err) => {
-                console.error('send-err:', err);
-            });
+            return this.socket.emit(evt, buf, opts);
         } else {
-            for (const [peerId, peer] of this.socket.peers) {
-                if (!alivePeerIds.includes(peerId)) {
-                    continue;
-                }
-                // console.log(
-                //     `${this.client.shortId} ---> ${peerId.slice(0, 8)}`,
-                // );
-                peer.emit(evt, buf, opts).catch((err) => {
-                    console.error('send-err:', err);
-                });
-            }
+            return this.socket.stream(evt, buf, opts);
+            // for (const [peerId, peer] of this.socket.peers) {
+            // if (ourPeers.length > 0 && !ourPeerIds.includes(peerId)) {
+            //     continue;
+            // }
+            // console.log(
+            //     `${this.client.shortId} ---> ${peerId.slice(0, 8)}`,
+            // );
+            //     return peer.emit(evt, buf, opts);
+            // }
         }
     };
 

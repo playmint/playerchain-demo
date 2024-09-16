@@ -1,12 +1,10 @@
 /**
- * @module network
- * @status Experimental
- *
  * This module provides primitives for creating a p2p network.
  */
 import { Buffer } from 'socket:buffer';
 import { randomBytes, sodium } from 'socket:crypto';
 import { isBufferLike } from 'socket:util';
+import { BOOTSTRAP_PEERS } from '../bootstrap';
 import { RemotePeer } from './RemotePeer';
 import { Cache } from './cache';
 import { Encryption } from './encryption';
@@ -18,7 +16,7 @@ import {
     PacketPing,
     PacketPong,
     PacketPublish,
-    PacketSync,
+    PacketPublishProxied,
     VERSION,
     sha256,
 } from './packets';
@@ -27,27 +25,23 @@ export { Packet, sha256, Cache, Encryption, NAT };
 
 /**
  * Retry delay in milliseconds for ping.
- * @type {number}
  */
-export const PING_RETRY = 250;
+export const PING_RETRY: number = 250;
 
 /**
  * Probe wait timeout in milliseconds.
- * @type {number}
  */
-export const PROBE_WAIT = 512;
+export const PROBE_WAIT: number = 512;
 
 /**
  * Default keep alive timeout.
- * @type {number}
  */
-export const DEFAULT_KEEP_ALIVE = 30_000;
+export const DEFAULT_KEEP_ALIVE: number = 10_000;
 
 /**
  * Default rate limit threshold in milliseconds.
- * @type {number}
  */
-export const DEFAULT_RATE_LIMIT_THRESHOLD = 8000;
+export const DEFAULT_RATE_LIMIT_THRESHOLD: number = 8000;
 
 const PRIV_PORTS = 1024;
 const MAX_PORTS = 65535 - PRIV_PORTS;
@@ -57,11 +51,11 @@ const PEERID_REGEX = /^([A-Fa-f0-9]{2}){32}$/;
 
 /**
  * Port generator factory function.
- * @param {object} ports - the cache to use (a set)
- * @param {number?} p - initial port
- * @return {number}
  */
-export const getRandomPort = (ports = new Set(), p?) => {
+export const getRandomPort = (
+    ports: Set<number> = new Set(),
+    p?: number | null,
+): number => {
     do {
         p = Math.max(1024, Math.ceil(Math.random() * 0xffff));
     } while (ports.has(p) && ports.size < MAX_PORTS);
@@ -77,19 +71,25 @@ const isReplicatable = (type) =>
  * Computes rate limit predicate value for a port and address pair for a given
  * threshold updating an input rates map. This method is accessed concurrently,
  * the rates object makes operations atomic to avoid race conditions.
- *
- * @param {Map} rates
- * @param {number} type
- * @param {number} port
- * @param {string} address
- * @return {boolean}
  */
-export function rateLimit(rates, type, port, address, subclusterIdQuota) {
+interface Rate {
+    mtime?: number;
+    time: number;
+    quota: number;
+    used: number;
+}
+export function rateLimit(
+    rates: Map<string, Rate>,
+    type: number,
+    port: number,
+    address: string,
+    subclusterIdQuota,
+): boolean {
     const R = isReplicatable(type);
     const key = (R ? 'R' : 'C') + ':' + address + ':' + port;
     const quota = subclusterIdQuota || (R ? 1024 : 1024 * 1024);
     const time = Math.floor(Date.now() / 60000);
-    const rate = rates.get(key) || { time, quota, used: 0 };
+    const rate: Rate = rates.get(key) || { time, quota, used: 0 };
 
     rate.mtime = Date.now(); // checked by mainLoop for garabge collection
 
@@ -106,18 +106,15 @@ export function rateLimit(rates, type, port, address, subclusterIdQuota) {
     rate.used += 1;
 
     rates.set(key, rate);
-    if (rate.used >= rate.quota) {
-        return true;
-    }
+    return rate.used >= rate.quota;
 }
 
 export class Peer {
-    port = null;
-    address = null;
+    port: number;
+    address: string;
     natType = NAT.UNKNOWN;
     nextNatType = NAT.UNKNOWN;
     clusters: Record<string, any> = {};
-    syncs = {};
     reflectionId = null;
     reflectionTimeout: any = null;
     probeReflectionTimeout: any = null;
@@ -125,17 +122,16 @@ export class Peer {
     reflectionRetry = 1;
     reflectionFirstResponder: any = null;
     reflectionFirstResponderTimeout: any = null;
-    peerId = '';
+    peerId: string;
     isListening = false;
     ctime = Date.now();
     lastUpdate = 0;
-    lastSync = 0;
     closing = false;
     clock = 0;
     unpublished = {};
     cache: Cache;
     uptime = 0;
-    maxHops = 3; // should be 16
+    maxHops = 8; // should be 16
     bdpCache: number[] = [];
     indexed: boolean = false;
     clusterId?: Uint8Array;
@@ -148,41 +144,24 @@ export class Peer {
     onListening?: () => void;
     onDelete?: (packet: Packet) => void;
 
-    // firewall = null;
     rates = new Map();
-    streamBuffer = new Map();
     gate = new Map();
-    returnRoutes = new Map();
     encryption: Encryption;
 
     socket: import('node:dgram').Socket;
     socketPool?: import('node:dgram').Socket[];
     probeSocket: import('node:dgram').Socket;
 
-    _onError: (err: Error) => void;
-
     onDebug?: (peerId: string, ...args: any[]) => void;
-    onInterval?: () => void;
-    onMulticast?: (packet: Packet) => void;
     onState?: () => void;
     onSend?: (packet: Packet, port: number, address: string) => void;
     onError?: (err: Error) => void;
     onDisconnection?: (peer: RemotePeer) => void;
-    onConnecting?: (status: { code: number; status: string }) => void;
     onReady?: (info: object) => void;
-    onProbeMessage?: (msg: Buffer, rinfo: any) => void;
     onMessage?: (msg: Buffer, rinfo: any) => void;
-    onProbe?: (...args: any[]) => void;
     onPacket?: (...args: any[]) => void;
-    onSyncStart?: (packet: PacketSync, port: number, address: string) => void;
-    onSyncFinished?: (...args: any[]) => void;
-    onSync?: (...args: any[]) => void;
     onData?: (...args: any[]) => void;
     onLimit?: (...args: any[]) => boolean | undefined;
-    onIntro?: (...args: any[]) => void;
-    onNat?: (...args: any[]) => void;
-    onAnswer?: (...args: any[]) => void;
-    onQuery?: (...args: any[]) => void;
     onClose?: () => void;
     onJoin?: (...args: any[]) => void;
     onConnection?: (...args: any[]) => void;
@@ -192,14 +171,7 @@ export class Peer {
         o: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 },
     };
 
-    peers: RemotePeer[] = JSON.parse(
-        /* snapshot_start=1691579150299, filter=easy,static */ `
-    [{"address":"44.213.42.133","port":10885,"peerId":"4825fe0475c44bc0222e76c5fa7cf4759cd5ef8c66258c039653f06d329a9af5","natType":31,"indexed":true},{"address":"107.20.123.15","port":31503,"peerId":"2de8ac51f820a5b9dc8a3d2c0f27ccc6e12a418c9674272a10daaa609eab0b41","natType":31,"indexed":true},{"address":"54.227.171.107","port":43883,"peerId":"7aa3d21ceb527533489af3888ea6d73d26771f30419578e85fba197b15b3d18d","natType":31,"indexed":true},{"address":"54.157.134.116","port":34420,"peerId":"1d2315f6f16e5f560b75fbfaf274cad28c12eb54bb921f32cf93087d926f05a9","natType":31,"indexed":true},{"address":"184.169.205.9","port":52489,"peerId":"db00d46e23d99befe42beb32da65ac3343a1579da32c3f6f89f707d5f71bb052","natType":31,"indexed":true},{"address":"35.158.123.13","port":31501,"peerId":"4ba1d23266a2d2833a3275c1d6e6f7ce4b8657e2f1b8be11f6caf53d0955db88","natType":31,"indexed":true},{"address":"3.68.89.3","port":22787,"peerId":"448b083bd8a495ce684d5837359ce69d0ff8a5a844efe18583ab000c99d3a0ff","natType":31,"indexed":true},{"address":"3.76.100.161","port":25761,"peerId":"07bffa90d89bf74e06ff7f83938b90acb1a1c5ce718d1f07854c48c6c12cee49","natType":31,"indexed":true},{"address":"3.70.241.230","port":61926,"peerId":"1d7ee8d965794ee286ac425d060bab27698a1de92986dc6f4028300895c6aa5c","natType":31,"indexed":true},{"address":"3.70.160.181","port":41141,"peerId":"707c07171ac9371b2f1de23e78dad15d29b56d47abed5e5a187944ed55fc8483","natType":31,"indexed":true},{"address":"3.122.250.236","port":64236,"peerId":"a830615090d5cdc3698559764e853965a0d27baad0e3757568e6c7362bc6a12a","natType":31,"indexed":true},{"address":"18.130.98.23","port":25111,"peerId":"ba483c1477ab7a99de2d9b60358d9641ff6a6dc6ef4e3d3e1fc069b19ac89da4","natType":31,"indexed":true},{"address":"13.42.10.247","port":2807,"peerId":"032b79de5b4581ee39c6d15b12908171229a8eb1017cf68fd356af6bbbc21892","natType":31,"indexed":true},{"address":"18.229.140.216","port":36056,"peerId":"73d726c04c05fb3a8a5382e7a4d7af41b4e1661aadf9020545f23781fefe3527","natType":31,"indexed":true}]
-  ` /* snapshot_end=1691579150299 */,
-    ).map(
-        (/** @type {object} */ o) =>
-            new RemotePeer({ ...o, indexed: true }, this),
-    );
+    peers: Map<string, RemotePeer>;
 
     constructor(persistedState: any, dgram: typeof import('node:dgram')) {
         if (!dgram) {
@@ -207,8 +179,18 @@ export class Peer {
                 'dgram implementation required in constructor as second argument',
             );
         }
-
         this.dgram = dgram;
+
+        // initial peer list
+        // hardcoding this is temporary, you need at least one peer to connect to
+        // but any peer will do, so long as it is online. this just is a list of
+        // known peers that are likely to be online to get you started
+        this.peers = new Map(
+            BOOTSTRAP_PEERS.map((o) => [
+                o.peerId,
+                new RemotePeer({ ...o, indexed: true, localPeer: this }),
+            ]),
+        );
 
         const config = persistedState?.config ?? persistedState ?? {};
 
@@ -225,7 +207,6 @@ export class Peer {
         // The purpose of this.config is to seperate transitioned state from initial state.
         //
         this.config = {
-            // TODO(@heapwolf): Object.freeze this maybe
             keepalive: DEFAULT_KEEP_ALIVE,
             ...config,
         };
@@ -237,19 +218,16 @@ export class Peer {
         }
 
         this.cache = new Cache(cacheData, config.siblingResolver);
-        // this.cache.onEjected = (p) => this.mcast(p);
-        this.cache.onEjected = (_p) => {};
+        this.cache.onEjected = (p) => this.mcast(p);
+        // this.cache.onEjected = (_p) => {};
 
         this.unpublished = persistedState?.unpublished || {};
-        this._onError = (err) => this.onError && this.onError(err);
 
-        Object.assign(this, config);
+        this.peerId = config.peerId;
+        Object.assign(this, config); // FIXME: do this properly
 
         if (!this.indexed && !this.clusterId) {
             throw new Error('constructor expected .clusterId');
-        }
-        if (typeof this.peerId !== 'string') {
-            throw new Error('peerId should be of type string');
         }
 
         this.port = config.port || null;
@@ -272,6 +250,10 @@ export class Peer {
         );
     }
 
+    _onError = (err) => {
+        this.onError && this.onError(err);
+    };
+
     _onDebug(...args) {
         if (this.onDebug) {
             this.onDebug(this.peerId, ...args);
@@ -280,8 +262,6 @@ export class Peer {
 
     /**
      * A method that encapsulates the listing procedure
-     * @return {undefined}
-     * @ignore
      */
     async _listen() {
         await sodium.ready;
@@ -325,7 +305,6 @@ export class Peer {
     /*
      * This method will bind the sockets, begin pinging known peers, and start
      * the main program loop.
-     * @return {Any}
      */
     async init() {
         if (!this.isListening) {
@@ -334,7 +313,7 @@ export class Peer {
 
         await this._mainLoop(Date.now());
         this.mainLoopTimer = setInterval(
-            (ts) => this._mainLoop(ts),
+            () => this._mainLoop(Date.now()),
             this.config.keepalive,
         );
 
@@ -345,32 +324,25 @@ export class Peer {
 
     /**
      * Continuously evaluate the state of the peer and its network
-     * @return {undefined}
-     * @ignore
      */
-    async _mainLoop(ts) {
+    async _mainLoop(ts: number): Promise<boolean> {
         if (this.closing) {
-            return clearInterval(this.mainLoopTimer);
+            clearInterval(this.mainLoopTimer);
+            return true;
         }
 
         if (!Peer.onLine()) {
-            if (this.onConnecting) {
-                this.onConnecting({ code: -2, status: 'Offline' });
-            }
             return true;
         }
 
         if (!this.reflectionId) {
             await this.requestReflection();
         }
-        if (this.onInterval) {
-            this.onInterval();
-        }
 
         this.uptime += this.config.keepalive;
 
         // heartbeat
-        for (const [, peer] of Object.entries(this.peers)) {
+        for (const [_, peer] of this.peers) {
             await this.ping(peer, false, {
                 message: {
                     requesterPeerId: this.peerId,
@@ -399,9 +371,9 @@ export class Peer {
             const deadline = p.timestamp + ttl;
 
             if (deadline <= ts) {
-                if (p.hops < this.maxHops) {
-                    await this.mcast(p);
-                }
+                // if (p.hops < this.maxHops) {
+                //     await this.mcast(p);
+                // }
                 this.cache.delete(k);
                 this._onDebug('-- DELETE', k, this.cache.size);
                 if (this.onDelete) {
@@ -411,37 +383,51 @@ export class Peer {
         }
 
         for (const [k, v] of this.gate.entries()) {
-            if (v === 1) {
+            if (v <= 1) {
                 this.gate.delete(k);
             } else {
                 this.gate.set(k, v - 1);
             }
         }
 
-        for (const [k, v] of this.returnRoutes.entries()) {
-            if (v === 1) {
-                this.returnRoutes.delete(k);
-            } else {
-                this.returnRoutes.set(k, v - 1);
-            }
-        }
-
         // prune peer list
-        for (const [i, peer] of Object.entries(this.peers)) {
+        const disconnectedPeers: Set<RemotePeer> = new Set();
+        for (const [, peer] of this.peers) {
             if (peer.indexed) {
                 continue;
             }
             const expired =
-                peer.lastUpdate + this.config.keepalive < Date.now();
-            if (expired) {
-                // || !NAT.isValid(peer.natType)) {
-                const p = this.peers.splice(Number(i), 1);
-                if (this.onDisconnection) {
-                    this.onDisconnection(p[0]);
-                }
+                peer.lastUpdate + this.config.keepalive * 4 < Date.now();
+            if (!expired) {
                 continue;
             }
+            disconnectedPeers.add(peer);
+            // if we lost this peer, we have also lost any peers that
+            // were depending on it for proxying, so we need to remove them too
+            for (const [, dependentPeer] of this.peers) {
+                dependentPeer.proxies.delete(peer.peerId);
+                if (dependentPeer.proxies.size === 0) {
+                    disconnectedPeers.add(dependentPeer);
+                }
+            }
         }
+        for (const peer of disconnectedPeers) {
+            this._onDebug(`-- DISCONNECT peer=${peer.peerId.slice(0, 6)}`);
+            this.peers.delete(peer.peerId);
+            if (this.onDisconnection) {
+                this.onDisconnection(peer);
+            }
+        }
+        // TODO: expire oldest peer if we are at the peer limit
+        // if (this.peers.size >= 256) {
+        //     // TODO evicting an older peer definitely needs some more thought.
+        //     const oldPeerIndex = this.peers.findIndex(
+        //         (p) => !p.lastUpdate && !p.indexed,
+        //     );
+        //     if (oldPeerIndex > -1) {
+        //         this.peers.splice(oldPeerIndex, 1);
+        //     }
+        // }
 
         // if this peer has previously tried to join any clusters, multicast a
         // join messages for each into the network so we are always searching.
@@ -457,16 +443,14 @@ export class Peer {
     }
 
     /**
-     * Enqueue packets to be sent to the network
-     * @param {Buffer} data - An encoded packet
-     * @param {number} port - The desination port of the remote host
-     * @param {string} address - The destination address of the remote host
-     * @param {Socket=this.socket} socket - The socket to send on
-     * @return {undefined}
-     * @ignore
+     * sent to the network
      */
-    send(data, port, address, socket = this.socket) {
-        const t = Date.now();
+    send(
+        data: Uint8Array,
+        port: number,
+        address: string,
+        socket = this.socket,
+    ) {
         socket.send(data, port, address, (err) => {
             if (err) {
                 return this._onError(err);
@@ -482,18 +466,14 @@ export class Peer {
             if (this.onSend && packet.type) {
                 this.onSend(packet, port, address);
             }
-            const elapsed = Date.now() - t;
             this._onDebug(
-                `>> SENT (from=${this.address}:${this.port}, to=${address}:${port}, type=${packet.type} took=${elapsed}ms)`,
+                `>> SENT (from=${this.address}:${this.port}, to=${address}:${port}, type=${packet.type} size=${data.length})`,
             );
         });
     }
 
-    /**
-     * @private
-     */
     async stream(peerId, sharedKey, args) {
-        const p = this.peers.find((p) => p.peerId === peerId);
+        const p = this.peers.get(peerId);
         if (p) {
             return p.write(sharedKey, args);
         }
@@ -501,10 +481,8 @@ export class Peer {
 
     /**
      * Send any unpublished packets
-     * @return {undefined}
-     * @ignore
      */
-    async sendUnpublished() {
+    async sendUnpublished(): Promise<void> {
         for (const [packetId] of Object.entries(this.unpublished)) {
             const packet = this.cache.get(packetId);
 
@@ -524,12 +502,11 @@ export class Peer {
 
     /**
      * Get the serializable state of the peer (can be passed to the constructor or create method)
-     * @return {undefined}
      */
     getState() {
         this.config.clock = this.clock; // save off the clock
 
-        const peers = this.peers.map((p) => {
+        const peers = Array.from(this.peers.values()).map((p) => {
             const p2: any = { ...p };
             delete p2.localPeer;
             return p2;
@@ -537,7 +514,6 @@ export class Peer {
 
         return {
             peers,
-            syncs: this.syncs,
             config: this.config,
             data: [...this.cache.data.entries()],
             unpublished: this.unpublished,
@@ -572,7 +548,7 @@ export class Peer {
             throw new Error('options.port required');
         }
         info.indexed = true;
-        this.peers.push(new RemotePeer(info));
+        this.peers.set(info.peerId, new RemotePeer(info));
     }
 
     async reconnect() {
@@ -616,10 +592,9 @@ export class Peer {
 
     /**
      * Get a selection of known peers
-     * @return {Array<RemotePeer>}
-     * @ignore
      */
-    getPeers(packet, peers, ignorelist, filter = (o) => o) {
+    getPeers(packet: any, ignorelist, filter = (o) => o): RemotePeer[] {
+        const peers = Array.from(this.peers.values());
         const rand = () => Math.random() - 0.5;
 
         const base = (p) => {
@@ -639,9 +614,9 @@ export class Peer {
             if (this.peerId === p.peerId) {
                 return false;
             } // same as me
-            if (packet.message.requesterPeerId === p.peerId) {
+            if (packet.message?.requesterPeerId === p.peerId) {
                 return false;
-            } // same as requester - @todo: is this true in all cases?
+            } // TODO: same as requester - is this true in all cases?
             if (!p.port || !NAT.isValid(p.natType)) {
                 return false;
             }
@@ -681,11 +656,9 @@ export class Peer {
 
     /**
      * Send an eventually consistent packet to a selection of peers (fanout)
-     * @return {undefined}
-     * @ignore
      */
-    async mcast(packet, ignorelist: any[] = []) {
-        const peers = this.getPeers(packet, this.peers, ignorelist);
+    async mcast(packet: Packet, ignorelist: any[] = []) {
+        const peers = this.getPeers(packet, ignorelist);
         const pid = packet.packetId.toString('hex');
 
         packet.hops += 1;
@@ -694,9 +667,6 @@ export class Peer {
             this.send(await Packet.encode(packet), peer.port, peer.address);
         }
 
-        if (this.onMulticast) {
-            this.onMulticast(packet);
-        }
         if (this.gate.has(pid)) {
             return;
         }
@@ -705,8 +675,6 @@ export class Peer {
 
     /**
      * The process of determining this peer's NAT behavior (firewall and dependentness)
-     * @return {undefined}
-     * @ignore
      */
     async requestReflection() {
         if (this.closing || this.indexed || this.reflectionId) {
@@ -717,7 +685,7 @@ export class Peer {
         if (
             this.natType &&
             this.lastUpdate > 0 &&
-            Date.now() - this.config.keepalive < this.lastUpdate
+            Date.now() - this.config.keepalive * 4 < this.lastUpdate
         ) {
             this._onDebug(
                 `<> REFLECT NOT NEEDED (last-recv=${Date.now() - this.lastUpdate}ms)`,
@@ -730,14 +698,8 @@ export class Peer {
             this.reflectionId,
             this.reflectionStage,
         );
-        if (this.onConnecting) {
-            this.onConnecting({
-                code: -1,
-                status: `Entering reflection (lastUpdate ${Date.now() - this.lastUpdate}ms)`,
-            });
-        }
 
-        const peers = [...this.peers]
+        const peers = Array.from(this.peers.values())
             .filter((p) => p.lastUpdate !== 0)
             .filter(
                 (p) =>
@@ -747,12 +709,6 @@ export class Peer {
             );
 
         if (peers.length < 2) {
-            if (this.onConnecting) {
-                this.onConnecting({
-                    code: -1,
-                    status: 'Not enough pingable peers',
-                });
-            }
             this._onDebug(
                 'XX REFLECT NOT ENOUGH PINGABLE PEERS - RETRYING',
                 peers,
@@ -760,7 +716,7 @@ export class Peer {
 
             // tell all well-known peers that we would like to hear from them, if
             // we hear from any we can ask for the reflection information we need.
-            for (const peer of this.peers
+            for (const peer of Array.from(this.peers.values())
                 .filter((p) => p.indexed)
                 .sort(() => Math.random() - 0.5)
                 .slice(0, 32)) {
@@ -790,24 +746,12 @@ export class Peer {
             .toString('hex')
             .padStart(12, '0');
 
-        if (this.onConnecting) {
-            this.onConnecting({
-                code: 0.5,
-                status: `Found ${peers.length} elegible peers for reflection`,
-            });
-        }
         //
         // # STEP 1
         // The purpose of this step is strictily to discover the external port of
         // the probe socket.
         //
         if (this.reflectionStage === 0) {
-            if (this.onConnecting) {
-                this.onConnecting({
-                    code: 1,
-                    status: 'Discover External Port',
-                });
-            }
             // start refelection with an zeroed NAT type
             if (this.reflectionTimeout) {
                 clearTimeout(this.reflectionTimeout);
@@ -837,9 +781,6 @@ export class Peer {
                     'XX NAT REFLECT - STAGE1: C - TIMEOUT',
                     this.reflectionId,
                 );
-                if (this.onConnecting) {
-                    this.onConnecting({ code: 1, status: 'Timeout' });
-                }
 
                 this.reflectionStage = 1;
                 this.reflectionId = null;
@@ -868,9 +809,6 @@ export class Peer {
         if (this.reflectionStage === 1) {
             this.reflectionStage = 2;
             const { probeExternalPort } = this.config;
-            if (this.onConnecting) {
-                this.onConnecting({ code: 1.5, status: 'Discover NAT' });
-            }
 
             // peer1 is the most recently probed (likely the same peer used in step1)
             // using the most recent guarantees that the the NAT mapping is still open
@@ -887,12 +825,6 @@ export class Peer {
                 this._onDebug(
                     'XX NAT REFLECT - STAGE2: INSUFFICENT PEERS - RETRYING',
                 );
-                if (this.onConnecting) {
-                    this.onConnecting({
-                        code: 1.5,
-                        status: 'Insufficent Peers',
-                    });
-                }
                 return setTimeout(() => this.requestReflection(), 256);
             }
 
@@ -911,17 +843,6 @@ export class Peer {
                 }),
             ]);
 
-            if (this.onConnecting) {
-                this.onConnecting({
-                    code: 2,
-                    status: `Requesting reflection from ${peer1.address}`,
-                });
-                this.onConnecting({
-                    code: 2,
-                    status: `Requesting reflection from ${peer2.address}`,
-                });
-            }
-
             if (this.reflectionTimeout) {
                 clearTimeout(this.reflectionTimeout);
                 this.reflectionTimeout = null;
@@ -931,9 +852,6 @@ export class Peer {
                 this.reflectionTimeout = null;
                 if (this.reflectionStage !== 2) {
                     return;
-                }
-                if (this.onConnecting) {
-                    this.onConnecting({ code: 2, status: 'Timeout' });
                 }
                 this.reflectionStage = 1;
                 this.reflectionId = null;
@@ -948,10 +866,13 @@ export class Peer {
 
     /**
      * Ping another peer
-     * @return {PacketPing}
-     * @ignore
      */
-    async ping(peer: any, withRetry: any, props: any, socket?: any) {
+    async ping(
+        peer: RemotePeer,
+        withRetry: any,
+        props: any,
+        socket?: any,
+    ): Promise<PacketPing | undefined> {
         if (!peer) {
             return;
         }
@@ -969,7 +890,7 @@ export class Peer {
                 return false;
             }
 
-            const p = this.peers.find((p) => p.peerId === peer.peerId);
+            const p = this.peers.get(peer.peerId);
             // if (p?.reflectionId && p.reflectionId === packet.message.reflectionId) {
             //  return false
             // }
@@ -991,23 +912,13 @@ export class Peer {
     }
 
     /**
-     * Get a peer
-     * @return {RemotePeer}
-     * @ignore
-     */
-    getPeer(id) {
-        return this.peers.find((p) => p.peerId === id);
-    }
-
-    /**
      * This should be called at least once when an app starts to multicast
      * this peer, and starts querying the network to discover peers.
-     * @param {object} keys - Created by `Encryption.createKeyPair()`.
-     * @param {object=} args - Options
-     * @param {number=MAX_BANDWIDTH} args.rateLimit - How many requests per second to allow for this subclusterId.
-     * @return {RemotePeer}
      */
-    async join(sharedKey, args: any = { rateLimit: MAX_BANDWIDTH }) {
+    async join(
+        sharedKey: Uint8Array,
+        args: any = { rateLimit: MAX_BANDWIDTH },
+    ) {
         const keys = await Encryption.createKeyPair(sharedKey);
         this.encryption.add(keys.publicKey, keys.privateKey);
 
@@ -1028,7 +939,7 @@ export class Peer {
 
         this.clock += 1;
 
-        const packet: any = new PacketJoin({
+        const packet = new PacketJoin({
             clock: this.clock,
             clusterId,
             subclusterId,
@@ -1042,7 +953,7 @@ export class Peer {
         });
 
         this._onDebug(
-            `-> JOIN (clusterId=${cid.slice(0, 6)}, subclusterId=${scid.slice(0, 6)}, clock=${packet.clock}/${this.clock})`,
+            `-> JOIN (clusterId=${cid.slice(0, 6)}, subclusterId=${scid.slice(0, 6)}, clock=${(packet as any).clock}/${this.clock})`,
         );
         if (this.onState) {
             this.onState();
@@ -1052,25 +963,19 @@ export class Peer {
         this.gate.set(packet.packetId.toString('hex'), 1);
     }
 
-    /**
-     * @param {Packet} T - The constructor to be used to create packets.
-     * @param {Any} message - The message to be split and packaged.
-     * @return {Array<Packet<T>>}
-     * @ignore
-     */
-    async _message2packets(T, message, args) {
+    async _message2packets(T: any, message: any, args) {
         const {
             clusterId,
             subclusterId,
             packet,
             nextId,
-            meta = {},
+            // meta = {},
             usr1,
             usr2,
             sig,
         } = args;
 
-        let messages = [message];
+        const messages = [message];
         const len = message?.byteLength ?? message?.length ?? 0;
         let clock = packet?.clock || 0;
 
@@ -1099,18 +1004,19 @@ export class Peer {
 
         if (len > 1024) {
             // Split packets that have messages bigger than Packet.maxLength
-            messages = [
-                {
-                    meta,
-                    ts: Date.now(),
-                    size: message.length,
-                    indexes: Math.ceil(message.length / 1024),
-                },
-            ];
-            let pos = 0;
-            while (pos < message.length) {
-                messages.push(message.slice(pos, (pos += 1024)));
-            }
+            throw new Error('MESSAGE_TOO_BIG');
+            // messages = [
+            //     {
+            //         meta,
+            //         ts: Date.now(),
+            //         size: message.length,
+            //         indexes: Math.ceil(message.length / 1024),
+            //     },
+            // ];
+            // let pos = 0;
+            // while (pos < message.length) {
+            //     messages.push(message.slice(pos, (pos += 1024)));
+            // }
         }
 
         // turn each message into an actual packet
@@ -1153,17 +1059,17 @@ export class Peer {
                 packets[i].previousId = Buffer.from(packets[0].packetId);
             }
 
-            if (packets[i + 1]) {
-                packets[i + 1].packetId = await sha256(
-                    Buffer.concat([
-                        await sha256(packets[i].packetId, { bytes: true }),
-                        await sha256(packets[i + 1].message, { bytes: true }),
-                    ]),
-                    { bytes: true },
-                );
+            // if (packets[i + 1]) {
+            //     packets[i + 1].packetId = await sha256(
+            //         Buffer.concat([
+            //             await sha256(packets[i].packetId, { bytes: true }),
+            //             await sha256(packets[i + 1].message, { bytes: true }),
+            //         ]),
+            //         { bytes: true },
+            //     );
 
-                packets[i].nextId = Buffer.from(packets[i + 1].packetId);
-            }
+            //     packets[i].nextId = Buffer.from(packets[i + 1].packetId);
+            // }
         }
 
         return packets;
@@ -1173,16 +1079,18 @@ export class Peer {
      * Sends a packet into the network that will be replicated and buffered.
      * Each peer that receives it will buffer it until TTL and then replicate
      * it provided it has has not exceeded their maximum number of allowed hops.
-     *
-     * @param {object} keys - the public and private key pair created by `Encryption.createKeyPair()`.
-     * @param {object} args - The arguments to be applied.
-     * @param {Buffer} args.message - The message to be encrypted by keys and sent.
-     * @param {Packet<T>=} args.packet - The previous packet in the packet chain.
-     * @param {Buffer} args.usr1 - 32 bytes of arbitrary clusterId in the protocol framing.
-     * @param {Buffer} args.usr2 - 32 bytes of arbitrary clusterId in the protocol framing.
-     * @return {Array<PacketPublish>}
      */
-    async publish(sharedKey, args) {
+    async publish(
+        sharedKey,
+        args: {
+            message: Buffer;
+            packet?: Packet | undefined;
+            clusterId?: string;
+            subclusterId?: Uint8Array;
+            usr1: Buffer;
+            usr2: Buffer;
+        },
+    ): Promise<Array<PacketPublish>> {
         // wtf to do here, we need subclusterId and the actual user keys
         if (!sharedKey) {
             throw new Error(
@@ -1217,63 +1125,29 @@ export class Peer {
                 this.onPacket(packet, this.port, this.address, true);
             }
 
-            this.unpublished[packet.packetId.toString('hex')] = Date.now();
             if (!Peer.onLine()) {
+                this.unpublished[packet.packetId.toString('hex')] = Date.now();
                 continue;
             }
 
             await this.mcast(packet);
         }
 
-        const head = [...cache.values()][0];
+        // const head = [...cache.values()][0];
         // if there is a head, we can recompose the packets, this gives this
         // peer a consistent view of the data as it has been published.
-        if (this.onPacket && head && head.index === 0) {
-            const p: any = await this.cache.compose(head, cache);
-            if (p) {
-                this.onPacket(p, this.port, this.address, true);
-                this._onDebug(
-                    `-> PUBLISH (multicasted=true, packetId=${p.packetId.toString('hex').slice(0, 8)})`,
-                );
-                return [p];
-            }
-        }
+        // if (this.onPacket && head && head.index === 0) {
+        //     const p: any = await this.cache.compose(head, cache);
+        //     if (p) {
+        //         this.onPacket(p, this.port, this.address, true);
+        //         this._onDebug(
+        //             `-> PUBLISH (multicasted=true, packetId=${p.packetId.toString('hex').slice(0, 8)})`,
+        //         );
+        //         return [p];
+        //     }
+        // }
 
         return packets;
-    }
-
-    /**
-     * @return {undefined}
-     */
-    async sync(peer, ptime = Date.now()) {
-        if (typeof peer === 'string') {
-            peer = this.peers.find((p) => p.peerId === peer);
-        }
-
-        const rinfo = peer?.proxy || peer;
-
-        this.lastSync = Date.now();
-        const summary = await this.cache.summarize(
-            '',
-            this.cachePredicate(ptime),
-        );
-
-        this._onDebug(
-            `-> SYNC START (dest=${peer.peerId.slice(0, 8)}, to=${rinfo.address}:${rinfo.port})`,
-        );
-        if (this.onSyncStart) {
-            this.onSyncStart(peer, rinfo.port, rinfo.address);
-        }
-
-        // if we are out of sync send our cache summary
-        const data = await Packet.encode(
-            new PacketSync({
-                message: Cache.encodeSummary(summary),
-                usr4: Buffer.from(String(ptime)),
-            }),
-        );
-
-        this.send(data, rinfo.port, rinfo.address, peer.socket);
     }
 
     close() {
@@ -1310,11 +1184,15 @@ export class Peer {
     /**
      * A connection was made, add the peer to the local list of known
      * peers and call the onConnection if it is defined by the user.
-     *
-     * @return {undefined}
-     * @ignore
      */
-    async _onConnection(packet, peerId, port, address, proxy?, socket?) {
+    async _onConnection(
+        packet: any,
+        peerId: string,
+        port: number,
+        address: string,
+        proxy?: RemotePeer,
+        socket?: any,
+    ) {
         if (this.closing) {
             return;
         }
@@ -1333,26 +1211,20 @@ export class Peer {
         const cid = packet.clusterId.toString('base64');
         const scid = packet.subclusterId.toString('base64');
 
-        let peer: any = this.getPeer(peerId);
+        let peer = this.peers.get(peerId);
         const firstContact = !peer;
-
-        if (firstContact) {
-            peer = new RemotePeer({ peerId });
-
-            if (this.peers.length >= 256) {
-                // TODO evicting an older peer definitely needs some more thought.
-                const oldPeerIndex = this.peers.findIndex(
-                    (p) => !p.lastUpdate && !p.indexed,
-                );
-                if (oldPeerIndex > -1) {
-                    this.peers.splice(oldPeerIndex, 1);
-                }
-            }
-
+        if (!peer) {
+            peer = new RemotePeer({
+                peerId,
+                address,
+                port,
+                natType,
+                localPeer: this,
+            });
             this._onDebug(
                 `<- CONNECTION ADDING PEER (id=${peer.peerId}, address=${address}:${port})`,
             );
-            this.peers.push(peer);
+            this.peers.set(peer.peerId, peer);
         }
 
         peer.connected = true;
@@ -1360,10 +1232,29 @@ export class Peer {
         peer.port = port;
         peer.natType = natType;
         peer.address = address;
-        //peer.clusters ??= {}; // feels wrong
 
         if (proxy) {
-            peer.proxy = proxy;
+            if (peer.proxies.has(proxy.peerId)) {
+                this._onDebug(
+                    `<- CONNECTION UPDATING PROXY PEER (id=${peer.peerId}, address=${address}:${port} proxy=${proxy.peerId.slice(0, 6)} count=${peer.proxies.size})`,
+                );
+            } else {
+                this._onDebug(
+                    `<- CONNECTION ASSIGNING PROXY PEER (id=${peer.peerId}, address=${address}:${port} proxy=${proxy.peerId.slice(0, 6)} count=${peer.proxies.size + 1})`,
+                );
+            }
+            peer.proxies.set(proxy.peerId, proxy);
+        } else {
+            if (peer.proxies.size > 0) {
+                // remove any proxies that were previously assigned
+                // because we are now directly connected
+                console.log(
+                    `SHOULD REMOVE PROXIES, DIRECT CONNECTION ESTABLISHED`,
+                );
+                // this._onDebug(
+                //     `<- CONNECTION REMOVING PROXY PEER (id=${peer.peerId}, address=${address}:${port} count=${peer.proxies.size - 1})`,
+                // );
+            }
         }
         if (socket) {
             peer.socket = socket;
@@ -1376,10 +1267,6 @@ export class Peer {
         if (cid && scid) {
             const cluster = peer.clusters[cid];
             cluster[scid] = { rateLimit: MAX_BANDWIDTH };
-        }
-
-        if (!peer.localPeer) {
-            peer.localPeer = this;
         }
 
         this._onDebug(
@@ -1399,144 +1286,11 @@ export class Peer {
 
         if (firstContact && this.onConnection) {
             this.onConnection(packet, peer, port, address);
-
-            const now = Date.now();
-            const key = [peer.address, peer.port].join(':');
-            let first = false;
-
-            //
-            // If you've never sync'd before, you can ask for 6 hours of data from
-            // other peers. If we have synced with a peer before we can just ask for
-            // data that they have seen since then, this will avoid the risk of
-            // spamming them and getting rate-limited.
-            //
-            if (!this.syncs[key]) {
-                this.syncs[key] = now - 1000;
-                first = true;
-            }
-
-            // const lastSyncSeconds = (now - this.syncs[key]) / 1000;
-            const syncWindow = this.config.syncWindow ?? 6000;
-
-            if (first || now - this.syncs[key] > syncWindow) {
-                // await this.sync(peer.peerId, this.syncs[key]);
-                // this._onDebug(
-                //     `-> SYNC SEND (peerId=${peer.peerId.slice(0, 6)}, address=${key}, since=${lastSyncSeconds} seconds ago)`,
-                // );
-                this.syncs[key] = now;
-            }
         }
     }
 
     /**
-     * Received a Sync Packet
-     * @return {undefined}
-     * @ignore
-     */
-    // async _onSync(packet, port, address, _data) {
-    //     this.metrics.i[packet.type]++;
-
-    //     this.lastSync = Date.now();
-    //     const pid = packet.packetId.toString('hex');
-
-    //     let ptime = Date.now();
-
-    //     if (packet.usr4.byteLength > 8 || packet.usr4.byteLength < 16) {
-    //         const usr4 = parseInt(Buffer.from(packet.usr4).toString(), 10);
-    //         ptime = Math.min(ptime - Packet.ttl, usr4);
-    //     }
-
-    //     if (!isBufferLike(packet.message)) {
-    //         return;
-    //     }
-    //     if (this.gate.has(pid)) {
-    //         return;
-    //     }
-
-    //     this.gate.set(pid, 1);
-
-    //     const remote = Cache.decodeSummary(packet.message);
-    //     const local = await this.cache.summarize(
-    //         remote.prefix,
-    //         this.cachePredicate(ptime),
-    //     );
-
-    //     if (
-    //         !remote ||
-    //         !remote.hash ||
-    //         !local ||
-    //         !local.hash ||
-    //         local.hash === remote.hash
-    //     ) {
-    //         if (this.onSyncFinished) {
-    //             this.onSyncFinished(packet, port, address);
-    //         }
-    //         return;
-    //     }
-
-    //     if (this.onSync) {
-    //         this.onSync(packet, port, address, { remote, local });
-    //     }
-
-    //     const remoteBuckets = remote.buckets.filter(Boolean).length;
-    //     this._onDebug(
-    //         `<- ON SYNC (from=${address}:${port}, local=${local.hash.slice(0, 8)}, remote=${remote.hash.slice(0, 8)} remote-buckets=${remoteBuckets})`,
-    //     );
-
-    //     for (let i = 0; i < local.buckets.length; i++) {
-    //         // continue; //--------------------------------- HACKY SKIP
-
-    //         //
-    //         // nothing to send/sync, expect peer to send everything they have
-    //         //
-    //         if (!local.buckets[i] && !remote.buckets[i]) {
-    //             continue;
-    //         }
-
-    //         //
-    //         // you dont have any of these, im going to send them to you
-    //         //
-    //         if (!remote.buckets[i]) {
-    //             for (const [key, p] of this.cache.data.entries()) {
-    //                 if (!key.startsWith(local.prefix + i.toString(16))) {
-    //                     continue;
-    //                 }
-
-    //                 const packet: any = Packet.from(p);
-    //                 if (!this.cachePredicate(ptime)(packet)) {
-    //                     continue;
-    //                 }
-
-    //                 const pid = packet.packetId.toString('hex');
-    //                 this._onDebug(
-    //                     `-> SYNC SEND PACKET (type=data, packetId=${pid.slice(0, 8)}, to=${address}:${port})`,
-    //                 );
-
-    //                 this.send(await Packet.encode(packet), port, address);
-    //             }
-    //         } else {
-    //             //
-    //             // need more details about what exactly isn't synce'd
-    //             //
-    //             const nextLevel = await this.cache.summarize(
-    //                 local.prefix + i.toString(16),
-    //                 this.cachePredicate(ptime),
-    //             );
-    //             const data = await Packet.encode(
-    //                 new PacketSync({
-    //                     message: Cache.encodeSummary(nextLevel),
-    //                     usr4: Buffer.from(String(Date.now())),
-    //                 }),
-    //             );
-    //             this.send(data, port, address);
-    //         }
-    //     }
-    // }
-
-    /**
      * Received a Ping Packet
-     * @return {undefined}
-     * @ignore
      */
     async _onPing(packet: any, port: any, address: any, _data: any) {
         this.metrics.i[packet.type]++;
@@ -1617,8 +1371,6 @@ export class Peer {
 
     /**
      * Received a Pong Packet
-     * @return {undefined}
-     * @ignore
      */
     async _onPong(packet, port, address, _data) {
         this.metrics.i[packet.type]++;
@@ -1635,7 +1387,7 @@ export class Peer {
         this._onDebug(
             `<- PONG (from=${address}:${port}, hash=${packet.message.cacheSummaryHash}, isConnection=${!!packet.message.isConnection})`,
         );
-        const peer = this.getPeer(responderPeerId);
+        const peer = this.peers.get(responderPeerId);
         if (!peer) {
             return;
         }
@@ -1664,12 +1416,6 @@ export class Peer {
                     reflectionId,
                     packet,
                 };
-                if (this.onConnecting) {
-                    this.onConnecting({
-                        code: 2.5,
-                        status: `Received reflection from ${address}:${port}`,
-                    });
-                }
                 this._onDebug(
                     '<- NAT REFLECT - STAGE2: FIRST RESPONSE',
                     port,
@@ -1690,12 +1436,6 @@ export class Peer {
                 }, PROBE_WAIT);
             } else {
                 clearTimeout(this.reflectionFirstResponderTimeout);
-                if (this.onConnecting) {
-                    this.onConnecting({
-                        code: 2.5,
-                        status: `Received reflection from ${address}:${port}`,
-                    });
-                }
                 this._onDebug(
                     '<- NAT REFLECT - STAGE2: SECOND RESPONSE',
                     port,
@@ -1741,7 +1481,7 @@ export class Peer {
 
                         // if (natType !== oldType) {
                         // alert all connected peers of our new NAT type
-                        for (const peer of this.peers) {
+                        for (const [_, peer] of this.peers) {
                             peer.lastRequest = Date.now();
 
                             this._onDebug(
@@ -1760,21 +1500,11 @@ export class Peer {
 
                         setTimeout(() => this._mainLoop(Date.now()), 1024);
 
-                        if (this.onNat) {
-                            this.onNat(this.natType);
-                        }
-
                         this._onDebug(
                             `++ NAT (type=${NAT.toString(this.natType)})`,
                         );
                         await this.sendUnpublished();
 
-                        if (this.onConnecting) {
-                            this.onConnecting({
-                                code: 3,
-                                status: `Discovered! (nat=${NAT.toString(this.natType)})`,
-                            });
-                        }
                         if (this.onReady) {
                             this.onReady(await this.getInfo());
                         }
@@ -1795,8 +1525,6 @@ export class Peer {
 
     /**
      * Received an Intro Packet
-     * @return {undefined}
-     * @ignore
      */
     async _onIntro(packet, port, address, _, opts = { attempts: 0 }) {
         this.metrics.i[packet.type]++;
@@ -1818,7 +1546,7 @@ export class Peer {
         if (packet.hops >= this.maxHops) {
             return;
         }
-        if (!isNaN(ts) && ts + this.config.keepalive < Date.now()) {
+        if (!isNaN(ts) && ts + this.config.keepalive * 4 < Date.now()) {
             return;
         }
         if (packet.message.requesterPeerId === this.peerId) {
@@ -1835,6 +1563,46 @@ export class Peer {
         const natType = packet.message.natType;
         const { clusterId, subclusterId, clock } = packet;
 
+        let peer = this.peers.get(peerId);
+        if (peer) {
+            // we know this peer...
+            if (peer.connected && peer.proxies.size === 0) {
+                return;
+            }
+            if (clock > 0 && clock < peer.clock) {
+                return;
+            }
+        } else {
+            peer = new RemotePeer({
+                peerId,
+                natType,
+                port: peerPort,
+                address: peerAddress,
+                clock,
+                clusterId,
+                subclusterId,
+                localPeer: this,
+            });
+        }
+        peer.clock = clock;
+
+        const proxyCandidate = this.peers.get(packet.message.responderPeerId);
+
+        if (opts.attempts >= 2) {
+            this._onDebug('<- CONNECTION (source=intro)');
+            await this._onConnection(
+                packet,
+                peer.peerId,
+                peerPort,
+                peerAddress,
+                proxyCandidate,
+            );
+            if (proxyCandidate) {
+                this._onDebug('++ INTRO FALLBACK PROXY STRATEGY');
+            }
+            return false;
+        }
+
         // already introduced in the laste minute, just drop the packet
         if (
             opts.attempts === 0 &&
@@ -1844,34 +1612,18 @@ export class Peer {
         }
         this.gate.set(peerId + peerAddress + peerPort, 2);
 
-        // we already know this peer, and we're even connected to them!
-        let peer = this.getPeer(peerId);
-        if (!peer) {
-            peer = new RemotePeer({
-                peerId,
-                natType,
-                port: peerPort,
-                address: peerAddress,
-                clock,
-                clusterId,
-                subclusterId,
-            });
-        }
-        if (peer.connected) {
-            return;
-        } // already connected
-        if (clock > 0 && clock < peer.clock) {
-            return;
-        }
-        peer.clock = clock;
-
         // a mutex per inbound peer to ensure that it's not connecting concurrently,
         // the check of the attempts ensures its allowed to recurse before failing so
         // it can still fall back
-        if (this.gate.has('CONN' + peer.peerId) && opts.attempts === 0) {
+        const mutexKey = [
+            'CONN',
+            peer.peerId,
+            packet.message.responderPeerId,
+        ].join(':');
+        if (this.gate.has(mutexKey) && opts.attempts === 0) {
             return;
         }
-        this.gate.set('CONN' + peer.peerId, 1);
+        this.gate.set(mutexKey, 1);
 
         const cid = clusterId.toString('base64');
         const scid = subclusterId.toString('base64');
@@ -1885,10 +1637,6 @@ export class Peer {
                 `subclusterId=${scid.slice(0, 6)}` +
                 ')',
         );
-
-        if (this.onIntro) {
-            this.onIntro(packet, peer, peerPort, peerAddress);
-        }
 
         const pingId = randomBytes(6).toString('hex').padStart(12, '0');
         const { hash } = await this.cache.summarize('', this.cachePredicate());
@@ -1909,25 +1657,15 @@ export class Peer {
             this.natType,
             packet.message.natType,
         );
-        const proxyCandidate = this.peers.find(
-            (p) => p.peerId === packet.message.responderPeerId,
-        );
-
-        if (opts.attempts >= 2) {
-            this._onDebug('<- CONNECTION (source=intro)');
-            await this._onConnection(
-                packet,
-                peer.peerId,
-                peerPort,
-                peerAddress,
-                proxyCandidate,
-            );
-            return false;
-        }
 
         setTimeout(() => {
-            if (this.getPeer(peer.peerId)) {
-                return;
+            if (this.peers.get(peer.peerId)) {
+                console.log(
+                    `-------------
+                    not aborting the timeout thingy
+                    -------------`,
+                );
+                // return;
             }
             opts.attempts = 2;
             this._onIntro(packet, port, address, _, opts).catch((err) =>
@@ -2070,8 +1808,7 @@ export class Peer {
             return;
         }
 
-        if (strategy === NAT.STRATEGY_PROXY && !peer.proxy) {
-            // TODO could allow multiple proxies
+        if (strategy === NAT.STRATEGY_PROXY) {
             this._onDebug('<- CONNECTION (source=proxy)');
             await this._onConnection(
                 packet,
@@ -2086,7 +1823,7 @@ export class Peer {
         if (strategy === NAT.STRATEGY_TRAVERSAL_OPEN) {
             peer.opening = Date.now();
 
-            const portsCache = new Set();
+            const portsCache = new Set<number>();
 
             if (!this.bdpCache.length) {
                 globalThis.bdpCache = this.bdpCache = Array.from(
@@ -2115,8 +1852,6 @@ export class Peer {
 
     /**
      * Received an Join Packet
-     * @return {undefined}
-     * @ignore
      */
     async _onJoin(packet, port, address, _data) {
         this.metrics.i[packet.type]++;
@@ -2142,7 +1877,7 @@ export class Peer {
         const peerPort = packet.message.port;
 
         // prevents premature pruning; a peer is not directly connecting
-        const peer = this.peers.find((p) => p.peerId === peerId);
+        const peer = this.peers.get(peerId);
         if (peer) {
             peer.lastUpdate = Date.now();
         }
@@ -2223,12 +1958,7 @@ export class Peer {
             p.peerId !== packet.message.rendezvousRequesterPeerId &&
             !p.indexed;
 
-        let peers = this.getPeers(
-            packet,
-            this.peers,
-            [{ port, address }],
-            filter,
-        );
+        let peers = this.getPeers(packet, [{ port, address }], filter);
 
         //
         // A peer who belongs to the same cluster as the peer who's replicated
@@ -2239,10 +1969,9 @@ export class Peer {
             packet.message.rendezvousRequesterPeerId &&
             this.peerId === packet.message.rendezvousPeerId
         ) {
-            const peer = this.peers.find(
-                (p) => p.peerId === packet.message.rendezvousRequesterPeerId,
+            const peer = this.peers.get(
+                packet.message.rendezvousRequesterPeerId,
             );
-
             if (!peer) {
                 this._onDebug('<- INTRO FROM RENDEZVOUS FAILED', packet);
                 return;
@@ -2332,7 +2061,7 @@ export class Peer {
             packet.message.rendezvousType = this.natType;
             packet.message.rendezvousPeerId = this.peerId;
             packet.message.rendezvousDeadline =
-                Date.now() + this.config.keepalive;
+                Date.now() + this.config.keepalive * 4;
         }
 
         this._onDebug(
@@ -2356,10 +2085,8 @@ export class Peer {
 
     /**
      * Received an Publish Packet
-     * @return {undefined}
-     * @ignore
      */
-    async _onPublish(packet, port, address, _data) {
+    async _onPublish(packet, port, address, _data, isProxied: boolean) {
         this.metrics.i[packet.type]++;
 
         // only cache if this packet if i am part of this subclusterId
@@ -2388,24 +2115,63 @@ export class Peer {
             return;
         }
 
+        // this message might not be for us
+        if (isProxied) {
+            const recipientId = packet.usr3.toString('hex');
+            if (!recipientId) {
+                this._onDebug(
+                    `<- DROP PROXIED NO RECIPIENT (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+                );
+                return;
+            }
+
+            const recipient = this.peers.get(recipientId);
+            if (!recipient) {
+                this._onDebug(
+                    `<- DROP PROXIED NO PATH (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+                );
+                return;
+            }
+            if (recipient.address === address && recipient.port === port) {
+                this._onDebug(
+                    `<- DROP PROXIED LOOP (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+                );
+                return;
+            }
+            packet.type = 5; // convert to a normal publish and send it on
+            this._onDebug(
+                `>> PROXY PASS (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+            );
+            this.send(
+                await Packet.encode(packet),
+                recipient.port,
+                recipient.address,
+            );
+            return;
+        }
+
         await this.cacheInsert(packet);
 
-        const ignorelist = [{ address, port }];
+        // const ignorelist = [{ address, port }];
 
         if (!this.indexed && this.encryption.has(scid)) {
-            let p = packet.copy();
+            const p = packet;
 
             if (p.index > -1) {
                 this._onDebug(
-                    `<- PUBLISH REQUIRES COMPOSE (packetId=${pid.slice(0, 6)}, index=${p.index}, from=${address}:${port})`,
+                    `<- DROP REQUIRES COMPOSE (packetId=${pid.slice(0, 6)}, index=${p.index}, from=${address}:${port})`,
                 );
+                return;
+                // this._onDebug(
+                //     `<- PUBLISH REQUIRES COMPOSE (packetId=${pid.slice(0, 6)}, index=${p.index}, from=${address}:${port})`,
+                // );
 
-                p = await this.cache.compose(p);
-                if (p?.isComposed) {
-                    this._onDebug(
-                        `<- PUBLISH COMPOSED (packetId=${pid.slice(0, 6)}, from=${address}:${port})`,
-                    );
-                }
+                // p = await this.cache.compose(p);
+                // if (p?.isComposed) {
+                //     this._onDebug(
+                //         `<- PUBLISH COMPOSED (packetId=${pid.slice(0, 6)}, from=${address}:${port})`,
+                //     );
+                // }
             }
 
             if (p?.index === -1 && this.onPacket) {
@@ -2423,8 +2189,7 @@ export class Peer {
         if (packet.hops >= this.maxHops) {
             return;
         }
-
-        await this.mcast(packet, ignorelist);
+        // await this.mcast(packet, ignorelist);
 
         // }
     }
@@ -2432,8 +2197,6 @@ export class Peer {
     /**
      * Received any packet on the probe port to determine the firewall:
      * are you port restricted, host restricted, or unrestricted.
-     * @return {undefined}
-     * @ignore
      */
     _onProbeMessage(data, { port, address }) {
         clearTimeout(this.probeReflectionTimeout);
@@ -2457,9 +2220,6 @@ export class Peer {
             `<- NAT PROBE (from=${address}:${port}, stage=${this.reflectionStage}, id=${reflectionId})`,
         );
 
-        if (this.onProbe) {
-            this.onProbe(data, port, address);
-        }
         if (this.reflectionId !== reflectionId || !this.reflectionId) {
             return;
         }
@@ -2513,18 +2273,18 @@ export class Peer {
      * When a packet is received it is decoded, the packet contains the type
      * of the message. Based on the message type it is routed to a function.
      * like WebSockets, don't answer queries unless we know its another SRP peer.
-     *
-     * @param {Buffer|Uint8Array} data
-     * @param {{ port: number, address: string }} info
      */
-    async _onMessage(data, { port, address }) {
+    async _onMessage(
+        data: Buffer | Uint8Array,
+        { port, address }: { port: number; address: string },
+    ) {
         const packet: any = Packet.decode(data);
         if (!packet || packet.version !== VERSION) {
             console.log('XXX invalid packet', packet);
             return;
         }
 
-        const peer = this.peers.find(
+        const peer = Array.from(this.peers.values()).find(
             (p) => p.address === address && p.port === port,
         );
         if (peer) {
@@ -2534,7 +2294,9 @@ export class Peer {
         const cid = Buffer.from(packet.clusterId).toString('base64');
         const scid = Buffer.from(packet.subclusterId).toString('base64');
 
-        // onDebug('<- PACKET', packet.type, port, address)
+        // this._onDebug(
+        //     `<- RECV MESSAGE type=${packet.type} from=${address}:${port}`,
+        // );
         const clusters = this.clusters[cid];
         const subcluster = clusters && clusters[scid];
 
@@ -2551,15 +2313,13 @@ export class Peer {
             }
         }
 
-        const args: any[] = [packet, port, address, data];
-
         // if (this.firewall) {
         //     if (!this.firewall(...args)) {
         //         return;
         //     }
         // }
         if (this.onData) {
-            this.onData(...args);
+            this.onData(packet, port, address, data);
         }
 
         switch (packet.type) {
@@ -2579,7 +2339,9 @@ export class Peer {
             case PacketJoin.type:
                 return this._onJoin(packet, port, address, data);
             case PacketPublish.type:
-                return this._onPublish(packet, port, address, data);
+                return this._onPublish(packet, port, address, data, false);
+            case PacketPublishProxied.type:
+                return this._onPublish(packet, port, address, data, true);
             // case PacketSync.type:
             //     return this._onSync(packet, port, address, data);
             // case PacketQuery.type:
@@ -2589,31 +2351,22 @@ export class Peer {
 
     /**
      * Test a peerID is valid
-     *
-     * @param {string} pid
-     * @returns boolean
      */
-    static isValidPeerId(pid) {
+    static isValidPeerId(pid: string): boolean {
         return typeof pid === 'string' && PEERID_REGEX.test(pid);
     }
 
     /**
      * Test a reflectionID is valid
-     *
-     * @param {string} rid
-     * @returns boolean
      */
-    static isValidReflectionId(rid) {
+    static isValidReflectionId(rid: string) {
         return typeof rid === 'string' && /^[A-Fa-f0-9]{12}$/.test(rid);
     }
 
     /**
      * Test a pingID is valid
-     *
-     * @param {string} pid
-     * @returns boolean
      */
-    static isValidPingId(pid) {
+    static isValidPingId(pid: string) {
         return typeof pid === 'string' && /^[A-Fa-f0-9]{12,13}$/.test(pid);
 
         // the above line is provided for backwards compatibility due to a breaking change introduced in:
@@ -2626,8 +2379,6 @@ export class Peer {
      * Returns the online status of the browser, else true.
      *
      * note: globalThis.navigator was added to node in v22.
-     *
-     * @returns boolean
      */
     static onLine() {
         return globalThis.navigator?.onLine !== false;

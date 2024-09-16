@@ -5,7 +5,6 @@ import Peer, { Cache, NAT } from './Peer';
 
 /**
  * Hash function factory.
- * @return {function(object|Buffer|string): Promise<string>}
  */
 function createHashFunction() {
     const encoder = new TextEncoder();
@@ -91,7 +90,6 @@ const getMethod = (type, bytes, isSigned) => {
 /**
  * The magic bytes prefixing every packet. They are the
  * 2nd, 3rd, 5th, and 7th, prime numbers.
- * @type {number[]}
  */
 export const MAGIC_BYTES_PREFIX = [0x03, 0x05, 0x0b, 0x11];
 
@@ -225,21 +223,17 @@ const isEncodedAsJSON = ({ type, index }) =>
     type === PacketPong.type ||
     type === PacketJoin.type ||
     type === PacketIntro.type ||
-    type === PacketQuery.type ||
     index === 0;
 
 /**
  * Computes a SHA-256 hash of input returning a hex encoded string.
- * @type {function(string|Buffer|Uint8Array): Promise<string>}
  */
 export const sha256 = createHashFunction();
 
 /**
  * Decodes `buf` into a `Packet`.
- * @param {Buffer} buf
- * @return {Packet}
  */
-export const decode = (buf) => {
+export const decode = (buf: Buffer) => {
     if (!Packet.isPacket(buf)) {
         return null;
     }
@@ -304,80 +298,31 @@ export class Packet {
     static ttl = CACHE_TTL;
     static maxLength = MESSAGE_BYTES;
 
+    type!: number;
+    version!: number;
+    clock!: number;
+    hops!: number;
+    index!: number;
+    ttl!: number;
+    clusterId!: Buffer;
+    subclusterId!: Buffer;
+    previousId!: Buffer;
+    packetId!: Buffer;
+    nextId!: Buffer;
+    usr1!: Buffer;
+    usr2!: Buffer;
+    usr3!: Buffer;
+    usr4!: Buffer;
+    message!: Buffer;
+    sig!: Buffer;
+
     timestamp?: number;
     isComposed?: boolean;
     isReconciled?: boolean;
     meta?: object;
 
     /**
-     * Returns an empty `Packet` instance.
-     * @return {Packet}
-     */
-    static empty() {
-        return new this();
-    }
-
-    /**
-     * @param {Packet|object} packet
-     * @return {Packet}
-     */
-    static from(packet) {
-        if (packet instanceof Packet && packet.constructor !== Packet) {
-            return packet;
-        }
-
-        switch (packet.type) {
-            case PacketPing.type:
-                return new PacketPing(packet);
-            case PacketPong.type:
-                return new PacketPong(packet);
-            case PacketIntro.type:
-                return new PacketIntro(packet);
-            case PacketJoin.type:
-                return new PacketJoin(packet);
-            case PacketPublish.type:
-                return new PacketPublish(packet);
-            // case PacketStream.type:
-            //     return new PacketStream(packet);
-            case PacketSync.type:
-                return new PacketSync(packet);
-            case PacketQuery.type:
-                return new PacketQuery(packet);
-            default:
-                throw new Error('invalid packet type', packet.type);
-        }
-    }
-
-    /**
-     * @param {Packet} packet
-     * @return {Packet}
-     */
-    copy() {
-        const PacketConstructor: any = this.constructor;
-        return Object.assign(new PacketConstructor({}), this);
-    }
-
-    /**
-     * Determines if input is a packet.
-     * @param {Buffer|Uint8Array|number[]|object|Packet} packet
-     * @return {boolean}
-     */
-    static isPacket(packet) {
-        if (isBufferLike(packet) || Array.isArray(packet)) {
-            const prefix = Buffer.from(packet).slice(0, MAGIC_BYTES);
-            const magic = Buffer.from(MAGIC_BYTES_PREFIX);
-            return magic.compare(prefix) === 0;
-        } else if (packet && typeof packet === 'object') {
-            // check if every key on `Packet` exists in `packet`
-            return Object.keys(PACKET_SPEC).every((k) => k in packet);
-        }
-
-        return false;
-    }
-
-    /**
      * `Packet` class constructor.
-     * @param {Packet|object?} options
      */
     constructor(options: Record<string, any> = {}) {
         for (const [k, v] of Object.entries(PACKET_SPEC)) {
@@ -397,13 +342,74 @@ export class Packet {
     }
 
     /**
+     * Returns an empty `Packet` instance.
      */
-    static async encode(p) {
+    static empty() {
+        return new this();
+    }
+
+    /**
+     */
+    static from(packet) {
+        if (packet instanceof Packet && packet.constructor !== Packet) {
+            return packet;
+        }
+
+        switch (packet.type) {
+            case PacketPing.type:
+                return new PacketPing(packet);
+            case PacketPong.type:
+                return new PacketPong(packet);
+            case PacketIntro.type:
+                return new PacketIntro(packet);
+            case PacketJoin.type:
+                return new PacketJoin(packet);
+            case PacketPublish.type:
+                return new PacketPublish(packet);
+            case PacketPublishProxied.type:
+                return new PacketPublishProxied(packet);
+            // case PacketStream.type:
+            //     return new PacketStream(packet);
+            // case PacketSync.type:
+            //     return new PacketSync(packet);
+            // case PacketQuery.type:
+            //     return new PacketQuery(packet);
+            default:
+                throw new Error('invalid packet type', packet.type);
+        }
+    }
+
+    /**
+     */
+    copy() {
+        const PacketConstructor: any = this.constructor;
+        return Object.assign(new PacketConstructor({}), this);
+    }
+
+    /**
+     * Determines if input is a packet.
+     */
+    static isPacket(packet) {
+        if (isBufferLike(packet) || Array.isArray(packet)) {
+            const prefix = Buffer.from(packet).slice(0, MAGIC_BYTES);
+            const magic = Buffer.from(MAGIC_BYTES_PREFIX);
+            return magic.compare(prefix) === 0;
+        } else if (packet && typeof packet === 'object') {
+            // check if every key on `Packet` exists in `packet`
+            return Object.keys(PACKET_SPEC).every((k) => k in packet);
+        }
+
+        return false;
+    }
+
+    /**
+     */
+    static async encode(p): Promise<Uint8Array> {
         p = { ...p };
 
         const buf = Buffer.alloc(PACKET_BYTES); // buf length bust be < UDP MTU (usually ~1500)
         if (!p.message) {
-            return buf;
+            return Buffer.concat([buf]);
         }
 
         const isBuffer = isBufferLike(p.message);
@@ -613,6 +619,12 @@ export class PacketPublish extends Packet {
     }
 }
 
+export class PacketPublishProxied extends Packet {
+    static type = 9; // no need to validateMessage, message is whatever you want
+    constructor(args) {
+        super({ ...args, type: PacketPublishProxied.type });
+    }
+}
 // export class PacketStream extends Packet {
 //     static type = 6;
 //     constructor(args) {
@@ -620,20 +632,27 @@ export class PacketPublish extends Packet {
 //     }
 // }
 
-export class PacketSync extends Packet {
-    static type = 7;
-    constructor(args) {
-        super({ message: Buffer.from([0b0]), ...args, type: PacketSync.type });
-    }
-}
+// export class PacketSync extends Packet {
+//     static type = 7;
+//     constructor(args) {
+//         super({ message: Buffer.from([0b0]), ...args, type: PacketSync.type });
+//     }
+// }
 
-export class PacketQuery extends Packet {
-    static type = 8;
-    constructor(args) {
-        super({ message: {}, ...args, type: PacketQuery.type });
-    }
-}
+// export class PacketQuery extends Packet {
+//     static type = 8;
+//     constructor(args) {
+//         super({ message: {}, ...args, type: PacketQuery.type });
+//     }
+// }
 
+export type AnyPacket =
+    | PacketPing
+    | PacketPong
+    | PacketIntro
+    | PacketJoin
+    | PacketPublish
+    | PacketPublishProxied;
 export default Packet;
 
 const isValidPort = (n) =>

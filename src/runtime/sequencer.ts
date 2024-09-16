@@ -5,7 +5,6 @@ import type { Client } from './client';
 import { DB } from './db';
 import { GameModule } from './game';
 import { InputMessage, Message, MessageType } from './messages';
-import { PacketType } from './transport';
 import { CancelFunction, setPeriodic } from './utils';
 
 export interface Committer {
@@ -31,7 +30,7 @@ export interface SequencerConfig {
     interlace: number;
 }
 
-const MIN_SEQUENCE_RATE = 25;
+const MIN_SEQUENCE_RATE = 50;
 
 // the current input
 export class Sequencer {
@@ -88,6 +87,9 @@ export class Sequencer {
     }
 
     private loop = async () => {
+        if (!this.playing) {
+            return;
+        }
         try {
             await this._loop();
         } catch (err) {
@@ -120,18 +122,18 @@ export class Sequencer {
         // can we write a block?
         const [canWrite, ackIds] = await this.canWriteInputBlock(input, round);
         if (!canWrite) {
-            if (this.prev) {
-                // resend the prev message again
-                this.committer.send(
-                    {
-                        type: PacketType.MESSAGE,
-                        msgs: [this.prev],
-                    },
-                    {
-                        ttl: 200,
-                    },
-                );
-            }
+            // if (this.prev) {
+            //     // resend the prev message again
+            //     this.committer.send(
+            //         {
+            //             type: PacketType.MESSAGE,
+            //             msgs: [this.prev],
+            //         },
+            //         {
+            //             ttl: 200,
+            //         },
+            //     );
+            // }
             return;
         }
         // console.log('writing-input-block', round, input);

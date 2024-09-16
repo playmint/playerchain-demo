@@ -1,6 +1,8 @@
 import type EventEmitter from 'socket:events';
 import { NETWORK_ID } from './config';
 import { DB, NetworkInfo } from './db';
+import Peer from './network/Peer';
+import { RemotePeer } from './network/RemotePeer';
 import * as NAT from './network/nat';
 
 export type Ports = {
@@ -247,7 +249,7 @@ export type SocketPeer = Omit<EventEmitter, 'emit'> & {
     port: number;
     _peer?: {
         connected: boolean;
-        proxy?: any; // if set then we are proxying to get to this peer
+        proxies: Map<string, RemotePeer>; // if set then we are proxying to get to this peer
         localPeer?: any;
         lastUpdate: number;
         lastRequest: number;
@@ -305,6 +307,7 @@ export type SocketCluster = Omit<EventEmitter, 'emit'> & {
     sync(peerId: string): void;
     reconnect(): void;
     disconnect(): void;
+    _peer: Peer;
     MAX_CACHE_TTL: number;
 };
 
@@ -334,18 +337,9 @@ export type SocketPeerState = {
     indexed: boolean;
 };
 export type SocketPersistedState = {
-    peers?: SocketPeerState[];
     address?: string;
     port?: number;
     indexed?: boolean;
     natType?: number;
     limitExempt?: boolean;
 };
-// const x: SocketPeerState[] = [
-//     {"address":"44.213.42.133","port":10885,"peerId":"4825fe0475c44bc0222e76c5fa7cf4759cd5ef8c66258c039653f06d329a9af5","natType":31,"indexed":true},
-//     {"address":"107.20.123.15","port":31503,"peerId":"2de8ac51f820a5b9dc8a3d2c0f27ccc6e12a418c9674272a10daaa609eab0b41","natType":31,"indexed":true},
-//     {"address":"54.227.171.107","port":43883,"peerId":"7aa3d21ceb527533489af3888ea6d73d26771f30419578e85fba197b15b3d18d","natType":31,"indexed":true},
-//     {"address":"54.157.134.116","port":34420,"peerId":"1d2315f6f16e5f560b75fbfaf274cad28c12eb54bb921f32cf93087d926f05a9","natType":31,"indexed":true},
-//     {"address":"184.169.205.9","port":52489,"peerId":"db00d46e23d99befe42beb32da65ac3343a1579da32c3f6f89f707d5f71bb052","natType":31,"indexed":true},
-//     {"address":"18.229.140.216","port":36056,"peerId":"73d726c04c05fb3a8a5382e7a4d7af41b4e1661aadf9020545f23781fefe3527","natType":31,"indexed":true}
-// ]

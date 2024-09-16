@@ -1,12 +1,11 @@
+import 'fake-indexeddb/auto';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:node/index';
-import { BOOTSTRAP_PEERS } from '../runtime/bootstrap';
 import { CLUSTER_ID } from '../runtime/config';
 import { network } from './network';
 
 // using dynamic imports here to ensure that the polyfill is loaded before the dexie library
 async function imports() {
-    await import('fake-indexeddb/auto');
     const Dexie = await import('dexie');
     const { Client } = await import('../runtime/client');
     return { Dexie, Client };
@@ -52,7 +51,6 @@ async function main() {
         clusterId,
         network,
         config: {
-            peers: BOOTSTRAP_PEERS,
             address: SS_ADDRESS,
             port: Number(SS_PORT),
             natType: 31,

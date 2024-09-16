@@ -6,15 +6,12 @@ import { CACHE_TTL, Packet } from './packets.js';
 
 /**
  * Initializes and returns the network bus.
- *
- * @async
- * @function
- * @param {object} options - Configuration options for the network bus.
- * @param {object} events - A nodejs compatibe implementation of the events module.
- * @param {object} dgram - A nodejs compatible implementation of the dgram module.
- * @returns {Promise<events.EventEmitter>} - A promise that resolves to the initialized network bus.
  */
-async function api(options: any = {}, events, dgram) {
+async function api(
+    options: any = {},
+    events,
+    dgram: typeof import('node:dgram'),
+) {
     await sodium.ready;
     const bus = new events.EventEmitter();
     bus._on = bus.on;
@@ -68,28 +65,11 @@ async function api(options: any = {}, events, dgram) {
         bus._emit('#packet', packet, ...args);
     };
 
-    // _peer.onStream = (packet, ...args) => {
-    //     packet = Packet.from(packet);
-    //     if (packet.clusterId.compare(clusterId) !== 0) {
-    //         return;
-    //     }
-    //     bus._emit('#stream', packet, ...args);
-    // };
-
     _peer.onData = (...args) => bus._emit('#data', ...args);
     _peer.onDebug = (...args) => bus._emit('#debug', ...args);
     _peer.onSend = (...args) => bus._emit('#send', ...args);
-    // _peer.onFirewall = (...args) => bus._emit('#firewall', ...args);
-    _peer.onMulticast = (...args) => bus._emit('#multicast', ...args);
-    _peer.onSync = (...args) => bus._emit('#sync', ...args);
-    _peer.onSyncStart = (...args) => bus._emit('#sync-start', ...args);
-    // _peer.onSyncEnd = (...args) => bus._emit('#sync-end', ...args);
     _peer.onDisconnection = (...args) => bus._emit('#disconnection', ...args);
-    _peer.onQuery = (...args) => bus._emit('#query', ...args);
-    _peer.onNat = (...args) => bus._emit('#network-change', ...args);
-    // _peer.onWarn = (...args) => bus._emit('#warning', ...args);
     _peer.onState = (...args) => bus._emit('#state', ...args);
-    _peer.onConnecting = (...args) => bus._emit('#connecting', ...args);
     _peer.onConnection = (...args) => bus._emit('#connection', ...args);
 
     // TODO check if its not a network error
@@ -108,18 +88,12 @@ async function api(options: any = {}, events, dgram) {
 
     /**
      * Gets general, read only information of the network peer.
-     *
-     * @function
-     * @returns {object} - The general information.
      */
     bus.getInfo = () => _peer.getInfo();
     // bus.getMetrics = () => _peer.getMetrics();
 
     /**
      * Gets the read only state of the network peer.
-     *
-     * @function
-     * @returns {object} - The address information.
      */
     bus.getState = () => _peer.getState();
 
@@ -138,7 +112,6 @@ async function api(options: any = {}, events, dgram) {
     };
 
     bus.close = () => _peer.close();
-    bus.sync = (peerId) => _peer.sync(peerId);
     bus.reconnect = () => _peer.reconnect();
     bus.disconnect = () => _peer.disconnect();
 
@@ -223,13 +196,6 @@ async function api(options: any = {}, events, dgram) {
 
     /**
      * Publishes an event to the network bus.
-     *
-     * @async
-     * @function
-     * @param {string} eventName - The name of the event.
-     * @param {any} value - The value associated with the event.
-     * @param {object} opts - Additional options for publishing.
-     * @returns {Promise<any>} - A promise that resolves to the published event details.
      */
     bus.emit = async (eventName, value, opts: any) => {
         const args = await pack(eventName, value, opts);
@@ -279,13 +245,11 @@ async function api(options: any = {}, events, dgram) {
         sub.stream = async (eventName, value, opts: any = {}) => {
             opts.clusterId = opts.clusterId || clusterId;
             opts.subclusterId = opts.subclusterId || sub.subclusterId;
-            opts.hops = opts.hops || 1;
-
-            const args = await pack(eventName, value, opts);
 
             let packets;
 
             for (const p of sub.peers.values()) {
+                const args = await pack(eventName, value, opts);
                 const result = await _peer.stream(
                     p.peerId,
                     sub.sharedKey,
@@ -402,6 +366,12 @@ async function api(options: any = {}, events, dgram) {
     });
 
     const handlePacket = async (packet, peer, _port, _address) => {
+        // if (_peer.onDebug) {
+        //     _peer.onDebug(
+        //         _peer.peerId,
+        //         `<-- SUBCLUSTER HANDLE PACKET (pid=${packet.packetId.toString('hex').slice(0, 6)})`,
+        //     );
+        // }
         const scid = packet.subclusterId.toString('base64');
         const sub = bus.subclusters.get(scid);
         if (!sub) {
@@ -414,6 +384,12 @@ async function api(options: any = {}, events, dgram) {
             packet.verified = true;
         }
 
+        // if (_peer.onDebug) {
+        //     _peer.onDebug(
+        //         _peer.peerId,
+        //         `<-- SUBCLUSTER EMIT PACKET (pid=${packet.packetId.toString('hex').slice(0, 6)})`,
+        //     );
+        // }
         sub._emit(eventName, opened, packet);
 
         const ee = sub.peers.get(packet.streamFrom || peer?.peerId);
@@ -432,6 +408,7 @@ async function api(options: any = {}, events, dgram) {
         }
     });
 
+    bus._peer = _peer;
     await _peer.init();
     return bus;
 }

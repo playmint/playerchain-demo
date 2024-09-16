@@ -50,9 +50,13 @@ export function useAsync<T>(
             setLoading(true);
             setError(undefined);
             for (const d of deferred) {
-                d().catch((err) => {
+                try {
+                    d().catch((err) => {
+                        console.error('use-async-defer-err', err);
+                    });
+                } catch (err) {
                     console.error('use-async-defer-err', err);
-                });
+                }
             }
         };
     }, [effect, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps

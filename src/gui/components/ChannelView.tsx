@@ -12,9 +12,9 @@ import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
 import { Operation, TerminalStyle, TerminalView } from './Terminal';
 
-const FIXED_UPDATE_RATE = 60;
-const INTERLACE = 4;
-const SIM_INPUT_DELAY = 4; // number of ticks to avoid
+const FIXED_UPDATE_RATE = 100;
+const INTERLACE = 2;
+const SIM_INPUT_DELAY = 3; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export function ChannelView({
@@ -403,11 +403,11 @@ function PeerStatus({
     const [_tick, setTick] = useState(0);
     const isSelf = peerId === selfId;
     const outbound = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
-    const inbound = (outbound && info?.sees.includes(selfId)) || isSelf;
     const isWellConnected = info?.sees.length === peerCount - 1 || isSelf;
     const lastSeen = isSelf
         ? 1
         : Math.max(Date.now() - (info?.lastSeen || 0), 1);
+    const inbound = lastSeen < 10000 || isSelf;
     useEffect(() => {
         const interval = setInterval(() => setTick((t) => t + 1), 1000);
         return () => clearInterval(interval);
@@ -436,7 +436,7 @@ function PeerStatus({
             </span>
             <span>
                 {inbound
-                    ? isWellConnected
+                    ? info?.sees.includes(selfId.slice(0, 8)) || isSelf
                         ? '<<' // fully connected inbound
                         : '<-' // partially connected
                     : '--'}

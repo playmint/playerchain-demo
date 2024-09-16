@@ -1,7 +1,6 @@
 import * as Comlink from 'comlink';
 import dgram from 'socket:dgram';
 import events from 'socket:events';
-import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { Client, ClientConfig } from '../../runtime/client';
 import { CLUSTER_ID } from '../../runtime/config';
 import { Message, UnsignedMessage } from '../../runtime/messages';
@@ -10,7 +9,8 @@ import api from '../../runtime/network/api';
 import { Packet, TransportEmitOpts } from '../../runtime/transport';
 import type { ClientUserConfig } from '../hooks/use-client';
 
-const network = (options) => api(options, events, dgram);
+const network = (options) =>
+    api(options, events, dgram as unknown as typeof import('node:dgram'));
 
 // socket is broken
 // globalThis.window = self;
@@ -19,27 +19,23 @@ const network = (options) => api(options, events, dgram);
 let client: Client;
 
 export async function init(userConfig: ClientUserConfig) {
-    // an entrypoint to the network, nothing special about this node, any node will do
-    console.log('bootstrapping with:', BOOTSTRAP_PEERS);
-
     const clusterId = await Encryption.createClusterId(CLUSTER_ID);
     const cfg: ClientConfig = {
         ...userConfig,
         clusterId,
         network,
         config: {
-            peers: BOOTSTRAP_PEERS,
             limitExempt: true,
         },
     };
     // client = await Client.from(cfg);
 
     client = new Client(cfg);
+    globalThis.client = client; // for debugging
     if (client._ready) {
         await client._ready;
         client._ready = null;
     }
-    globalThis.client = client; // for debugging
 }
 
 export async function commit(

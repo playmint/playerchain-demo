@@ -76,7 +76,6 @@ export class Client {
     });
     verifiedHeight: Map<string, number> = new Map();
     _ready: null | Promise<void>;
-    _onPeersChanged?: (peers: Peer[]) => void;
     enableSync: boolean;
 
     constructor(config: ClientConfig) {
@@ -108,7 +107,7 @@ export class Client {
             clusterId: config.clusterId,
             config: config.config,
         });
-        this.net.socket.on('#disconnect', this.onPeerDisconnect);
+        // this.net.socket.on('#disconnect', this.onPeerDisconnect);
         this.debug('starting-head-reporter');
         // on channel
         if (this.enableSync) {
@@ -138,12 +137,13 @@ export class Client {
             this.debug(
                 `peer-leave peer=${peerId.slice(0, 8)} channel=${channel.id.slice(0, 8)}`,
             );
-            const peer = this.peers.get(peerId);
-            if (!peer) {
-                return;
-            }
-            peer.sockets.delete(channel.id);
-            peer.channels.delete(channel.id);
+            return; // FIXME: ignore leaves for now
+            // const peer = this.peers.get(peerId);
+            // if (!peer) {
+            //     return;
+            // }
+            // peer.sockets.delete(channel.id);
+            // peer.channels.delete(channel.id);
         },
         10,
         'onPeerLeave',
@@ -659,7 +659,9 @@ export class Client {
             // see channel.ts ... this is a workaround for a bug
             // and also how player names get broadcasted... (lol)
 
-            const connectedPeers = await this.db.peers.toArray();
+            const connectedPeers = (await this.db.peers.toArray()).filter(
+                (p) => p.lastSeen > Date.now() - 6000,
+            );
             const settings = await this.db.settings.get(1);
             await ch.emit(
                 'bytes',
@@ -678,11 +680,11 @@ export class Client {
                     ttl: 1000,
                 },
             );
-            this.debug('keep-alive');
+            // this.debug('keep-alive');
             // send channel join
-            // if (ch.socket) {
-            //     ch.socket.join();
-            // }
+            if (ch.socket) {
+                ch.socket.join();
+            }
             // sync channel name with genesis and rebroadcast it
             const channelSig = Uint8Array.from(atob(ch.id), (c) =>
                 c.charCodeAt(0),
@@ -726,10 +728,25 @@ export class Client {
                 .map((p) => p.peerId.slice(0, 8))
                 .sort()
                 .join(',');
+            const alivePeers = Array.from(ch.alivePeerIds.keys())
+                .map((peerId) => peerId.slice(0, 8))
+                .sort()
+                .join(',');
+            const lastKnowPeers = Array.from(ch.lastKnowPeers.keys())
+                .map((peerId) => peerId.slice(0, 8))
+                .sort()
+                .join(',');
+            const netPeers = Array.from(this.net.socket._peer.peers.keys())
+                .map((peerId) => peerId.slice(0, 8))
+                .sort()
+                .join(',');
             this.debug(`
                 peer-info
                 socketPeers=${socketPeers}
                 ourPeers=${ourPeers}
+                alivePeers=${alivePeers}
+                lastKnowPeers=${lastKnowPeers}
+                netPeers=${netPeers}
             `);
             // sync channel peers and rebroadcast it
             const info = await this.db.channels.get(ch.id);
@@ -857,7 +874,7 @@ export class Client {
             sender: this.peerId,
         };
         for (const [_, ch] of this.channels) {
-            ch.emit(`rpc`, Buffer.from(cbor.encode(r)), {
+            await ch.emit(`rpc`, Buffer.from(cbor.encode(r)), {
                 ttl: 1000,
             });
         }

@@ -27,8 +27,7 @@ export function setPeriodic(fn: AsyncFunction, ms: number): CancelFunction {
     let cancel: CancelFunction | null = null;
     const doDeferredCall = () => {
         cancel = setDeferred(async () => {
-            await fn();
-            doDeferredCall();
+            return fn().finally(() => doDeferredCall());
         }, ms);
     };
     doDeferredCall();
@@ -143,4 +142,8 @@ export async function hardReset() {
                 console.log('Done. Now executing callback if passed.');
             });
     });
+}
+
+export function ByRandom() {
+    return 0.5 - Math.random();
 }
