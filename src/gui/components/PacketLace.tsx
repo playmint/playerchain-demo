@@ -28,14 +28,18 @@ export function PacketLace({
             return;
         }
 
-        const pixelRatio = window.devicePixelRatio || 1;
+        // NOTE: I have seen instances where the canvas has already had it's control transferred to offscreen and accessing any properties on the canvas will through an error.
+        try {
+            const pixelRatio = window.devicePixelRatio || 1;
+            const canvas = canvasRef.current;
+            canvas.width = canvas.clientWidth * pixelRatio;
+            canvas.height = canvas.clientHeight * pixelRatio;
 
-        const canvas = canvasRef.current;
-        canvas.width = canvas.clientWidth * pixelRatio;
-        canvas.height = canvas.clientHeight * pixelRatio;
-
-        const offscreen = canvas.transferControlToOffscreen();
-        setOffscreenCanvas(offscreen);
+            const offscreen = canvas.transferControlToOffscreen();
+            setOffscreenCanvas(offscreen);
+        } catch (e) {
+            console.error(e);
+        }
     }, [offscreenCanvas]);
 
     useEffect(() => {

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export interface PacketLaceContextType {
-    init(dbname: string, peerColors: string[]): Promise<void>;
+    init(dbname: string, peerColors: number[]): Promise<void>;
     fetchPackets(channelId: string, limit: number): Promise<unknown>;
     startGraph(
         canvas: OffscreenCanvas,

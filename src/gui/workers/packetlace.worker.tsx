@@ -24,7 +24,7 @@ let canvas: OffscreenCanvas | undefined;
 let aspectRatio: number;
 let packets: any;
 let peers: string[] = [];
-let peerColors: string[] = [];
+let peerColors: number[] = [];
 
 let scene: THREE.Scene | undefined;
 let renderer: THREE.WebGLRenderer | undefined;
@@ -39,7 +39,7 @@ let fetchTimer: any;
 // const lerpSpeedMs = 1000;
 
 // Called by the provider
-export async function init(dbname: string, _peerColors: string[]) {
+export async function init(dbname: string, _peerColors: number[]) {
     db = database.open(dbname);
     peerColors = _peerColors;
 }
@@ -287,36 +287,29 @@ function renderLines(packets: Map<string, any>) {
     }, []);
 
     lines.forEach(({ key, ...props }) => {
-        // Redraw line in new pos if exists
         if (threeObjects.has(key)) {
+            // Redraw line in new pos
             const line = threeObjects.get(key) as THREE.Line;
 
-            // Didn't work!
-            // line.geometry.setFromPoints([
-            //     new THREE.Vector3(...props.points[0]),
-            //     new THREE.Vector3(...props.points[1]),
-            // ]);
-
-            scene?.remove(line);
-            line.geometry.dispose();
-            if (line.material instanceof THREE.Material) {
-                line.material.dispose();
-            }
-        }
-
-        // Create new line
-        const line = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints([
+            line.geometry.setFromPoints([
                 new THREE.Vector3(...props.points[0]),
                 new THREE.Vector3(...props.points[1]),
-            ]),
-            new THREE.LineBasicMaterial({
-                color: props.color || DEFAULT_LINE_COLOR,
-                linewidth: LINE_WIDTH,
-            }),
-        );
-        scene?.add(line);
-        threeObjects.set(key, line);
+            ]);
+        } else {
+            // Create new line
+            const line = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(...props.points[0]),
+                    new THREE.Vector3(...props.points[1]),
+                ]),
+                new THREE.LineBasicMaterial({
+                    color: props.color || DEFAULT_LINE_COLOR,
+                    linewidth: LINE_WIDTH,
+                }),
+            );
+            scene?.add(line);
+            threeObjects.set(key, line);
+        }
 
         hasRendered.set(key, true);
     });
