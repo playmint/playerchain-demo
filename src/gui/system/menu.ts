@@ -93,7 +93,7 @@ const menu: Menu[] = [
             },
             {
                 name: 'View Test Runner',
-                shortcut: '',
+                shortcut: '4',
                 handler: newTestRunnerWindow,
             },
             {
@@ -101,7 +101,7 @@ const menu: Menu[] = [
             },
             {
                 name: 'Rebuild state',
-                shortcut: '',
+                shortcut: '6',
                 handler: async () => {
                     const w = window as any;
                     if (w.db) {
@@ -111,7 +111,7 @@ const menu: Menu[] = [
             },
             {
                 name: 'Hard Reset!',
-                shortcut: '',
+                shortcut: '7',
                 handler: async () => {
                     hardReset()
                         .then(() => window.location.reload())
@@ -181,7 +181,7 @@ export async function setContextMenu() {
     console.log('1');
     const win = await application.getCurrentWindow();
     console.log('2');
-    const menuString = toMenuString();
+    const menuString = toMenuString(menuWin);
     console.log('3');
     console.log('Menu String:\n', menuString);
     await win.setContextMenu({ index: 0, value: menuString });
@@ -197,14 +197,51 @@ export async function setContextMenu() {
 
 }
 
+// problems:
+// 1) by default there were spaces and Edit and Other were not visible, when I removed the spaces, they were visible 
+// 2) NEEDS to have a shortcut !?
+// I realised that there was 0 difference with the const string and the build string... so I added a sleep timer and it started working. (but shortcuts can't be empty)
+const testMenu = `
+        App:
+          Foo: f
+          Bar: b;
+        Edit:
+          Cut: x
+          Copy: c
+          Paste: v
+          Delete: _
+          Select All: a;
+        Other:
+          Apple: _
+          Another Test: T
+          !Im Disabled: I
+          Some Thing: S + Meta
+          ---
+          Bazz: s + Meta, Control, Alt;
+      `;
+
+const menuSubstream = `
+        Dev:
+          New Player: p + CommandOrControl
+          ---
+          View Test Runner: 1
+          ---
+          Rebuild state: 2
+          Hard Reset!: 3;`;
+
 export async function setSystemMenu() {
-    if (isWindows) {
-        return;
-    }
+    // if (isWindows) {
+    //     return;
+    // }
     // setup menu
     if (!isMobile) {
-        const menuString = toMenuString();
-        await application.setSystemMenu({ index: 0, value: menuString });
+        const menuMacString = toMenuString(menu);
+        //const menuWinString = toMenuString(menuWin);
+        console.log(menuMacString);
+        //console.log('menuSubstream:', menuSubstream, 'menuWinString:', menuWinString);
+        // wait 1 second
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        await application.setSystemMenu({ index: 0, value: menuMacString });
         
         window.addEventListener('menuItemSelected', (event) => {
             handleMenuSelection(event.detail.parent, event.detail.title).catch(
@@ -214,15 +251,18 @@ export async function setSystemMenu() {
     }
 }
 
-function toMenuString() {
+function toMenuString(inputMenu: Menu[]) {
     let menuString = '';
-    for (const item of menu) {
+    for (const item of inputMenu) {
+        console.log('trying to add:', item.name, 'subitems:', item.items.length);
         if (item.visible && !item.visible()) {
+            console.log('skipped item:', item.name);
             continue;
         }
-        menuString += `${item.name}:\n`;
+        menuString += `\n${item.name}:\n`;
         for (const subitem of item.items) {
             if (subitem.visible && !subitem.visible()) {
+                console.log('skipped subitem:', subitem.name);
                 continue;
             }
             if (subitem.name === '---') {
@@ -231,7 +271,54 @@ function toMenuString() {
                 menuString += `    ${subitem.name}: ${subitem.shortcut}\n`;
             }
         }
-        menuString += ';\n';
+        menuString = menuString.slice(0, -1) + ';';
     }
     return menuString;
 }
+
+const menuWin: Menu[] = [
+    {
+        name: 'Dev',
+        visible: () => !isProduction,
+        items: [
+            {
+                name: 'New Player',
+                shortcut: 'p + CommandOrControl',
+                handler: newPlayerWindow,
+            },
+            {
+                name: '---',
+            },
+            {
+                name: 'View Test Runner',
+                shortcut: '1',
+                handler: newTestRunnerWindow,
+            },
+            {
+                name: '---',
+            },
+            {
+                name: 'Rebuild state',
+                shortcut: '2',
+                handler: async () => {
+                    const w = window as any;
+                    if (w.db) {
+                        await w.db.state.clear();
+                    }
+                },
+            },
+            {
+                name: 'Hard Reset!',
+                shortcut: '3',
+                handler: async () => {
+                    hardReset()
+                        .then(() => window.location.reload())
+                        .catch((err) =>
+                            console.error(`hard-reset-fail: ${err}`),
+                        );
+                },
+            },
+        ],
+    },
+
+];

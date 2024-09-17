@@ -8,7 +8,7 @@ import './styles/reset.css';
 import { setContextMenu, setSystemMenu } from './system/menu';
 
 async function init() {
-    await setContextMenu();
+    //await setContextMenu();
     await setSystemMenu();
 
     // await hello(); //.then((x) => alert(`got ${JSON.stringify(x)}`));
