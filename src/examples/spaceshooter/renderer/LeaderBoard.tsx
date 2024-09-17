@@ -1,3 +1,4 @@
+import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 import styles from './LeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 
@@ -21,7 +22,7 @@ export default function LeaderBoard({
         .map((p) => ({
             user: p.name,
             score: p.score,
-            color: `#${p.id.slice(0, 6)}`, //'#ac75eb',
+            color: getPlayerColorCSS(p.peerIdx), //'#ac75eb',
             isMe: peerId === p.id,
         }))
         .sort((a, b) => b.score - a.score);

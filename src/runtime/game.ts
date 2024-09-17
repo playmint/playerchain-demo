@@ -13,6 +13,7 @@ export type PlayerData = {
     id: string; // peerId hex
     name: string; // short name, capped to 16 characters
     input: number; // bitfield of input keys
+    peerIdx: number; // index of the player in the peer list (used for colour)
 };
 
 export interface RendererProps {

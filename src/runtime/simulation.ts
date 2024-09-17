@@ -301,8 +301,13 @@ export class Simulation {
 
         // get shipnames for all peers
         let shipNames: Map<string, string> = new Map();
+        let peerIds: string[] = [];
         try {
             const peerArray = await this.db.peers.toArray();
+            peerIds = [
+                this.peerId,
+                ...peerArray.map((peer) => peer.peerId),
+            ].sort();
             shipNames = peerArray.reduce((acc, peer) => {
                 acc.set(peer.peerId, peer.playerName);
                 return acc;
@@ -376,6 +381,7 @@ export class Simulation {
                     ? shipNames.get(peerId)!
                     : peerId.slice(0, 8),
                 input: m.type == MessageType.INPUT ? m.data : 0,
+                peerIdx: peerIds.indexOf(peerId),
             });
         }
         // push in the emulated tick for toRound if no messages
