@@ -180,7 +180,6 @@ export async function setSystemMenu() {
     // setup menu
     if (!isMobile) {
         const menuString = toMenuString(menu);
-        //console.log(menuString);
         await application.setSystemMenu({ index: 0, value: menuString });
         
         window.addEventListener('menuItemSelected', (event) => {
@@ -194,15 +193,12 @@ export async function setSystemMenu() {
 function toMenuString(inputMenu: Menu[]) {
     let menuString = '';
     for (const item of inputMenu) {
-        //console.log('trying to add:', item.name, 'subitems:', item.items.length);
         if (item.visible && !item.visible()) {
-            //console.log('skipped item:', item.name);
             continue;
         }
         menuString += `\n${item.name}:\n`;
         for (const subitem of item.items) {
             if (subitem.visible && !subitem.visible()) {
-                //console.log('skipped subitem:', subitem.name);
                 continue;
             }
             if (subitem.name === '---') {
