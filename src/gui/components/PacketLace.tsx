@@ -1,275 +1,110 @@
-import { Line, OrthographicCamera } from '@react-three/drei';
-import { Canvas, useFrame } from '@react-three/fiber';
-import Dexie from 'dexie';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Vector3 } from 'three';
-import {
-    ChainMessageProps,
-    InputMessage,
-    PostSignMessageProps,
-} from '../../runtime/messages';
-import { useDatabase } from '../hooks/use-database';
+import * as Comlink from 'comlink';
+import { memo, useEffect, useRef } from 'react';
+import { PLAYER_COLORS } from '../fixtures/player-colors';
+import { useAsyncMemo } from '../hooks/use-async';
+import { useCredentials } from '../hooks/use-credentials';
 
-const PACKET_SCALE = 0.1;
-const SPREAD_X = 5;
-const SPREAD_Y = 2;
-const LINE_WIDTH = 2;
-const DEFAULT_LINE_COLOR = 'grey';
 // const HIGHLIGHTED_LINE_COLOR = 'cyan';
 // const MAX_ROUNDS = 8; // 0 to show all rounds
 // const CAM_LERP_SPEED = 0.02;
-// const TICK_SPEED = 250;
 
-type Message = InputMessage & ChainMessageProps & PostSignMessageProps;
-
-export interface PacketLineProps {
-    points: any;
-    color?: any;
+// type Message = InputMessage & ChainMessageProps & PostSignMessageProps;
+interface PacketLaceProxy {
+    init(dbname: string, peerColors: number[]): Promise<void>;
+    fetchPackets(channelId: string, limit: number): Promise<unknown>;
+    startGraph(
+        canvas: OffscreenCanvas,
+        channelID: string,
+        packetLimit: number,
+        fetchIntervalMs: number,
+        peers: string[],
+    ): Promise<void>;
+    stopGraph(): Promise<void>;
+    onResize(width: number, height: number): Promise<void>;
 }
 
-const PacketLine = ({ points, color }: PacketLineProps) => {
-    return (
-        <Line
-            points={points}
-            color={color || DEFAULT_LINE_COLOR}
-            lineWidth={LINE_WIDTH}
-        />
-    );
-};
-
-const Packet = ({
-    position,
-    color,
-    // message,
-    // setHoveredMessage,
-}: {
-    position: Vector3;
-    color: string;
-    lines: PacketLineProps[];
-    // message: Message;
-    // setHoveredMessage: (message: Message | null) => void;
-}) => {
-    // const [hovered, setHovered] = useState(false);
-
-    return (
-        <>
-            <mesh
-                position={position}
-                onPointerOver={() => {
-                    // setHovered(true);
-                    // setHoveredMessage(message);
-                }}
-                onPointerOut={() => {
-                    // setHovered(false);
-                    // setHoveredMessage(null);
-                }}
-            >
-                <boxGeometry
-                    args={[PACKET_SCALE, PACKET_SCALE, PACKET_SCALE]}
-                />
-                <meshStandardMaterial color={color} />
-            </mesh>
-        </>
-    );
-};
-
-function PacketVisualization({
-    peers,
-    messages,
-    // onHighestYChange,
-    // setHoveredMessage,
-}: {
-    peers: string[];
-    messages: Message[];
-    // onHighestYChange: (y: number) => void;
-    // setHoveredMessage: (m: Message | null) => void;
-}) {
-    // calculate all the packet props
-    const packets = useMemo(
-        () =>
-            messages.reduce((data, m) => {
-                const msgId = Buffer.from(m.sig).toString('hex');
-                const peerId = Buffer.from(m.peer).toString('hex');
-                const xPos = peers.indexOf(peerId) * SPREAD_X * PACKET_SCALE;
-                const yPos = m.round * SPREAD_Y * PACKET_SCALE;
-                const extraX = 0; // FIXME: forked
-                const position = [xPos + extraX, yPos, 0];
-                const props = {
-                    key: msgId,
-                    acks: m.acks.map((ack) => Buffer.from(ack).toString('hex')),
-                    parent: m.parent
-                        ? Buffer.from(m.parent).toString('hex')
-                        : null,
-                    position,
-                };
-                data.set(msgId, props);
-                return data;
-            }, new Map()),
-        [messages, peers],
-    );
-
-    // calculate all the line props
-    const lines: PacketLineProps[] = useMemo(
-        () =>
-            Array.from(packets.values()).reduce((data, packet) => {
-                const fromPos = [...packet.position];
-                const parentPos =
-                    packet.parent && packets.has(packet.parent)
-                        ? [...packets.get(packet.parent).position]
-                        : null;
-                if (parentPos) {
-                    // console.log('line', fromPos, parentPos);
-                    data.push({
-                        key: `${packet.key}-${packet.parent}`,
-                        points: [fromPos, parentPos],
-                    });
-                }
-                packet.acks.forEach((ack) => {
-                    const toAckPos =
-                        ack && packets.has(ack)
-                            ? [...packets.get(ack).position]
-                            : null;
-                    if (toAckPos) {
-                        data.push({
-                            key: `${packet.key}-${ack}`,
-                            points: [fromPos, toAckPos],
-                            color: 0xefefef,
-                        });
-                    }
-                });
-                return data;
-            }, [] as PacketLineProps[]),
-        [packets],
-    );
-
-    const packetBoxes = useMemo(
-        () =>
-            Array.from(packets.values()).map(({ key, ...props }: any) => {
-                return <Packet key={key} {...props} />;
-            }),
-        [packets],
-    );
-
-    const packetLines = useMemo(
-        () =>
-            lines.map(({ key, ...props }: any) => {
-                return <PacketLine key={key} {...props} />;
-            }),
-        [lines],
-    );
-
-    return (
-        <>
-            {packetBoxes}
-            {packetLines}
-        </>
-    );
-}
-
-function PacketsCamera({
-    camTargetY,
-    camTargetX,
-}: {
-    camTargetY: number;
-    camTargetX: number;
-}) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cameraRef = useRef<any>(null);
-
-    useFrame((_state) => {
-        if (cameraRef.current) {
-            // Smoothly interpolate the camera's Y position towards the camTargetY
-            // cameraRef.current.position.y +=
-            //     (camTargetY - cameraRef.current.position.y) * CAM_LERP_SPEED;
-            cameraRef.current.position.y = camTargetY;
-
-            cameraRef.current.position.x = camTargetX;
-            // console.log('camposition', cameraRef.current.position.y);
-        }
-    });
-    // console.log('render');
-
-    return (
-        <OrthographicCamera
-            ref={cameraRef}
-            makeDefault
-            position={[0, 0, 5]}
-            zoom={100}
-        />
-    );
-}
-
-export const PacketLace = memo(function PacketLace({
+export default memo(function PacketLace({
     channelId,
     peers,
 }: {
     channelId: string;
     peers: string[];
 }) {
-    const [data, setData] = useState<any>(null);
+    const { dbname } = useCredentials();
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    const db = useDatabase();
-
-    useEffect(() => {
-        let fetching = false;
-        const timer = setInterval(() => {
-            if (fetching) {
-                console.log('lace fetch skip');
+    // create worker
+    const packetLace = useAsyncMemo<PacketLaceProxy | undefined>(
+        async (defer) => {
+            if (!dbname) {
                 return;
             }
-            fetching = true;
-            db.messages
-                .where(['channel', 'round'])
-                .between([channelId, Dexie.minKey], [channelId, Dexie.maxKey])
-                .reverse()
-                .limit(64)
-                .toArray()
-                .then((messages) => {
-                    const minRound = Math.min(
-                        ...messages.map((msg: any) => msg.round),
-                    );
-                    const maxRound = Math.max(
-                        ...messages.map((msg: any) => msg.round),
-                    );
-                    const messagesWithOffsetRound = messages.map(
-                        (msg: any) => ({
-                            ...msg,
-                            round: msg.round - minRound,
-                        }),
-                    );
-                    return { minRound, maxRound, messagesWithOffsetRound };
-                })
-                .then(setData)
-                .catch((err) => console.error('lace-fetch-err', err))
-                .finally(() => {
-                    fetching = false;
-                });
-        }, 1000);
-        return () => {
-            clearInterval(timer);
-        };
-    }, [channelId, db]);
+            const w = new Worker(
+                new URL('../workers/packetlace.worker.tsx', import.meta.url),
+                {
+                    type: 'module',
+                    /* @vite-ignore */
+                    name: `packetLace worker`,
+                },
+            );
+            defer(async () => {
+                w.terminate();
+                console.log(`packetLace worker terminated`);
+            });
+            console.log(`packetLace worker started`);
+            const c: PacketLaceProxy = Comlink.wrap<PacketLaceProxy>(w);
+            await c.init(dbname, PLAYER_COLORS);
+            console.log(`packetLace worker init`);
+            defer(async () => {
+                // await c.shutdown();
+                console.log(`packetLace shutdown`);
+            });
+            globalThis.client = c;
+            console.log(`packetLace worker ready`);
+            return c;
+        },
+        [dbname],
+    );
 
-    if (!data) {
-        return;
-    }
-    const { minRound, maxRound, messagesWithOffsetRound } = data;
-    const camYBase =
-        maxRound && minRound
-            ? (maxRound - minRound - 15) * SPREAD_Y * PACKET_SCALE
-            : 0;
-    const camY = 0.5 + camYBase + 0 * SPREAD_Y * PACKET_SCALE;
+    // cerate canvas
+    useEffect(() => {
+        if (!packetLace) {
+            return;
+        }
+        const container = containerRef.current;
+        if (!container) {
+            return;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 910;
+        container.appendChild(canvas);
+        const offscreenCanvas = canvas.transferControlToOffscreen();
+        packetLace
+            .startGraph(
+                Comlink.transfer(offscreenCanvas, [offscreenCanvas]),
+                channelId,
+                96,
+                1000,
+                peers,
+            )
+            .catch(console.error);
+
+        return () => {
+            packetLace.stopGraph().catch(console.error);
+            container.removeChild(canvas);
+        };
+    }, [channelId, packetLace, peers]);
+
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-            <Canvas>
-                <ambientLight intensity={2} />
-                <PacketsCamera camTargetY={camY} camTargetX={1} />
-                <PacketVisualization
-                    peers={peers || []} // `fakePeers`, `peers`
-                    messages={messagesWithOffsetRound || []} // `fakeMessageData2`, `dataSet`
-                    // setHoveredMessage={setHoveredMessage}
-                />
-            </Canvas>
-        </div>
+        <div
+            ref={containerRef}
+            style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'transparent',
+            }}
+        ></div>
     );
 });

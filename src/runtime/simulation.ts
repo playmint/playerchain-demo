@@ -299,6 +299,33 @@ export class Simulation {
             );
         }
 
+        // get shipnames for all peers
+        let shipNames: Map<string, string> = new Map();
+        let peerIds: string[] = [];
+        try {
+            const peerArray = await this.db.peers.toArray();
+            peerIds = [
+                this.peerId,
+                ...peerArray.map((peer) => peer.peerId),
+            ].sort();
+            shipNames = peerArray.reduce((acc, peer) => {
+                acc.set(peer.peerId, peer.playerName);
+                return acc;
+            }, new Map<string, string>());
+        } catch (err) {
+            console.error('failed to get peers from db to set ship names', err);
+        }
+
+        // add player's ship name
+        try {
+            const playerSettings = await this.db.settings.get(1);
+            if (playerSettings && playerSettings.name) {
+                shipNames.set(this.peerId, playerSettings.name);
+            }
+        } catch (err) {
+            console.error('failed to get player settings from db', err);
+        }
+
         // get all the messages that occured in the range
         const messages = (
             await this.db.messages
@@ -350,8 +377,11 @@ export class Simulation {
             const peerId = Buffer.from(m.peer).toString('hex');
             round.inputs.push({
                 id: peerId,
-                name: peerId.slice(0, 8), // TODO: get alias form somewhere
+                name: shipNames.has(peerId)
+                    ? shipNames.get(peerId)!
+                    : peerId.slice(0, 8),
                 input: m.type == MessageType.INPUT ? m.data : 0,
+                peerIdx: peerIds.indexOf(peerId),
             });
         }
         // push in the emulated tick for toRound if no messages

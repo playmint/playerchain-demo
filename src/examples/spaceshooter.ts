@@ -62,6 +62,7 @@ export enum AudioClip {
 export const schema = {
     player: {
         name: Type.str,
+        peerIdx: Type.i8,
         input: Type.u32,
         ship: Type.eid,
         score: Type.u32,
@@ -214,6 +215,7 @@ export class SpaceShooter implements GameModule {
             if (!p) {
                 p = this.world.addPlayer(data.id, {
                     name: data.name,
+                    peerIdx: data.peerIdx,
                     input: 0,
                     ship: 0,
                     score: 0,

@@ -2,15 +2,16 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
+import { getPlayerColorCSS } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
-import { PacketLace } from './PacketLace';
+import PacketLace from './PacketLace';
 import Renderer from './Renderer';
-import { Operation, TerminalStyle, TerminalView } from './Terminal';
+import { Operation, Spinner, TerminalStyle, TerminalView } from './Terminal';
 
 const FIXED_UPDATE_RATE = 75;
 const INTERLACE = 2;
@@ -249,11 +250,13 @@ export function ChannelView({
                             <div style={TerminalStyle}>
                                 <p>connected peers:</p>
                                 <ul>
-                                    {potentialPeers.map((pid) => (
+                                    {potentialPeers.map((pid, playerIdx) => (
                                         <li
                                             key={pid}
                                             style={{
-                                                color: `#${pid.slice(0, 6)}`,
+                                                color: getPlayerColorCSS(
+                                                    playerIdx,
+                                                ),
                                             }}
                                         >
                                             {pid === peerId
@@ -277,9 +280,14 @@ export function ChannelView({
                     <TerminalView
                         flow={[
                             {
-                                text: !selfIsInTheClub
-                                    ? 'session was started without you, sorry!'
-                                    : 'waiting for majority peers online...',
+                                text: !selfIsInTheClub ? (
+                                    'session was started without you, sorry!'
+                                ) : (
+                                    <span>
+                                        <Spinner /> waiting for majority peers
+                                        online...
+                                    </span>
+                                ),
                                 promise: () =>
                                     new Promise((resolve) =>
                                         setTimeout(resolve, 1000),

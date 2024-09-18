@@ -9,6 +9,10 @@ import {
     PositionalAudio as PositionalAudioImpl,
     Vector3,
 } from 'three';
+import {
+    getPlayerColor,
+    getPlayerColorCSS,
+} from '../../../gui/fixtures/player-colors';
 import { Input, hasInput } from '../../spaceshooter';
 import sfxDestroy from '../assets/Destroy.mp3?url';
 import sfxThrust from '../assets/Thrust_Loop.mp3?url';
@@ -64,7 +68,9 @@ export default memo(function ShipEntity({
     useFrame((_state, deltaTime) => {
         const world = worldRef.current;
         const [peerId, player] = getShipOwner();
-        const color = new Color(peerId ? `#${peerId.slice(0, 6)}` : '#ffffff');
+        const color = new Color(
+            peerId ? getPlayerColor(player.peerIdx) : '#ffffff',
+        );
         const group = groupRef.current;
         const ship = shipRef.current as EntityObject3D;
         if (!player) {

@@ -31,6 +31,7 @@ export default system<ShooterSchema>(
         // create a ship entity for each player
         for (const player of players) {
             // find or create a box for the player
+            const playerIndex = players.indexOf(player);
             if (!player.ship) {
                 player.ship = addShip({
                     addEntity,
