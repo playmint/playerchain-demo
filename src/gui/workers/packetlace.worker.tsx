@@ -79,11 +79,12 @@ export async function startGraph(
     fetchTimer = setInterval(async () => {
         try {
             packets = await fetchPackets(channelID, packetLimit);
+            render();
         } catch (e) {
             console.error('packetlace.worker: fetchPackets error:', e);
         }
     }, fetchIntervalMs);
-    requestAnimationFrame(render);
+    render();
 }
 
 export async function stopGraph() {
@@ -137,7 +138,6 @@ function render() {
     }
 
     if (!packets) {
-        requestAnimationFrame(render);
         return;
     }
 
@@ -190,8 +190,6 @@ function render() {
     camera.position.x = (peers.length - 1) * SPREAD_X * PACKET_SCALE * 0.5;
 
     renderer.render(scene, camera);
-
-    requestAnimationFrame(render);
 }
 
 function renderPackets(messages: any[]) {
