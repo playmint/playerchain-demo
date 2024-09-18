@@ -252,6 +252,7 @@ export default memo(function ShipEntity({
         <group ref={groupRef}>
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
             <Html
+                zIndexRange={[0, 100]}
                 ref={labelRef}
                 style={{ fontSize: 11 }}
                 position={[3, 5, 0]}

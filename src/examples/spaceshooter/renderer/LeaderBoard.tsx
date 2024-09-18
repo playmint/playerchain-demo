@@ -1,8 +1,9 @@
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
+import React from 'react';
 import styles from './LeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 
-interface Score {
+export interface Score {
     user: string;
     score: number;
     color: string;
@@ -97,7 +98,7 @@ export default function LeaderBoard({
     );
 }
 
-function LeaderboardGap({ count }: { count: number | undefined }) {
+export function LeaderboardGap({ count }: { count: number | undefined }) {
     const defaultCount = 0;
     return (
         <div className={styles.leaderboardGap}>
@@ -165,7 +166,7 @@ function LdrEntry(props: {
     );
 }
 
-function shadeColor(color: string, percent: number) {
+export function shadeColor(color: string, percent: number) {
     let R = parseInt(color.substring(1, 3), 16);
     let G = parseInt(color.substring(3, 5), 16);
     let B = parseInt(color.substring(5, 7), 16);

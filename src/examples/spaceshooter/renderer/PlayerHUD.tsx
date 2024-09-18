@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { EntityId, PlayerData, World } from '../../../runtime/ecs';
+import { PlayerData } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
@@ -17,13 +17,11 @@ export default memo(function PlayerHUD({
     peerId,
     players,
     tick,
-    entities,
     worldRef,
 }: {
     players: PlayerInfo[];
     peerId: string;
     tick: number;
-    entities: EntityId[];
     worldRef: WorldRef;
 }) {
     const player = players.find((p) => p.id === peerId);
@@ -46,11 +44,7 @@ export default memo(function PlayerHUD({
         >
             <div></div>
             <div style={{ flexGrow: 1 }}></div>
-            <div style={{
-                        flexGrow: 1,
-                        marginRight: '1rem',
-                        marginLeft: '1rem',
-                    }}><Countdown currentTick={tick} entities={entities} worldRef={worldRef}/></div>
+            <Countdown currentTick={tick} player={player} worldRef={worldRef} players={players} peerId={peerId}/>
             <div
                 style={{
                     display: 'flex',

@@ -144,7 +144,7 @@ export default memo(function ShooterCanvas({
                 />
                 <AudioControls />
             </Canvas>
-            <PlayerHUD peerId={peerId} players={nextPlayers} tick={tick} entities={entities}  worldRef={worldRef}/>
+            <PlayerHUD peerId={peerId} players={nextPlayers} tick={tick} worldRef={worldRef}/>
         </>
     );
 });

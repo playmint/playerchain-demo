@@ -1,31 +1,69 @@
-import { useEffect, useMemo, useState } from "react";
-import { EntityId, World } from "../../../runtime/ecs";
-import { ShooterSchema } from "../../spaceshooter";
+import { useMemo, useState } from "react";
 import { WorldRef } from "./ShooterRenderer";
+import { PlayerInfo } from "./PlayerHUD";
+import React from "react";
+import EndRoundLeaderBoard from "./EndRoundLeaderboard";
+import styles from './EndRoundLeaderBoard.module.css';
 
-
-export default function Countdown(props: { currentTick: number, entities: EntityId[], worldRef: WorldRef }) {
+export default function Countdown(props: { currentTick: number, player: PlayerInfo, worldRef: WorldRef, players: PlayerInfo[], peerId: string }) {
     const [startTime, setStartTime] = useState(0);
+    const [roundTime, setRoundTime] = useState(0);
     const timer = useMemo(() => {
-        
+        const date = new Date(0);
         if(props.currentTick<startTime) {
-            return Math.ceil( ((startTime-props.currentTick)/100)*3);
+            return(
+                <div style={{
+                    flexGrow: 1,
+                    marginRight: '1rem',
+                    marginLeft: '1rem',
+                }}>
+                <span className={styles.countdownText}>
+                    {Math.ceil( ((startTime-props.currentTick)/60)*4)}
+                </span>
+                <span className={styles.countdownText2}>
+                    {Math.ceil( ((startTime-props.currentTick)/60)*4)}
+                </span>
+                </div>
+            );
+        }
+        else if(props.currentTick<roundTime) {
+            date.setSeconds(Math.ceil(((roundTime-props.currentTick)/60)*360));
+            const timeString = date.toISOString().substring(11, 19);
+            return(
+                <div style={{
+                    position: 'absolute',
+                    top: '30px',
+                    width: '100%',
+                }}>
+                 {timeString}
+                 </div>
+            );
         }
         else
         {
-            let startTimer = false;
-            props.entities.forEach((entity) => {
-                if(props.worldRef.current.components.startTimer.data[entity] > 0) {
-                    startTimer = true;
-                    setStartTime(props.worldRef.current.components.startTimer.data[entity]);
+            if(props.worldRef.current.components.startTimer.data[props.player.ship] > 0)
+            {
+                if (startTime==0)
+                {
+                    setStartTime(props.worldRef.current.components.startTimer.data[props.player.ship]);
+                    console.log("start time set");
                 }
-            });
-            return "no timer";
+                else if(props.worldRef.current.components.roundTimer.data[props.player.ship] > 0 && roundTime ==0)
+                {
+                    setRoundTime(props.worldRef.current.components.roundTimer.data[props.player.ship]);
+                    console.log("round time set");
+                }
+                else  if (startTime>0 && roundTime>0)
+                {
+                    return (
+                        <EndRoundLeaderBoard players={props.players} peerId={props.peerId} player={props.player} />
+                    );
+                }
+            }
+            else{
+                return "";
+            }
         }
-    }, [props.currentTick, props.entities, props.worldRef, startTime]);
-    return (
-        <div>
-            {timer}
-        </div>
-    );
+    }, [props.currentTick, props.peerId, props.player, props.players, props.worldRef, roundTime, startTime]);
+    return timer;
 }
