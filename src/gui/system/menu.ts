@@ -94,7 +94,7 @@ const menu: Menu[] = [
             },
             {
                 name: 'View Test Runner',
-                shortcut: '',
+                shortcut: '1',
                 handler: newTestRunnerWindow,
             },
             {
@@ -102,7 +102,7 @@ const menu: Menu[] = [
             },
             {
                 name: 'Rebuild state',
-                shortcut: '',
+                shortcut: '2',
                 handler: async () => {
                     const w = window as any;
                     if (w.db) {
@@ -112,7 +112,7 @@ const menu: Menu[] = [
             },
             {
                 name: 'Hard Reset!',
-                shortcut: '',
+                shortcut: '3',
                 handler: async () => {
                     hardReset()
                         .then(() => sleep(1000))
@@ -176,17 +176,7 @@ async function handleMenuSelection(parent: string, title: string) {
     return unhandledMenuSelection(parent, title);
 }
 
-export async function setContextMenu() {
-    const win = await application.getCurrentWindow();
-    const menuString = toMenuString();
-    await win.setContextMenu({ index: 0, value: menuString });
-}
-
 export async function setSystemMenu() {
-    // FIXME: this is broken on windows so disable it
-    if (isWindows) {
-        return;
-    }
     // setup menu
     if (!isMobile) {
         const menuString = toMenuString();
@@ -206,7 +196,7 @@ function toMenuString() {
         if (item.visible && !item.visible()) {
             continue;
         }
-        menuString += `${item.name}:\n`;
+        menuString += `\n${item.name}:\n`;
         for (const subitem of item.items) {
             if (subitem.visible && !subitem.visible()) {
                 continue;
@@ -217,7 +207,7 @@ function toMenuString() {
                 menuString += `    ${subitem.name}: ${subitem.shortcut}\n`;
             }
         }
-        menuString += ';\n';
+        menuString = menuString.slice(0, -1) + ';';
     }
     return menuString;
 }
