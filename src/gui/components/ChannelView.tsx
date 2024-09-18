@@ -13,8 +13,8 @@ import PacketLace from './PacketLace';
 import Renderer from './Renderer';
 import { Operation, Spinner, TerminalStyle, TerminalView } from './Terminal';
 
-const FIXED_UPDATE_RATE = 75;
-const INTERLACE = 2;
+const FIXED_UPDATE_RATE = 50;
+const INTERLACE = 3;
 const SIM_INPUT_DELAY = 2; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
