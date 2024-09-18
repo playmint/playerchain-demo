@@ -30,7 +30,7 @@ export interface SequencerConfig {
     interlace: number;
 }
 
-const MIN_SEQUENCE_RATE = 50;
+const MIN_SEQUENCE_RATE = 30;
 
 // the current input
 export class Sequencer {
