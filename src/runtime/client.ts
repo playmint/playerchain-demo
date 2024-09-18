@@ -179,17 +179,17 @@ export class Client {
         //         },
         //     );
         // }
-        if (this.parent) {
-            this.send(
-                {
-                    type: PacketType.MESSAGE,
-                    msgs: [this.parent],
-                },
-                {
-                    ttl: 1000,
-                },
-            );
-        }
+        // if (this.parent) {
+        //     this.send(
+        //         {
+        //             type: PacketType.MESSAGE,
+        //             msgs: [this.parent],
+        //         },
+        //         {
+        //             ttl: 1000,
+        //         },
+        //     );
+        // }
         this.send(
             {
                 type: PacketType.MESSAGE,
@@ -211,7 +211,7 @@ export class Client {
                     ttl: 1000,
                 },
             );
-        }, 25);
+        }, 15);
         return signed;
     }
 
@@ -721,35 +721,39 @@ export class Client {
         }
     };
 
-    private onRPCRequest = bufferedCall(async (b: Buffer) => {
-        const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
-        if (req.sender === this.peerId) {
-            // don't answer own requests!
-            this.debug(`<- RPC DROP self`);
-            return;
-        }
-        if (!req.name) {
-            this.debug(`<- RPC DROP no-name`);
-            return;
-        }
-        if (
-            !req.timestamp ||
-            typeof req.timestamp !== 'number' ||
-            req.timestamp < Date.now() - 2000
-        ) {
-            // ignore old requests
-            this.debug(
-                `<- RPC DROP too-old age=${Date.now() - req.timestamp}ms`,
-            );
-            return;
-        }
-        const handler = this.getRequestHandler(req.name);
-        if (!handler) {
-            this.debug(`<- RPC DROP no-handler`);
-            return;
-        }
-        await handler(req.args as any);
-    }, 5);
+    private onRPCRequest = bufferedCall(
+        async (b: Buffer) => {
+            const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
+            if (req.sender === this.peerId) {
+                // don't answer own requests!
+                this.debug(`<- RPC DROP self`);
+                return;
+            }
+            if (!req.name) {
+                this.debug(`<- RPC DROP no-name`);
+                return;
+            }
+            if (
+                !req.timestamp ||
+                typeof req.timestamp !== 'number' ||
+                req.timestamp < Date.now() - 2000
+            ) {
+                // ignore old requests
+                this.debug(
+                    `<- RPC DROP too-old age=${Date.now() - req.timestamp}ms`,
+                );
+                return;
+            }
+            const handler = this.getRequestHandler(req.name);
+            if (!handler) {
+                this.debug(`<- RPC DROP no-handler`);
+                return;
+            }
+            await handler(req.args as any);
+        },
+        5,
+        'onRPCRequest',
+    );
 
     private getRequestHandler = (name: SocketRPCRequest['name']) => {
         switch (name) {
