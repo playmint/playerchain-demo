@@ -135,12 +135,10 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
             return;
         }
 
-        // console.log(`running operation: ${opIndex}`);
         if (!flow || flow.length === 0) {
             return;
         }
         if (opIndex >= flow.length) {
-            // console.log('flow completed');
             return;
         }
         if (isOperationInProgress) {
@@ -156,7 +154,6 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
             !isInputComplete[opIndex] &&
             !text.some((t) => t && t.opIndex === opIndex)
         ) {
-            console.log(`setting init text for opIndex: ${opIndex}`);
             setText((text) => [
                 ...text,
                 { opIndex: opIndex, text: [operation.text] },
@@ -313,7 +310,6 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
             const text = (
                 e.clipboardData || (window as any).clipboardData
             ).getData('text');
-            console.log('pasted text:', text);
             setUserInput(userInput + text);
         };
 
