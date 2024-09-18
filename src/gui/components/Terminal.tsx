@@ -1,4 +1,3 @@
-import { useFrame } from '@react-three/fiber';
 import {
     FunctionComponent,
     isValidElement,
@@ -309,12 +308,21 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
             return;
         }
 
+        const pasteHandler = (e: ClipboardEvent) => {
+            e.preventDefault();
+            const text = (
+                e.clipboardData || (window as any).clipboardData
+            ).getData('text');
+            console.log('pasted text:', text);
+            setUserInput(userInput + text);
+        };
+
         const handleKeyDown = (e: KeyboardEvent) => {
             // Stops the event bubbling up and the app making a noise when the keyboard isn't handled
-            e.preventDefault();
 
             if (flow[opIndex].userInput) {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     setIsInputComplete((input) => {
                         const newInput = { ...input };
                         newInput[opIndex] = true;
@@ -330,23 +338,22 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
                     });
                     setIsOperationInProgress(false);
                 } else if (e.key === 'Backspace') {
+                    e.preventDefault();
                     setUserInput(userInput.slice(0, -1));
-                } else if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-                    navigator.clipboard
-                        .readText()
-                        .then((text) => {
-                            setUserInput(userInput + text);
-                        })
-                        .catch((err) => {
-                            console.error('clipboard read error:', err);
-                        });
+                } else if (e.ctrlKey || e.metaKey) {
+                    return; // let it bubble
                 } else if (e.key.length === 1) {
+                    e.preventDefault();
                     setUserInput(userInput + e.key);
                 }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('paste', pasteHandler);
+        return () => {
+            window.removeEventListener('paste', pasteHandler);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, [flow, opIndex, userInput]);
 
     return (
