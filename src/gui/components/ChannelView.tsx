@@ -9,7 +9,7 @@ import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
-import { PacketLace } from './PacketLace';
+import PacketLace from './PacketLace';
 import Renderer from './Renderer';
 import { Operation, Spinner, TerminalStyle, TerminalView } from './Terminal';
 

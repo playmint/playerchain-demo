@@ -10,7 +10,7 @@ const LINE_WIDTH = 2; // NOTE: Due to limitations of the OpenGL Core Profile wit
 const DEFAULT_LINE_COLOR = 'grey';
 const DEFAULT_PACKET_COLOR_1 = 0xffffff;
 const DEFAULT_PACKET_COLOR_2 = 0x888888;
-const PARENTLESS_PACKET_COLOR = 0xff0000;
+// const PARENTLESS_PACKET_COLOR = 0xff0000;
 
 const packetGeometry = new THREE.BoxGeometry(
     PACKET_SCALE,
@@ -58,7 +58,11 @@ export async function startGraph(
     peers = _peers;
 
     scene = new THREE.Scene();
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        // alpha: true,
+    });
     renderer.setClearColor(0x000000, 0);
 
     aspectRatio = height / width;
@@ -104,7 +108,7 @@ export async function stopGraph() {
     peers = [];
 }
 
-async function fetchPackets(channelId: string, limit: number = 300) {
+async function fetchPackets(channelId: string, limit: number = 100) {
     if (fetching) {
         console.log('worker: lace fetch skip');
         return;
@@ -223,11 +227,10 @@ function renderPackets(messages: any[]) {
         }
 
         // Update colour
-        const packetColor = m.parent
-            ? m.originalRound % 6 > 2
+        const packetColor =
+            m.originalRound % 4 === 0
                 ? DEFAULT_PACKET_COLOR_1
-                : DEFAULT_PACKET_COLOR_2
-            : PARENTLESS_PACKET_COLOR;
+                : DEFAULT_PACKET_COLOR_2;
         if (
             m.parent &&
             packetMesh.material instanceof THREE.MeshBasicMaterial
@@ -268,6 +271,7 @@ function renderLines(packets: Map<string, any>) {
             data.push({
                 key: `${packet.key}-${packet.parent}`,
                 points: [fromPos, parentPos],
+                color: getPeerColor(packet.peerId),
             });
         }
         packet.acks.forEach((ack) => {
