@@ -17,7 +17,17 @@ export default function EndRoundLeaderBoard({
 
     const color = `#${player.id.slice(0, 6)}`
     const shadowColor = shadeColor(color, -25);
+    const scores: Score[] = players
+        .map((p) => ({
+            user: p.name,
+            score: p.score,
+            color: `#${p.id.slice(0, 6)}`, //'#ac75eb',
+            isMe: peerId === p.id,
+        }))
+        .sort((a, b) => b.score - a.score);
 
+    const position = scores.findIndex((score) => score.isMe) + 1;
+    
     return(
         <Modal isOpen={true} onClose={function (): void {
             throw new Error("Function not implemented.");
@@ -42,7 +52,7 @@ export default function EndRoundLeaderBoard({
                         className={styles.playerScoreCircle}
                         style={{ backgroundColor: color}}
                     >
-                        {0}
+                        {position}
                     </span>
                     </span>
                 </div>

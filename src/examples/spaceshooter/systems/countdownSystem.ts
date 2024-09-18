@@ -13,7 +13,7 @@ export default system<ShooterSchema>(
             if (hasInput(player.input, Input.StartTimer)) {
                 // start countdown timer:
                 players.forEach((player) => {
-                    startTimer[player.ship] = t+(4/deltaTime);
+                    startTimer[player.ship] = t+(3/deltaTime);
                     roundTimer[player.ship] = 0;
                 });
             }

@@ -18,16 +18,16 @@ export default function Countdown(props: { currentTick: number, player: PlayerIn
                     marginLeft: '1rem',
                 }}>
                 <span className={styles.countdownText}>
-                    {Math.ceil( ((startTime-props.currentTick)/60)*4)}
+                    {Math.ceil( ((startTime-props.currentTick)/60)*3)}
                 </span>
                 <span className={styles.countdownText2}>
-                    {Math.ceil( ((startTime-props.currentTick)/60)*4)}
+                    {Math.ceil( ((startTime-props.currentTick)/60)*3)}
                 </span>
                 </div>
             );
         }
         else if(props.currentTick<roundTime) {
-            date.setSeconds(Math.ceil(((roundTime-props.currentTick)/60)*360));
+            date.setSeconds(Math.ceil(((roundTime-props.currentTick)/60)*180));
             const timeString = date.toISOString().substring(11, 19);
             return(
                 <div style={{
