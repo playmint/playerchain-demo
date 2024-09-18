@@ -1650,10 +1650,8 @@ export class Peer {
 
         setTimeout(() => {
             if (this.peers.get(peer.peerId)) {
-                console.log(
-                    `-------------
-                    not aborting the timeout thingy
-                    -------------`,
+                this._onDebug(
+                    `<- TIMEOUT INTRO FOR PEER WE KNOW ABOUT ... should we abort here?`,
                 );
                 // return;
             }

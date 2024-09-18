@@ -1,3 +1,4 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { FC, memo, useEffect, useMemo } from 'react';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
@@ -32,6 +33,21 @@ export default memo(function Renderer({
             return ShooterRenderer;
         }
     }, [mod]);
+
+    const peerNames = useMemo(() => {
+        const names: Record<string, string> = {};
+        return names;
+    }, []);
+
+    // track the peer names
+    const peers = useLiveQuery(() => db.peerNames.toArray(), [], []);
+    useEffect(
+        () =>
+            peers.forEach((peer) => {
+                peerNames[peer.peerId] = peer.name;
+            }),
+        [peerNames, peers],
+    );
 
     // start the channel sequencer
     useEffect(() => {
@@ -159,5 +175,12 @@ export default memo(function Renderer({
         return <div>NO RENDERER</div>;
     }
 
-    return <GameRenderer mod={mod} peerId={peerId} channelId={channelId} />;
+    return (
+        <GameRenderer
+            mod={mod}
+            peerId={peerId}
+            peerNames={peerNames}
+            channelId={channelId}
+        />
+    );
 });

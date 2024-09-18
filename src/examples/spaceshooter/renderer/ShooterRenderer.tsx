@@ -18,18 +18,27 @@ useGLTF.setDecoderPath('/libs/draco');
 const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 
 export type WorldRef = { current: World<ShooterSchema> };
+export type PlayersRef = { current: PlayerInfo[] };
 
 const ModelEntity = memo(function ModelEntity({
     worldRef,
     eid,
+    playersRef,
 }: {
     eid: number;
     worldRef: WorldRef;
+    playersRef: PlayersRef;
 }) {
     console.log('ModelEntity', eid);
     switch (worldRef.current.components.model.data.type[eid]) {
         case ModelType.Ship:
-            return <ShipEntity worldRef={worldRef} eid={eid} />;
+            return (
+                <ShipEntity
+                    worldRef={worldRef}
+                    eid={eid}
+                    playersRef={playersRef}
+                />
+            );
         case ModelType.Bullet:
             return <BulletEntity worldRef={worldRef} eid={eid} />;
         case ModelType.Wall:
@@ -37,8 +46,16 @@ const ModelEntity = memo(function ModelEntity({
     }
 });
 
-export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
+export default memo(function ShooterCanvas({
+    mod,
+    peerId,
+    peerNames,
+}: RendererProps) {
     const worldRef = useMemo((): WorldRef => ({}) as WorldRef, []);
+    const playersRef = useMemo(
+        (): PlayersRef => ({ current: [] }) as PlayersRef,
+        [],
+    );
 
     // entities to add to the scene
     const [nextEntities, setNextEntities] = useState<(EntityId | null)[]>([]);
@@ -68,6 +85,7 @@ export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
                 .map(([id, p]) => ({
                     ...p,
                     id,
+                    name: peerNames[id] || id.slice(0, 8),
                     health: w.components.stats.data.health[p.ship],
                 }))
                 .sort((a, b) => (b.id > a.id ? -1 : 1));
@@ -85,10 +103,11 @@ export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
                 })
             ) {
                 setNextPlayers(nextPlayers);
+                playersRef.current = nextPlayers;
             }
             prevPlayers.current = nextPlayers;
         });
-    }, [mod, peerId, worldRef]);
+    }, [mod, peerId, peerNames, playersRef, worldRef]);
 
     const entities = useMemo((): EntityId[] => {
         return Array.from(nextEntities || []).filter(
@@ -107,7 +126,12 @@ export default memo(function ShooterCanvas({ mod, peerId }: RendererProps) {
         <>
             <Canvas resize={CANVAS_RESIZE}>
                 {entities.map((eid) => (
-                    <ModelEntity key={eid} eid={eid} worldRef={worldRef} />
+                    <ModelEntity
+                        key={eid}
+                        eid={eid}
+                        worldRef={worldRef}
+                        playersRef={playersRef}
+                    />
                 ))}
                 <PlayerCam peerId={peerId} worldRef={worldRef} />
                 <PositionalAudio

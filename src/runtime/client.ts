@@ -505,7 +505,7 @@ export class Client {
             // and also how player names get broadcasted... (lol)
 
             const subclusterPeers = ch.subcluster.peers();
-            const settings = await this.db.settings.get(1);
+            const peerName = await this.db.peerNames.get(this.peerId);
             await ch.emit(
                 'bytes',
                 Buffer.from(
@@ -516,7 +516,7 @@ export class Client {
                         sees: subclusterPeers.map((p) =>
                             Buffer.from(p.peerId.slice(0, 8), 'hex'),
                         ),
-                        playerName: settings?.name || '',
+                        name: peerName?.name || '',
                     }),
                 ),
                 {
@@ -558,32 +558,32 @@ export class Client {
                     });
                 }
             }
-            const subclusterPeerIds = subclusterPeers
-                .map((p) => p.peerId.slice(0, 8))
-                .sort()
-                .join(',');
+            // const subclusterPeerIds = subclusterPeers
+            //     .map((p) => p.peerId.slice(0, 8))
+            //     .sort()
+            //     .join(',');
             // const dbPeers = (await this.db.peers.toArray())
             //     .map((p) => p.peerId.slice(0, 8))
             //     .sort()
             //     .join(',');
-            const alivePeers = Array.from(ch.alivePeerIds.keys())
-                .map((peerId) => peerId.slice(0, 8))
-                .sort()
-                .join(',');
-            const lastKnowPeers = Array.from(ch.lastKnowPeers.keys())
-                .map((peerId) => peerId.slice(0, 8))
-                .sort()
-                .join(',');
+            // const alivePeers = Array.from(ch.alivePeerIds.keys())
+            //     .map((peerId) => peerId.slice(0, 8))
+            //     .sort()
+            //     .join(',');
+            // const lastKnowPeers = Array.from(ch.lastKnowPeers.keys())
+            //     .map((peerId) => peerId.slice(0, 8))
+            //     .sort()
+            //     .join(',');
             // const netPeers = Array.from(this.net.socket.peers.keys())
             //     .map((peerId) => peerId.slice(0, 8))
             //     .sort()
             //     .join(',');
-            this.debug(`
-                peer-info
-                subclusterPeers=${subclusterPeerIds}
-                lastKnowPeers=${lastKnowPeers}
-                alivePeers=${alivePeers}
-            `);
+            // this.debug(`
+            //     peer-info
+            //     subclusterPeers=${subclusterPeerIds}
+            //     lastKnowPeers=${lastKnowPeers}
+            //     alivePeers=${alivePeers}
+            // `);
             // sync channel peers and rebroadcast it
             const info = await this.db.channels.get(ch.id);
             if (info) {
@@ -714,7 +714,6 @@ export class Client {
             sender: this.peerId,
         };
         for (const [_, ch] of this.channels) {
-            this.debug(`-> RPC req-missing`);
             await ch.emit(`rpc`, Buffer.from(cbor.encode(r)), {
                 ttl: 100,
             });
@@ -726,11 +725,9 @@ export class Client {
             const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
             if (req.sender === this.peerId) {
                 // don't answer own requests!
-                this.debug(`<- RPC DROP self`);
                 return;
             }
             if (!req.name) {
-                this.debug(`<- RPC DROP no-name`);
                 return;
             }
             if (
@@ -739,14 +736,10 @@ export class Client {
                 req.timestamp < Date.now() - 2000
             ) {
                 // ignore old requests
-                this.debug(
-                    `<- RPC DROP too-old age=${Date.now() - req.timestamp}ms`,
-                );
                 return;
             }
             const handler = this.getRequestHandler(req.name);
             if (!handler) {
-                this.debug(`<- RPC DROP no-handler`);
                 return;
             }
             await handler(req.args as any);
@@ -769,14 +762,10 @@ export class Client {
     }: {
         sig: Uint8Array;
     }): Promise<number> => {
-        const msgId = Buffer.from(sig).toString('hex');
-        this.debug(`<- RPC req-missing-recv id=${msgId.slice(0, 8)}`);
         const msg = await this.db.messages.get(sig);
         if (!msg) {
-            this.debug(`-> RPC req-missing-reply not-found`);
             return 0;
         }
-        this.debug(`-> RPC req-missing-reply ok`);
         this.send(
             {
                 type: PacketType.MESSAGE,

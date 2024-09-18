@@ -11,14 +11,13 @@ export enum Model {
 
 export type PlayerData = {
     id: string; // peerId hex
-    name: string; // short name, capped to 16 characters
     input: number; // bitfield of input keys
-    peerIdx: number; // index of the player in the peer list (used for colour)
 };
 
 export interface RendererProps {
     peerId: string; // the peerId of the viewing player
     mod: GameModule; // the game module implementation
+    peerNames: Record<string, string>; // the names of the players
     channelId: string; // the channelId of the game
 }
 

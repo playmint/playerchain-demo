@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { useClient } from '../hooks/use-client';
+import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { TerminalView } from './Terminal';
 
 export function ChannelBoot() {
+    const { peerId } = useCredentials();
     const client = useClient();
     const db = useDatabase();
 
@@ -95,9 +97,9 @@ export function ChannelBoot() {
             userInput: true,
             promise: (input: string) =>
                 new Promise((resolve) => {
-                    // Update name in settings
-                    db.settings
-                        .update(1, { name: input })
+                    // Update name
+                    db.peerNames
+                        .put({ peerId, name: input })
                         .catch((err) =>
                             console.error('unable to set player name', err),
                         );

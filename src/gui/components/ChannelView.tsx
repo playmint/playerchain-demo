@@ -13,9 +13,9 @@ import PacketLace from './PacketLace';
 import Renderer from './Renderer';
 import { Operation, Spinner, TerminalStyle, TerminalView } from './Terminal';
 
-const FIXED_UPDATE_RATE = 50;
-const INTERLACE = 3;
-const SIM_INPUT_DELAY = 2; // number of ticks to avoid
+const FIXED_UPDATE_RATE = 60;
+const INTERLACE = 2;
+const SIM_INPUT_DELAY = 1; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export function ChannelView({
@@ -53,7 +53,7 @@ export function ChannelView({
         });
     }, []);
 
-    const { muted, name: playerName } = useSettings();
+    const { muted } = useSettings();
     const toggleMuted = useCallback(() => {
         db.settings
             .update(1, { muted: !muted })
@@ -100,6 +100,8 @@ export function ChannelView({
             console.error('acceptPeers', err);
         });
     }, [client, channelId, potentialPeers]);
+
+    const peerNames = useLiveQuery(() => db.peerNames.toArray(), [], []);
 
     // const largestDiff = peers.reduce(
     //     (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),
@@ -259,17 +261,9 @@ export function ChannelView({
                                                 ),
                                             }}
                                         >
-                                            {pid === peerId
-                                                ? playerName || (
-                                                      <span>
-                                                          {pid.slice(0, 8)}
-                                                          {' (you)'}
-                                                      </span>
-                                                  )
-                                                : peers.find(
-                                                      (p) => p.peerId === pid,
-                                                  )?.playerName ||
-                                                  pid.slice(0, 8)}
+                                            {peerNames.find(
+                                                (p) => p.peerId === pid,
+                                            )?.name || pid.slice(0, 8)}
                                         </li>
                                     ))}
                                 </ul>
@@ -376,8 +370,11 @@ export function ChannelView({
                         <PeerStatus
                             key={otherPeerId}
                             peerId={otherPeerId}
+                            peerName={
+                                peerNames.find((p) => p.peerId === otherPeerId)
+                                    ?.name
+                            }
                             selfId={peerId}
-                            selfName={playerName}
                             info={peers.find((p) => p.peerId === otherPeerId)}
                             peerCount={channel.peers.length}
                         />
@@ -397,16 +394,16 @@ export function ChannelView({
 
 function PeerStatus({
     peerId,
+    peerName,
     info,
     selfId,
     peerCount,
-    selfName,
 }: {
     peerId: string;
+    peerName?: string;
     info?: PeerInfo;
     selfId: string;
     peerCount: number;
-    selfName?: string;
 }) {
     const [_tick, setTick] = useState(0);
     const isSelf = peerId === selfId;
@@ -440,7 +437,7 @@ function PeerStatus({
                     overflow: 'hidden',
                 }}
             >
-                {(isSelf && selfName) || info?.playerName || peerId.slice(0, 8)}
+                {peerName || peerId.slice(0, 8)}
             </span>
             <span>
                 {inbound

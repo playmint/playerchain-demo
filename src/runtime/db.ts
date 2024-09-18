@@ -27,7 +27,6 @@ export interface PeerInfo {
     channels: string[];
     proxy: boolean | null; // if true, then messages are bouncing off someone else
     sees: string[]; // list of peers this peer has told us it knows about
-    playerName: string;
 }
 
 export enum SearchStatus {
@@ -65,8 +64,12 @@ export type NetworkInfo = {
 // should probably be part of the Game interface somehow
 export type PlayerSettings = {
     id: 1;
-    name?: string;
     muted?: boolean;
+};
+
+export type PeerNames = {
+    peerId: string;
+    name: string;
 };
 
 export type StoredMessage = Message & { arrived: number };
@@ -79,6 +82,7 @@ export type DB = Dexie & {
     peers: EntityTable<PeerInfo, 'peerId'>;
     network: EntityTable<NetworkInfo, 'id'>;
     settings: EntityTable<PlayerSettings, 'id'>;
+    peerNames: EntityTable<PeerNames, 'peerId'>;
 };
 
 export function open(name: string): DB {
@@ -93,6 +97,7 @@ export function open(name: string): DB {
         state: '[channel+tag+round]',
         network: 'id',
         settings: 'id',
+        peerNames: 'peerId',
     });
 
     return db;

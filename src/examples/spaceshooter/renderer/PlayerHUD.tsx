@@ -6,6 +6,7 @@ import LeaderBoard from './LeaderBoard';
 
 export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
     id: string;
+    name: string;
     health: number;
 };
 

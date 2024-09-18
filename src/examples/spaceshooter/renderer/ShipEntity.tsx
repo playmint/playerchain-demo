@@ -9,10 +9,7 @@ import {
     PositionalAudio as PositionalAudioImpl,
     Vector3,
 } from 'three';
-import {
-    getPlayerColor,
-    getPlayerColorCSS,
-} from '../../../gui/fixtures/player-colors';
+import { getPlayerColor } from '../../../gui/fixtures/player-colors';
 import { Input, hasInput } from '../../spaceshooter';
 import sfxDestroy from '../assets/Destroy.mp3?url';
 import sfxThrust from '../assets/Thrust_Loop.mp3?url';
@@ -32,14 +29,16 @@ import {
     updateEntityGeneration,
     useParticleEffect,
 } from '../utils/RenderUtils';
-import { WorldRef } from './ShooterRenderer';
+import { PlayersRef, WorldRef } from './ShooterRenderer';
 
 export default memo(function ShipEntity({
     eid,
     worldRef,
+    playersRef,
 }: {
     eid: number;
     worldRef: WorldRef;
+    playersRef: PlayersRef;
 }) {
     const getShipOwner = () =>
         Array.from(worldRef.current.players.entries()).find(
@@ -55,7 +54,6 @@ export default memo(function ShipEntity({
     const shootRef = useParticleEffect(shipRef, fxShootData, [0, 0, 0]);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
-    console.log('rendering ship', eid);
 
     const gltf = useGLTF(assetPath(shipGLTF));
     useEffect(() => {
@@ -67,10 +65,10 @@ export default memo(function ShipEntity({
 
     useFrame((_state, deltaTime) => {
         const world = worldRef.current;
+        const players = playersRef.current;
         const [peerId, player] = getShipOwner();
-        const color = new Color(
-            peerId ? getPlayerColor(player.peerIdx) : '#ffffff',
-        );
+        const playerIdx = players.findIndex((p) => p.id === peerId);
+        const color = new Color(peerId ? getPlayerColor(playerIdx) : '#ffffff');
         const group = groupRef.current;
         const ship = shipRef.current as EntityObject3D;
         if (!player) {
@@ -241,6 +239,8 @@ export default memo(function ShipEntity({
         ) {
             labelRef.current.style.display = 'none';
         }
+        labelRef.current.innerHTML =
+            players[playerIdx].name || peerId.slice(0, 8);
 
         // mark prev states
         updateEntityGeneration(group, world, eid);
@@ -248,13 +248,14 @@ export default memo(function ShipEntity({
         prevHealthRef.current = health;
     });
 
-    const [peerId, player] = getShipOwner();
     return (
         <group ref={groupRef}>
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
-            <Html ref={labelRef} style={{ fontSize: 11 }} position={[3, 5, 0]}>
-                {(player && player.name) || peerId?.slice(0, 8)}
-            </Html>
+            <Html
+                ref={labelRef}
+                style={{ fontSize: 11 }}
+                position={[3, 5, 0]}
+            ></Html>
             <PositionalAudio
                 ref={explosionSfxRef}
                 url={assetPath(sfxDestroy)}

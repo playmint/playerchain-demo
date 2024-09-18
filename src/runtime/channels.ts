@@ -45,6 +45,7 @@ export class Channel {
     _onPacket?: (packet: Packet) => void;
     lastKnowPeers = new Map<string, PeerStatus>();
     alivePeerIds: Map<string, KeepAlivePacket> = new Map();
+    peerNames: Map<string, string> = new Map();
 
     constructor({
         id,
@@ -114,7 +115,6 @@ export class Channel {
                 knownHeight: 0,
                 sees: [],
                 channels: [this.id],
-                playerName: '',
             });
         }
     }
@@ -137,12 +137,23 @@ export class Channel {
                 this.client.db.peers
                     .update(peerId, {
                         lastSeen: p.timestamp,
-                        playerName: p.playerName,
                         sees: p.sees.map((s) => Buffer.from(s).toString('hex')),
                     })
                     .catch((err) => {
                         console.error('update-peer-err:', err);
                     });
+                if (!this.peerNames.has(peerId)) {
+                    console.log('setitng peer name', peerId, p.name);
+                    this.client.db.peerNames
+                        .put({
+                            peerId: peerId,
+                            name: p.name,
+                        })
+                        .catch((err) => {
+                            console.error('update-peer-name-err:', err);
+                        });
+                    this.peerNames.set(peerId, p.name);
+                }
             } else {
                 this._onPacket(p);
             }

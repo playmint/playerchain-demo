@@ -19,7 +19,7 @@ export enum PacketType {
 export type KeepAlivePacket = {
     type: PacketType.KEEP_ALIVE;
     peer: Uint8Array;
-    playerName: string;
+    name: string;
     timestamp: number;
     sees: Uint8Array[];
 };
@@ -87,7 +87,7 @@ export function unknownToPacket(o: any): Packet {
                 peer: mustGetUint8Array(o, 'peer'),
                 timestamp: mustGetNumber(o, 'timestamp'),
                 sees: mustGetUint8ArrayArray(o, 'sees'),
-                playerName: o.playerName || '',
+                name: o.name || '',
             };
         default:
             throw new Error(`unsupported packet type: ${o}`);
