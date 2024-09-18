@@ -1,61 +1,90 @@
 import * as Comlink from 'comlink';
-import { useEffect, useRef, useState } from 'react';
-import { usePacketLace } from '../hooks/use-packetlace';
+import { memo, useEffect, useRef } from 'react';
+import { PLAYER_COLORS } from '../fixtures/player-colors';
+import { useAsyncMemo } from '../hooks/use-async';
+import { useCredentials } from '../hooks/use-credentials';
 
 // const HIGHLIGHTED_LINE_COLOR = 'cyan';
 // const MAX_ROUNDS = 8; // 0 to show all rounds
 // const CAM_LERP_SPEED = 0.02;
 
 // type Message = InputMessage & ChainMessageProps & PostSignMessageProps;
+interface PacketLaceProxy {
+    init(dbname: string, peerColors: number[]): Promise<void>;
+    fetchPackets(channelId: string, limit: number): Promise<unknown>;
+    startGraph(
+        canvas: OffscreenCanvas,
+        channelID: string,
+        packetLimit: number,
+        fetchIntervalMs: number,
+        peers: string[],
+    ): Promise<void>;
+    stopGraph(): Promise<void>;
+    onResize(width: number, height: number): Promise<void>;
+}
 
-export function PacketLace({
+export default memo(function PacketLace({
     channelId,
     peers,
 }: {
     channelId: string;
     peers: string[];
 }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [offscreenCanvas, setOffscreenCanvas] = useState<OffscreenCanvas>();
-    const packetLace = usePacketLace();
+    const { dbname } = useCredentials();
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (!canvasRef.current) {
-            return;
-        }
+    // create worker
+    const packetLace = useAsyncMemo<PacketLaceProxy | undefined>(
+        async (defer) => {
+            if (!dbname) {
+                return;
+            }
+            const w = new Worker(
+                new URL('../workers/packetlace.worker.tsx', import.meta.url),
+                {
+                    type: 'module',
+                    /* @vite-ignore */
+                    name: `packetLace worker`,
+                },
+            );
+            defer(async () => {
+                w.terminate();
+                console.log(`packetLace worker terminated`);
+            });
+            console.log(`packetLace worker started`);
+            const c: PacketLaceProxy = Comlink.wrap<PacketLaceProxy>(w);
+            await c.init(dbname, PLAYER_COLORS);
+            console.log(`packetLace worker init`);
+            defer(async () => {
+                // await c.shutdown();
+                console.log(`packetLace shutdown`);
+            });
+            globalThis.client = c;
+            console.log(`packetLace worker ready`);
+            return c;
+        },
+        [dbname],
+    );
 
-        if (offscreenCanvas) {
-            return;
-        }
-
-        // NOTE: I have seen instances where the canvas has already had it's control transferred to offscreen and accessing any properties on the canvas will through an error.
-        try {
-            const pixelRatio = window.devicePixelRatio || 1;
-            const canvas = canvasRef.current;
-            canvas.width = canvas.clientWidth * pixelRatio;
-            canvas.height = canvas.clientHeight * pixelRatio;
-
-            const offscreen = canvas.transferControlToOffscreen();
-            setOffscreenCanvas(offscreen);
-        } catch (e) {
-            console.error(e);
-        }
-    }, [offscreenCanvas]);
-
+    // cerate canvas
     useEffect(() => {
         if (!packetLace) {
             return;
         }
-
-        if (!offscreenCanvas) {
+        const container = containerRef.current;
+        if (!container) {
             return;
         }
-
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 910;
+        container.appendChild(canvas);
+        const offscreenCanvas = canvas.transferControlToOffscreen();
         packetLace
             .startGraph(
                 Comlink.transfer(offscreenCanvas, [offscreenCanvas]),
                 channelId,
-                300,
+                96,
                 1000,
                 peers,
             )
@@ -63,44 +92,19 @@ export function PacketLace({
 
         return () => {
             packetLace.stopGraph().catch(console.error);
+            container.removeChild(canvas);
         };
-    }, [channelId, packetLace, peers, offscreenCanvas]);
-
-    // window resize listener
-    useEffect(() => {
-        const onResize = () => {
-            if (!packetLace) {
-                return;
-            }
-            const canvas = canvasRef.current;
-            if (!canvas) {
-                return;
-            }
-            const pixelRatio = window.devicePixelRatio || 1;
-            packetLace
-                .onResize(
-                    canvas.clientWidth * pixelRatio,
-                    canvas.clientHeight * pixelRatio,
-                )
-                .catch(console.error);
-        };
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, [packetLace]);
+    }, [channelId, packetLace, peers]);
 
     return (
         <div
+            ref={containerRef}
             style={{
                 position: 'relative',
                 width: '100%',
                 height: '100%',
-                backgroundColor: 'black',
+                backgroundColor: 'transparent',
             }}
-        >
-            <canvas
-                ref={canvasRef}
-                style={{ position: 'relative', width: '100%', height: '100%' }}
-            />
-        </div>
+        ></div>
     );
-}
+});
