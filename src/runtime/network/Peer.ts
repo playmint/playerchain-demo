@@ -15,6 +15,7 @@ import {
     Packet,
     PacketIntro,
     PacketJoin,
+    PacketNoRoute,
     PacketPing,
     PacketPong,
     PacketPublish,
@@ -180,14 +181,10 @@ export class Peer {
 
     onDebug?: (peerId: string, ...args: any[]) => void;
     onState?: () => void;
-    onSend?: (packet: Packet, port: number, address: string) => void;
     onError?: (err: Error) => void;
-    onDisconnection?: (peer: RemotePeer) => void;
     onReady?: (info: object) => void;
     onMessage?: (msg: Buffer, rinfo: any) => void;
-    onData?: (...args: any[]) => void;
     onLimit?: (...args: any[]) => boolean | undefined;
-    onClose?: () => void;
     onConnection?: (...args: any[]) => void;
 
     metrics = {
@@ -229,12 +226,9 @@ export class Peer {
         );
 
         let cacheData;
-        // if (persistedState?.data?.length > 0) {
-        //     cacheData = new Map(persistedState.data);
-        // }
         this.cache = new Cache(cacheData, config.siblingResolver);
-        this.cache.onEjected = (p) => this.mcast(p);
-        // this.cache.onEjected = (_p) => {};
+        // this.cache.onEjected = (p) => this.mcast(p);
+        this.cache.onEjected = (_p) => console.log('onEject noop');
 
         this.unpublished = {};
 
@@ -327,7 +321,7 @@ export class Peer {
         await this._mainLoop(Date.now());
         this.mainLoopTimer = setInterval(
             () => this._mainLoop(Date.now()),
-            this.keepalive,
+            this.keepalive / 2,
         );
 
         if (this.indexed && this.onReady) {
@@ -403,31 +397,40 @@ export class Peer {
         }
 
         // prune peer list
-        const disconnectedPeers: Set<RemotePeer> = new Set();
+        const disconnectedPeers: Set<RemotePeer> = new Set(); // reset
         for (const [, peer] of this.peers) {
             if (peer.indexed) {
                 continue;
             }
-            const expired = peer.lastUpdate + this.keepalive * 4 < Date.now();
+            if (peer.useProxy) {
+                // we don't receive keepalives from peers that are using proxy
+                // so we can't rely on the lastSeen timestamp to determine if we should prune
+                // instead we wait til the peer has no proxies connected
+                continue;
+            }
+            const expired = peer.lastSeen + this.keepalive * 2 < ts;
             if (!expired) {
                 continue;
             }
             disconnectedPeers.add(peer);
-            // if we lost this peer, we have also lost any peers that
-            // were depending on it for proxying, so we need to remove them too
+            // if we lost this peer, we need to remove it from any peers that
+            // were depending on it for proxying
             for (const [, dependentPeer] of this.peers) {
-                dependentPeer.proxies.delete(peer.peerId);
-                if (dependentPeer.proxies.size === 0) {
-                    disconnectedPeers.add(dependentPeer);
+                if (dependentPeer.indexed) {
+                    continue;
                 }
+                dependentPeer.proxies.delete(peer.peerId);
+            }
+        }
+        // drop any proxyless peers that needed a proxy
+        for (const [, peer] of this.peers) {
+            if (peer.useProxy && peer.proxies.size === 0 && !peer.indexed) {
+                disconnectedPeers.add(peer);
             }
         }
         for (const peer of disconnectedPeers) {
             this._onDebug(`-- DISCONNECT peer=${peer.peerId.slice(0, 6)}`);
             this.peers.delete(peer.peerId);
-            if (this.onDisconnection) {
-                this.onDisconnection(peer);
-            }
         }
         // TODO: expire oldest peer if we are at the peer limit
         // if (this.peers.size >= 256) {
@@ -455,23 +458,23 @@ export class Peer {
         address: string,
         socket = this.socket,
     ) {
+        const packet: any = Packet.decode(data);
+        if (!packet) {
+            console.warn(`send: failed to decode packet`);
+            return;
+        }
+        const pid = packet.packetId.toString('hex');
         socket.send(data, port, address, (err) => {
+            delete this.unpublished[pid];
             if (err) {
-                return this._onError(err);
-            }
-
-            const packet: any = Packet.decode(data);
-            if (!packet) {
+                console.warn(`send: error: ${err}`);
                 return;
             }
 
             this.metrics.o[packet.type]++;
-            delete this.unpublished[packet.packetId.toString('hex')];
-            if (this.onSend && packet.type) {
-                this.onSend(packet, port, address);
-            }
+
             this._onDebug(
-                `>> SENT (from=${this.address}:${this.port}, to=${address}:${port}, type=${packet.type} size=${data.length})`,
+                `>> SENT (packetId=${pid.slice(0, 6)} from=${this.address}:${this.port}, to=${address}:${port}, type=${packet.type} size=${data.length})`,
             );
         });
     }
@@ -497,7 +500,7 @@ export class Peer {
             }
 
             await this.mcast(packet);
-            this._onDebug(`-> RESEND (packetId=${packetId})`);
+            this._onDebug(`-> SEND UNPUBLISHED (packetId=${packetId})`);
             if (this.onState) {
                 this.onState();
             }
@@ -611,7 +614,7 @@ export class Peer {
             if (p.lastUpdate === 0) {
                 return false;
             }
-            if (p.lastUpdate < Date.now() - this.keepalive * 4) {
+            if (p.lastUpdate < Date.now() - this.keepalive * 3) {
                 return false;
             }
             if (this.peerId === p.peerId) {
@@ -688,7 +691,7 @@ export class Peer {
         if (
             this.natType &&
             this.lastUpdate > 0 &&
-            Date.now() - this.keepalive * 4 < this.lastUpdate
+            Date.now() - this.keepalive * 2 < this.lastUpdate
         ) {
             this._onDebug(
                 `<> REFLECT NOT NEEDED (last-recv=${Date.now() - this.lastUpdate}ms)`,
@@ -703,7 +706,7 @@ export class Peer {
         );
 
         const peers = Array.from(this.peers.values())
-            .filter((p) => p.lastUpdate !== 0)
+            .filter((p) => p.lastSeen !== 0)
             .filter(
                 (p) =>
                     p.natType === NAT.UNRESTRICTED ||
@@ -1162,10 +1165,6 @@ export class Peer {
         this.closing = true;
         this.socket.close();
         this.probeSocket.close();
-
-        if (this.onClose) {
-            this.onClose();
-        }
     }
 
     /**
@@ -1230,10 +1229,12 @@ export class Peer {
         }
 
         peer.connected = true;
-        peer.lastUpdate = Date.now();
         peer.port = port;
         peer.natType = natType;
         peer.address = address;
+        if (socket) {
+            peer.socket = socket;
+        }
 
         // assign the peer any cluster we know about right now
         const cid: string = packet.clusterId.toString('base64');
@@ -1250,6 +1251,7 @@ export class Peer {
                 );
             }
             peer.proxies.set(proxy.peerId, proxy);
+            peer.useProxy = true;
         } else {
             if (peer.proxies.size > 0) {
                 // remove any proxies that were previously assigned
@@ -1261,9 +1263,6 @@ export class Peer {
                 //     `<- CONNECTION REMOVING PROXY PEER (id=${peer.peerId}, address=${address}:${port} count=${peer.proxies.size - 1})`,
                 // );
             }
-        }
-        if (socket) {
-            peer.socket = socket;
         }
 
         this._onDebug(
@@ -1537,7 +1536,7 @@ export class Peer {
         if (packet.hops >= this.maxHops) {
             return;
         }
-        if (!isNaN(ts) && ts + this.keepalive * 4 < Date.now()) {
+        if (!isNaN(ts) && ts + this.keepalive * 2 < Date.now()) {
             return;
         }
         if (packet.message.requesterPeerId === this.peerId) {
@@ -1867,12 +1866,6 @@ export class Peer {
         const peerAddress = packet.message.address;
         const peerPort = packet.message.port;
 
-        // prevents premature pruning; a peer is not directly connecting
-        const peer = this.peers.get(peerId);
-        if (peer) {
-            peer.lastUpdate = Date.now();
-        }
-
         // a rendezvous isn't relevant if it's too old, just drop the packet
         if (rendezvousDeadline && rendezvousDeadline < Date.now()) {
             return;
@@ -2075,6 +2068,29 @@ export class Peer {
         }
     }
 
+    // another peer has told us to stop talking to them
+    async _onNoRoute(packet: Packet, port: number, address: string, _data) {
+        const targetPeerId = packet.usr1.toString('hex');
+        const targetPeer = this.peers.get(targetPeerId);
+        if (!targetPeer) {
+            // don't know the target so moot
+            return;
+        }
+        const proxyPeer = Array.from(this.peers.values()).find(
+            (p) => p.address === address && p.port === port,
+        );
+        if (!proxyPeer) {
+            // don't know the proxy so moot
+            return;
+        }
+        // remove the proxy from the target's list of proxies
+        // peer pruning should take care of the rest
+        targetPeer.proxies.delete(proxyPeer.peerId);
+        this._onDebug(
+            `<- REMOVED PROXY PEER (dest=${targetPeer.peerId.slice(0, 6)}, proxy=${proxyPeer.peerId.slice(0, 6)})`,
+        );
+    }
+
     /**
      * Received an Publish Packet
      */
@@ -2112,16 +2128,7 @@ export class Peer {
             // );
             return;
         }
-
         this.gate.set(pid, 6);
-
-        if (this.cache.has(pid)) {
-            this.metrics.i.DROPPED++;
-            this._onDebug(
-                `<- DROP CACHED (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
-            );
-            return;
-        }
 
         // this message might not be for us
         if (isProxied) {
@@ -2139,6 +2146,16 @@ export class Peer {
                 this.metrics.i.DROPPED++;
                 this._onDebug(
                     `<- DROP PROXIED NO PATH (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+                );
+                // tell them to stop bothering us as we can't help proxy this
+                this.send(
+                    await Packet.encode(
+                        new PacketNoRoute({
+                            usr1: packet.usr3,
+                        }),
+                    ),
+                    port,
+                    address,
                 );
                 return;
             }
@@ -2161,6 +2178,13 @@ export class Peer {
             return;
         }
 
+        if (this.cache.has(pid)) {
+            this.metrics.i.DROPPED++;
+            this._onDebug(
+                `<- DROP CACHED (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
+            );
+            return;
+        }
         await this.cacheInsert(packet);
 
         // const ignorelist = [{ address, port }];
@@ -2192,8 +2216,9 @@ export class Peer {
                 await this.processSubclusterPacket(p);
             }
         } else {
+            // TODO: what to do here?, allow some hops?
             this._onDebug(
-                `<- PUBLISH (packetId=${pid.slice(0, 6)}, index=${packet.index}, from=${address}:${port})`,
+                `<- PUBLISH IGNORE (packetId=${pid.slice(0, 6)}, index=${packet.index}, from=${address}:${port})`,
             );
         }
 
@@ -2308,6 +2333,13 @@ export class Peer {
         data: Buffer | Uint8Array,
         { port, address }: { port: number; address: string },
     ) {
+        const peer = Array.from(this.peers.values()).find(
+            (p) => p.address === address && p.port === port,
+        );
+        if (peer) {
+            peer.lastSeen = Date.now();
+        }
+
         const packet = Packet.decode(data);
         if (!packet) {
             console.log(`XXX invalid packet failed decode`);
@@ -2320,20 +2352,11 @@ export class Peer {
             return;
         }
 
-        const peer = Array.from(this.peers.values()).find(
-            (p) => p.address === address && p.port === port,
-        );
-        if (peer) {
-            peer.lastUpdate = Date.now();
-        }
-
-        // const cid = Buffer.from(packet.clusterId).toString('base64');
         const scid = Buffer.from(packet.subclusterId).toString('base64');
 
         // this._onDebug(
         //     `<- RECV MESSAGE type=${packet.type} from=${address}:${port}`,
         // );
-
         if (!this.limitExempt) {
             const subcluster = this.subclusters.get(scid);
             if (
@@ -2356,15 +2379,6 @@ export class Peer {
             }
         }
 
-        // if (this.firewall) {
-        //     if (!this.firewall(...args)) {
-        //         return;
-        //     }
-        // }
-        if (this.onData) {
-            this.onData(packet, port, address, data);
-        }
-
         switch (packet.type) {
             case PacketPing.type:
                 return this._onPing(packet, port, address, data);
@@ -2385,10 +2399,8 @@ export class Peer {
                 return this._onPublish(packet, port, address, data, false);
             case PacketPublishProxied.type:
                 return this._onPublish(packet, port, address, data, true);
-            // case PacketSync.type:
-            //     return this._onSync(packet, port, address, data);
-            // case PacketQuery.type:
-            //     return this._onQuery(packet, port, address, data);
+            case PacketNoRoute.type:
+                return this._onNoRoute(packet, port, address, data);
         }
     }
 

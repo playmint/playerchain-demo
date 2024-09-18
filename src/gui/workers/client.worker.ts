@@ -38,7 +38,7 @@ export async function init(userConfig: ClientUserConfig) {
 
 export async function commit(
     msg: UnsignedMessage,
-    ackIds?: Uint8Array[] | null,
+    ackIds?: Uint8Array[],
 ): Promise<Message> {
     return client!.commit(msg, ackIds);
 }

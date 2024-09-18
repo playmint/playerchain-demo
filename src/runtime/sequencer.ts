@@ -144,7 +144,7 @@ export class Sequencer {
                 channel: this.channelId,
                 data: input,
             },
-            ackIds,
+            ackIds || [],
         );
         this.lastCommitted = Date.now();
     }

@@ -165,6 +165,7 @@ export class Subcluster {
                 }
                 return;
             case 'rpc':
+                console.log('========================rpc in');
                 if (this.onRPC) {
                     this.onRPC(opened);
                 }

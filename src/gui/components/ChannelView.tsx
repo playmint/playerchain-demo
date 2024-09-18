@@ -12,9 +12,9 @@ import { PacketLace } from './PacketLace';
 import Renderer from './Renderer';
 import { Operation, TerminalStyle, TerminalView } from './Terminal';
 
-const FIXED_UPDATE_RATE = 100;
+const FIXED_UPDATE_RATE = 75;
 const INTERLACE = 2;
-const SIM_INPUT_DELAY = 3; // number of ticks to avoid
+const SIM_INPUT_DELAY = 2; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export function ChannelView({
@@ -119,7 +119,7 @@ export function ChannelView({
             if (!info) {
                 return acc;
             }
-            const alive = (info?.lastSeen || 0) > Date.now() - 7000;
+            const alive = (info?.lastSeen || 0) > Date.now() - 10000;
             if (!alive) {
                 return acc;
             }
@@ -136,7 +136,7 @@ export function ChannelView({
         return <div>failed to load channel data</div>;
     }
 
-    const required = channel.peers.length == 2 ? 2 : channel.peers.length / 2;
+    const required = channel.peers.length; //channel.peers.length == 2 ? 2 : channel.peers.length / 2;
     const majorityReady = readyPeers >= required;
     const selfIsInTheClub = channel.peers.includes(peerId);
 
@@ -442,7 +442,9 @@ function PeerStatus({
                     : '--'}
                 {outbound && info?.proxy
                     ? 'P' // proxing
-                    : '-'}
+                    : info?.connected
+                      ? 'C'
+                      : '-'}
                 {outbound ? (isWellConnected ? '>>' : '->') : '--'}
             </span>
             <span>{info?.validHeight}</span>

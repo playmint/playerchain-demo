@@ -62,14 +62,6 @@ export class Client {
         max: 500,
         ttl: 1000 * 60 * 5,
     });
-    recentlyProcessedMessage = new LRUCache<string, boolean>({
-        max: 500,
-        ttl: 1000 * 60,
-    });
-    recentlyRequestedMessage = new LRUCache<string, boolean>({
-        max: 10,
-        ttl: 1000,
-    });
     verifiedHeight: Map<string, number> = new Map();
     _ready: null | Promise<void>;
     enableSync: boolean;
@@ -94,6 +86,10 @@ export class Client {
     }
 
     async init(config: Omit<ClientConfig, 'socket'>) {
+        // unconnect the peers
+        await this.db.peers.where({ connected: 1 }).modify({
+            connected: 0,
+        });
         // setup network
         this.debug('configuring-network');
         this.net = await createSocketCluster({
@@ -129,22 +125,19 @@ export class Client {
     }
 
     // commit will sign, store and broadcast the message
-    async commit(
-        msg: UnsignedMessage,
-        ackIds?: Uint8Array[] | null,
-    ): Promise<Message> {
+    async commit(msg: UnsignedMessage, acks?: Uint8Array[]): Promise<Message> {
         if (this.committing) {
             throw new Error('already-committing');
         }
         this.committing = true;
-        return this._commit(msg, ackIds).finally(() => {
+        return this._commit(msg, acks).finally(() => {
             this.committing = false;
         });
     }
 
     private async _commit(
         msg: UnsignedMessage,
-        ackIds?: Uint8Array[] | null,
+        acks?: Uint8Array[],
     ): Promise<Message> {
         if (this.height === null) {
             const latest = await this.db.messages
@@ -159,28 +152,12 @@ export class Client {
                 this.parent = latest;
             }
         }
-        // grab the lastest heads
-        const acks: Uint8Array[] =
-            ackIds ||
-            (
-                await this.getAckable(
-                    msg.type == MessageType.INPUT ? msg.round : undefined,
-                    msg.type == MessageType.INPUT ? msg.channel : undefined,
-                )
-            )
-                .map((msg) => msg.sig)
-                .filter(
-                    (ack) =>
-                        !this.recentlyAckedMessage.has(
-                            Buffer.from(ack).toString('hex'),
-                        ),
-                );
         // build the msg to attest to
         const attest: PresignedMessage = {
             ...msg,
             peer: this.id,
             height: this.height,
-            acks, // TODO: ask consensus system what to do
+            acks: acks ?? [], // TODO: ask consensus system what to do
             parent: this.parent ? this.parent.sig : null,
         };
         const signed = await this.sign(attest);
@@ -191,12 +168,6 @@ export class Client {
         await this.db.messages.add(stored);
         this.height = signed.height + 1;
         // include the parent too for good measure, double the bandwidth, double the fun
-        acks.forEach((ack) => {
-            this.recentlyAckedMessage.set(
-                Buffer.from(ack).toString('hex'),
-                true,
-            );
-        });
         // if (this.parentParent) {
         //     this.send(
         //         {
@@ -208,17 +179,17 @@ export class Client {
         //         },
         //     );
         // }
-        // if (this.parent) {
-        //     this.send(
-        //         {
-        //             type: PacketType.MESSAGE,
-        //             msgs: [this.parent],
-        //         },
-        //         {
-        //             ttl: 1000,
-        //         },
-        //     );
-        // }
+        if (this.parent) {
+            this.send(
+                {
+                    type: PacketType.MESSAGE,
+                    msgs: [this.parent],
+                },
+                {
+                    ttl: 1000,
+                },
+            );
+        }
         this.send(
             {
                 type: PacketType.MESSAGE,
@@ -237,10 +208,10 @@ export class Client {
                     msgs: [signed],
                 },
                 {
-                    ttl: 500,
+                    ttl: 1000,
                 },
             );
-        }, 40);
+        }, 25);
         return signed;
     }
 
@@ -323,13 +294,6 @@ export class Client {
     };
 
     onMessage = async (msg: Message): Promise<void> => {
-        // ignore messages we have seen recently
-        const msgId = Buffer.from(msg.sig).toString('hex');
-        const seen = this.recentlyProcessedMessage.get(msgId);
-        if (seen) {
-            // this.debug('drop-message-recently-seen', msgId.slice(0, 8));
-            return;
-        }
         // ignore own messages, assume we can take care of those
         if (Buffer.from(msg.peer).toString('hex') === this.peerId) {
             return;
@@ -352,7 +316,6 @@ export class Client {
                 ...msg,
                 arrived: await this.nextSequenceNumber(),
             });
-            this.recentlyProcessedMessage.set(msgId, true);
         }
 
         // do we have this message's parent?
@@ -409,13 +372,9 @@ export class Client {
             return;
         }
         const parentId = Buffer.from(child.parent).toString('hex');
-        if (this.recentlyRequestedMessage.has(parentId)) {
-            return;
-        }
         this.debug(
             `req-missing asking=everyone missing=${parentId.slice(0, 8)}`,
         );
-        this.recentlyRequestedMessage.set(parentId, true);
         await this.rpc({
             name: 'requestMessagesBySig',
             timestamp: Date.now(),
@@ -469,44 +428,6 @@ export class Client {
                 continue;
             }
             heads.push(head);
-        }
-        return heads;
-    }
-
-    private async getAckable(
-        round?: number,
-        channelId?: string,
-    ): Promise<Message[]> {
-        const heads: Message[] = [];
-        const peerIds = (await this.db.peers.toArray()).map((p) =>
-            Buffer.from(p.peerId, 'hex'),
-        );
-        for (const peerId of peerIds) {
-            const messages = await this.db.messages
-                .where(['peer', 'height'])
-                .between([peerId, Dexie.minKey], [peerId, Dexie.maxKey])
-                .reverse()
-                .limit(2)
-                .toArray();
-            for (const m of messages) {
-                // never ack same round
-                if (round) {
-                    if (m.type === MessageType.INPUT && m.round === round) {
-                        continue;
-                    }
-                }
-                // if channel given, then skip non channel acks
-                if (channelId) {
-                    if (
-                        m.type === MessageType.INPUT &&
-                        m.channel !== channelId
-                    ) {
-                        continue;
-                    }
-                }
-                heads.push(m);
-                break;
-            }
         }
         return heads;
     }
@@ -583,9 +504,7 @@ export class Client {
             // see channel.ts ... this is a workaround for a bug
             // and also how player names get broadcasted... (lol)
 
-            const connectedPeers = (await this.db.peers.toArray()).filter(
-                (p) => p.lastSeen > Date.now() - 6000,
-            );
+            const subclusterPeers = ch.subcluster.peers();
             const settings = await this.db.settings.get(1);
             await ch.emit(
                 'bytes',
@@ -594,7 +513,7 @@ export class Client {
                         type: PacketType.KEEP_ALIVE,
                         peer: this.id,
                         timestamp: Date.now(),
-                        sees: connectedPeers.map((p) =>
+                        sees: subclusterPeers.map((p) =>
                             Buffer.from(p.peerId.slice(0, 8), 'hex'),
                         ),
                         playerName: settings?.name || '',
@@ -639,15 +558,14 @@ export class Client {
                     });
                 }
             }
-            const subclusterPeers = ch.subcluster
-                .peers()
+            const subclusterPeerIds = subclusterPeers
                 .map((p) => p.peerId.slice(0, 8))
                 .sort()
                 .join(',');
-            const ourPeers = connectedPeers
-                .map((p) => p.peerId.slice(0, 8))
-                .sort()
-                .join(',');
+            // const dbPeers = (await this.db.peers.toArray())
+            //     .map((p) => p.peerId.slice(0, 8))
+            //     .sort()
+            //     .join(',');
             const alivePeers = Array.from(ch.alivePeerIds.keys())
                 .map((peerId) => peerId.slice(0, 8))
                 .sort()
@@ -656,18 +574,15 @@ export class Client {
                 .map((peerId) => peerId.slice(0, 8))
                 .sort()
                 .join(',');
-            const netPeers = Array.from(this.net.socket.peers.keys())
-                .map((peerId) => peerId.slice(0, 8))
-                .sort()
-                .join(',');
+            // const netPeers = Array.from(this.net.socket.peers.keys())
+            //     .map((peerId) => peerId.slice(0, 8))
+            //     .sort()
+            //     .join(',');
             this.debug(`
                 peer-info
-                scid=${ch.subcluster.scid.slice(0, 6)}
-                subclusterPeers=${subclusterPeers}
-                ourPeers=${ourPeers}
-                alivePeers=${alivePeers}
+                subclusterPeers=${subclusterPeerIds}
                 lastKnowPeers=${lastKnowPeers}
-                netPeers=${netPeers}
+                alivePeers=${alivePeers}
             `);
             // sync channel peers and rebroadcast it
             const info = await this.db.channels.get(ch.id);
@@ -799,8 +714,9 @@ export class Client {
             sender: this.peerId,
         };
         for (const [_, ch] of this.channels) {
+            this.debug(`-> RPC req-missing`);
             await ch.emit(`rpc`, Buffer.from(cbor.encode(r)), {
-                ttl: 1000,
+                ttl: 100,
             });
         }
     };
@@ -809,21 +725,27 @@ export class Client {
         const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
         if (req.sender === this.peerId) {
             // don't answer own requests!
+            this.debug(`<- RPC DROP self`);
             return;
         }
         if (!req.name) {
+            this.debug(`<- RPC DROP no-name`);
             return;
         }
         if (
             !req.timestamp ||
             typeof req.timestamp !== 'number' ||
-            req.timestamp < Date.now() - 1000
+            req.timestamp < Date.now() - 2000
         ) {
             // ignore old requests
+            this.debug(
+                `<- RPC DROP too-old age=${Date.now() - req.timestamp}ms`,
+            );
             return;
         }
         const handler = this.getRequestHandler(req.name);
         if (!handler) {
+            this.debug(`<- RPC DROP no-handler`);
             return;
         }
         await handler(req.args as any);
@@ -843,13 +765,14 @@ export class Client {
     }: {
         sig: Uint8Array;
     }): Promise<number> => {
+        const msgId = Buffer.from(sig).toString('hex');
+        this.debug(`<- RPC req-missing-recv id=${msgId.slice(0, 8)}`);
         const msg = await this.db.messages.get(sig);
         if (!msg) {
+            this.debug(`-> RPC req-missing-reply not-found`);
             return 0;
         }
-        this.debug(
-            `res-missing sent=${Buffer.from(msg.sig).toString('hex').slice(0, 8)}`,
-        );
+        this.debug(`-> RPC req-missing-reply ok`);
         this.send(
             {
                 type: PacketType.MESSAGE,

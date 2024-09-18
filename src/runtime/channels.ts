@@ -30,7 +30,7 @@ export interface ChannelInfo {
 }
 
 export type PeerStatus = {
-    connected: boolean;
+    connected: number;
     proxy: boolean;
 };
 
@@ -66,12 +66,6 @@ export class Channel {
     }
 
     private updatePeers = async () => {
-        // remove old alive tags
-        for (const [peerId, keepAlive] of this.alivePeerIds.entries()) {
-            if (Date.now() - keepAlive.timestamp > 6000) {
-                this.alivePeerIds.delete(peerId);
-            }
-        }
         // check for removed peers
         const peers = this.subcluster.peers();
         for (const [peerId, _] of this.lastKnowPeers) {
@@ -79,19 +73,14 @@ export class Channel {
                 this.lastKnowPeers.delete(peerId);
                 // this.onPeerLeave(peerId);
                 await this.updatePeer(peerId, {
-                    connected: false,
+                    connected: 0,
                     proxy: false,
                 });
             }
         }
         // check for added peers
         for (const peer of peers) {
-            // since we can't trust the peer list from the network
-            // we track keep alives to filter out invalid peers
-            if (!this.alivePeerIds.has(peer.peerId)) {
-                continue;
-            }
-            const connected = !!peer.connected;
+            const connected = peer.connected ? 1 : 0;
             const proxy = !!peer.proxies.size;
             let status = this.lastKnowPeers.get(peer.peerId);
             if (!status) {
@@ -110,13 +99,13 @@ export class Channel {
     private async updatePeer(peerId: string, status: PeerStatus) {
         const existing = await this.client.db.peers.get(peerId);
         if (existing) {
-            await this.client.db.peers.update(peerId, {
+            return this.client.db.peers.update(peerId, {
                 connected: status.connected,
                 proxy: status.proxy,
                 sees: status.connected ? existing.sees : [],
             });
         } else {
-            await this.client.db.peers.put({
+            return this.client.db.peers.put({
                 peerId: peerId,
                 connected: status.connected,
                 proxy: status.proxy,

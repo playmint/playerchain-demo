@@ -31,9 +31,10 @@ export class RemotePeer {
     opening = 0;
     probed = 0;
     proxies: Map<string, RemotePeer> = new Map();
+    useProxy: boolean;
     clock = 0;
     uptime = 0;
-    lastUpdate = 0;
+    lastSeen: number;
     lastRequest = 0;
     localPeer: Peer;
     indexed?: boolean;
@@ -52,10 +53,14 @@ export class RemotePeer {
         this.indexed = o.indexed;
         this.natType = o.natType;
         this.clock = o.clock || 0;
+        this.lastSeen = Date.now();
+        this.useProxy = false;
     }
 
     async write(subcluster: Subcluster, args: any) {
         const keys = subcluster.signingKeys;
+        const from = this.localPeer.peerId.slice(0, 6);
+        const to = this.peerId.slice(0, 6);
 
         if (!this.localPeer) {
             throw new Error('expected .localPeer');
@@ -67,10 +72,16 @@ export class RemotePeer {
         args.message = this.localPeer.encryption.seal(args.message, keys);
 
         // do we need a proxy? if so get a random proxy from the map
-        const proxy =
-            this.proxies.size > 0
-                ? Array.from(this.proxies.values()).sort(ByRandom)[0]
-                : null;
+        const proxy = this.useProxy
+            ? Array.from(this.proxies.values()).sort(ByRandom)[0]
+            : null;
+
+        if (this.useProxy && !proxy) {
+            this.localPeer._onDebug(
+                `X DROP NEEDS PROXY BUT NO PROXY (from=${from}, to=${to})`,
+            );
+            return [];
+        }
 
         const cache = new Map();
         const packets = await this.localPeer._message2packets(
@@ -81,8 +92,6 @@ export class RemotePeer {
 
         const address = proxy ? proxy.address : this.address;
         const port = proxy ? proxy.port : this.port;
-        const from = this.localPeer.peerId.slice(0, 6);
-        const to = this.peerId.slice(0, 6);
 
         if (packets.length > 1) {
             this.localPeer._onDebug(

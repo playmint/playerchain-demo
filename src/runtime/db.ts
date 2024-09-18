@@ -21,7 +21,7 @@ export interface PeerInfo {
     peerId: string;
     lastSeen: number;
     sendQueueLength?: number;
-    connected?: boolean;
+    connected: number;
     validHeight: number;
     knownHeight: number;
     channels: string[];
@@ -86,7 +86,7 @@ export function open(name: string): DB {
 
     db.version(1).stores({
         channels: 'id',
-        peers: 'peerId',
+        peers: 'peerId, connected',
         messages:
             'sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+arrived]',
         missing: 'sig',

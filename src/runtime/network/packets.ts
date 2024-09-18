@@ -368,12 +368,8 @@ export class Packet {
                 return new PacketPublish(packet);
             case PacketPublishProxied.type:
                 return new PacketPublishProxied(packet);
-            // case PacketStream.type:
-            //     return new PacketStream(packet);
-            // case PacketSync.type:
-            //     return new PacketSync(packet);
-            // case PacketQuery.type:
-            //     return new PacketQuery(packet);
+            case PacketNoRoute.type:
+                return new PacketNoRoute(packet);
             default:
                 return null;
         }
@@ -625,26 +621,13 @@ export class PacketPublishProxied extends Packet {
         super({ ...args, type: PacketPublishProxied.type });
     }
 }
-// export class PacketStream extends Packet {
-//     static type = 6;
-//     constructor(args) {
-//         super({ ...args, type: PacketStream.type });
-//     }
-// }
 
-// export class PacketSync extends Packet {
-//     static type = 7;
-//     constructor(args) {
-//         super({ message: Buffer.from([0b0]), ...args, type: PacketSync.type });
-//     }
-// }
-
-// export class PacketQuery extends Packet {
-//     static type = 8;
-//     constructor(args) {
-//         super({ message: {}, ...args, type: PacketQuery.type });
-//     }
-// }
+export class PacketNoRoute extends Packet {
+    static type = 10; // no need to validateMessage, message is whatever you want
+    constructor(args) {
+        super({ ...args, type: PacketNoRoute.type });
+    }
+}
 
 export type AnyPacket =
     | PacketPing
@@ -652,7 +635,8 @@ export type AnyPacket =
     | PacketIntro
     | PacketJoin
     | PacketPublish
-    | PacketPublishProxied;
+    | PacketPublishProxied
+    | PacketNoRoute;
 export default Packet;
 
 const isValidPort = (n) =>
