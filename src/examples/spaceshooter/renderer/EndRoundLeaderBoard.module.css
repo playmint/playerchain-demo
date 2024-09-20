@@ -167,7 +167,7 @@
     top: -45.98px;
     width: -webkit-max-content;
 
-    font-family: 'Recursive', sans-serif;
+    font-family: 'Recursive Variable', sans-serif;
     font-style: normal;
     font-weight: 900;
     font-size: 80.6445px;
@@ -189,7 +189,7 @@ width: -webkit-max-content;
 left: calc(50% - 455px/2 - 0.5px);
 top: -51px;
 
-font-family: 'Recursive', sans-serif;
+font-family: 'Recursive Variable', sans-serif;
 font-style: normal;
 font-weight: 900;
 font-size: 80.6445px;
@@ -208,11 +208,6 @@ background: linear-gradient(180deg, #F2F1FF 31.32%, #CACCEF 80.7%), #FFFFFF;
 -webkit-text-fill-color: transparent;
 background-clip: text;
 text-fill-color: transparent;
-}
-
-@font-face {
-    font-family: 'Recursive';
-    src:url('src/assets/fonts/Recursive/Recursive-VariableFont_CASL,CRSV,MONO,slnt,wght.ttf') format('truetype');
 }
 
 .playerStats{

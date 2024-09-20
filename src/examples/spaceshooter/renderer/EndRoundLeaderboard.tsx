@@ -4,6 +4,7 @@ import { PlayerInfo } from "./PlayerHUD";
 import { LeaderboardGap, Score, shadeColor } from "./LeaderBoard";
 import Modal from "./Modal";
 import { getPlayerColorCSS } from "../../../gui/fixtures/player-colors";
+import '@fontsource-variable/recursive/full.css';
 
 
 export default function EndRoundLeaderBoard({
