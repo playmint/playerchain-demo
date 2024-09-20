@@ -14,7 +14,8 @@ export function BackgroundGrid() {
                 map={gridTex}
                 wireframe={false}
                 color={0x888888}
-                opacity={0.2}
+                opacity={0.5}
+                transparent={true}
             />
         </mesh>
     );

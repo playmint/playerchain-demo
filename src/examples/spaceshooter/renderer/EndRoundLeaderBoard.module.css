@@ -1,0 +1,338 @@
+.leaderboard {
+    zoom: 0.8; /* just temp hack remove me */
+    position: relative;
+    text-align: center;
+    margin-bottom: 30px;
+    margin-right: 30px;
+    overflow: hidden;
+}
+
+.leaderboardEntryRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.leaderboardEntry {
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, #00000080, rgba(7, 13, 27, 0.5));
+    border-radius: 42px;
+    border: 1px solid rgb(92, 144, 255);
+    margin-bottom: 6px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+    transition: border-color 0.5s ease;
+}
+
+.leaderboardCategoryEntry {
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, #00000080, rgba(7, 13, 27, 0.5));
+    margin-bottom: 6px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+}
+
+.leaderboardGap svg {
+    margin-bottom: 3px;
+    margin-right: 6px;
+}
+
+.leaderboardUser {
+    margin-right: 12px;
+    color: rgb(240, 240, 240);
+    font-weight: bold;
+    text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.75);
+    flex: auto;
+    text-align: left;
+}
+
+.leaderboardUserCategory {
+    margin-right: 12px;
+    color: rgb(240, 240, 240);
+    text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.75);
+    flex: auto;
+    text-align: left;
+}
+
+.leaderboardScore {
+    width: 60px;
+    color: rgb(145, 145, 145);
+}
+
+.scoreCircle {
+    position: absolute;
+    right: 4px;
+    top: -1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: black;
+    font-weight: bold;
+    text-align: center;
+}
+
+@media (max-width: 880px) {
+    .leaderboardEntry {
+        padding: 8px 14px;
+        background: linear-gradient(180deg, #0000002f, rgba(7, 13, 27, 0.2));
+        border-radius: 42px;
+        margin-bottom: 4px;
+        margin-left: auto;
+        max-width: 100%;
+    }
+    .leaderboardGap svg {
+        margin-bottom: 2px;
+    }
+}
+
+.swapToUp {
+    animation: swapToUp 0.3s ease-in-out;
+}
+
+@keyframes swapToUp {
+    from {
+        transform: translateY(-50px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.swapToLeft {
+    animation: swapToLeft 0.2s ease-in-out;
+    opacity: 1;
+}
+
+@keyframes swapToLeft {
+    from {
+        transform: translateX(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.swapToDown {
+    animation: swapToDown 0.3s ease-in-out;
+}
+
+@keyframes swapToDown {
+    from {
+        transform: translateY(50px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.titleGroup {
+    position: relative;
+    width: 455px;
+    height: 102.02px;
+    left: calc(50% - 455px / 2 - 0.5px);
+    top: -20px;
+}
+
+.vector {
+    position: relative;
+    width: 449.51px;
+    height: 64.7px;
+    left: calc(50% - 449.51px / 2 - 0.74px);
+    top: -32.52px;
+
+    background: linear-gradient(180deg, #f2f1ff 18.22%, #caccef 91.96%), #ffffff;
+    box-shadow:
+        0px 0px 30.1152px rgba(8, 99, 189, 0.94),
+        0px 0px 80.3072px #060b22;
+}
+
+.titleText {
+    position: absolute;
+    left: calc(50% - 455px / 2 - 0.5px);
+    top: -45.98px;
+    width: -webkit-max-content;
+
+    font-family: 'Recursive Variable', sans-serif;
+    font-style: normal;
+    font-weight: 900;
+    font-size: 80.6445px;
+    font-variation-settings:
+        'slnt' 0,
+        'CASL' 1,
+        'CRSV' 0.5,
+        'MONO' 0;
+    line-height: 97px;
+    /* identical to box height */
+    text-align: center;
+    letter-spacing: 0.03em;
+    color: #7c8ecd;
+    text-shadow: #1b8dff 0px 0px 30px;
+}
+
+.titleText2 {
+    position: absolute;
+    width: -webkit-max-content;
+    left: calc(50% - 455px / 2 - 0.5px);
+    top: -51px;
+
+    font-family: 'Recursive Variable', sans-serif;
+    font-style: normal;
+    font-weight: 900;
+    font-size: 80.6445px;
+    font-variation-settings:
+        'slnt' 0,
+        'CASL' 1,
+        'CRSV' 0.5,
+        'MONO' 0;
+    line-height: 97px;
+    /* identical to box height */
+    text-align: center;
+    letter-spacing: 0.03em;
+
+    background: linear-gradient(180deg, #f2f1ff 31.32%, #caccef 80.7%), #ffffff;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    /* text-fill-color: transparent; */
+}
+
+.playerStats {
+    position: relative;
+    width: 315px;
+    height: 451px;
+
+    background: #201f29;
+    border-radius: 16px;
+
+    float: left;
+    margin-right: '25px';
+    text-align: center;
+    padding: 15px;
+}
+
+.playerIcon {
+    background-size: cover;
+    position: relative;
+    width: 134px;
+    height: 134px;
+    top: -67px;
+    display: inline-block;
+}
+
+.playerName {
+    color: #ffffff;
+    font-family: 'Recursive', sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 24px;
+    font-variation-settings:
+        'slnt' 0,
+        'CASL' 1,
+        'CRSV' 0.5,
+        'MONO' 0;
+    width: 100%;
+    line-height: 29px;
+    text-align: center;
+    text-shadow: 0px 2px 0px #000000;
+}
+
+.playerStatLeft {
+    width: 50%;
+    text-align: left;
+    display: inline-block;
+
+    color: rgb(240, 240, 240);
+    font-weight: bold;
+    text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.75);
+}
+
+.playerStatRight {
+    width: 50%;
+    text-align: right;
+    display: inline-block;
+
+    color: rgb(145, 145, 145);
+    text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.75);
+}
+
+.playerScoreCircle {
+    position: absolute;
+
+    top: -5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    color: black;
+    font-weight: bold;
+    text-align: center;
+    font-size: 31.5px;
+}
+
+.playerShadowCircle {
+    top: 70px !important;
+    right: 128px;
+}
+
+.countdownText {
+    position: absolute;
+    display: block;
+    width: 100%;
+    font-family: 'Recursive', sans-serif;
+    font-style: normal;
+    font-weight: 900;
+    font-size: 200px;
+    font-variation-settings:
+        'slnt' 0,
+        'CASL' 1,
+        'CRSV' 0.5,
+        'MONO' 0;
+    line-height: 97px;
+    /* identical to box height */
+    text-align: center;
+    letter-spacing: 0.03em;
+    color: #7c8ecd;
+    text-shadow: #1b8dff 0px 0px 30px;
+}
+
+.countdownText2 {
+    position: absolute;
+    display: block;
+    width: 100%;
+    transform: translateY(-10px);
+    font-family: 'Recursive', sans-serif;
+    font-style: normal;
+    font-weight: 900;
+    font-size: 200px;
+    font-variation-settings:
+        'slnt' 0,
+        'CASL' 1,
+        'CRSV' 0.5,
+        'MONO' 0;
+    line-height: 97px;
+    /* identical to box height */
+    text-align: center;
+    letter-spacing: 0.03em;
+
+    background: linear-gradient(180deg, #f2f1ff 31.32%, #caccef 80.7%), #ffffff;
+    -webkit-background-clip: text;
+    /* -webkit-text-fill-color: transparent; */
+    background-clip: text;
+    /* text-fill-color: transparent; */
+}

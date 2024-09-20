@@ -305,7 +305,9 @@ export default memo(function ChannelView({
                         minWait={1000}
                         nextOpWait={500}
                         startIndex={0}
-                        style={{ height: '50vh' }}
+                        style={{
+                            height: '50vh',
+                        }}
                     />
                 ) : (
                     <SimulationProvider

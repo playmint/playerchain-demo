@@ -12,6 +12,7 @@ import healthSystem from './spaceshooter/systems/healthSystem';
 import levelSystem from './spaceshooter/systems/levelSystem';
 import physicsSystem from './spaceshooter/systems/physicsSystem';
 import shipSystem from './spaceshooter/systems/shipSystem';
+import countdownSystem from './spaceshooter/systems/countdownSystem';
 
 // import { ShooterRenderer } from './spaceshooter/ShooterRenderer';
 
@@ -32,6 +33,7 @@ export enum Input {
     Right = 1 << 3,
     Fire = 1 << 4,
     Respawn = 1 << 5,
+    StartTimer = 1 << 6,
 }
 
 // type of models
@@ -103,6 +105,10 @@ export const schema = {
         position: Vec3,
         rotation: Vec3,
         velocity: Vec2,
+        timer: {
+            start: Type.u32,
+            round: Type.u32,
+        },
         stats: {
             damage: Type.u8,
             health: Type.u8,
@@ -151,6 +157,10 @@ export class SpaceShooter implements GameModule {
             case 'E':
                 this.input |= Input.Respawn;
                 break;
+            case 't':
+            case 'T':
+                this.input |= Input.StartTimer;
+                break;
         }
     };
 
@@ -178,6 +188,10 @@ export class SpaceShooter implements GameModule {
             case 'e':
             case 'E':
                 this.input &= ~Input.Respawn;
+                break;
+            case 't':
+            case 'T':
+                this.input &= ~Input.StartTimer;
                 break;
         }
     };
@@ -219,13 +233,14 @@ export class SpaceShooter implements GameModule {
             }
             p.input = data.input;
         }
-
+        
         // execute the game systems
         levelSystem(this.world, deltaTime);
         shipSystem(this.world, deltaTime);
         physicsSystem(this.world, deltaTime);
         healthSystem(this.world, deltaTime);
         bulletSystem(this.world, deltaTime);
+        countdownSystem(this.world, deltaTime);
     };
 
     getRenderComponent = (): FunctionComponent<RendererProps> | null => {

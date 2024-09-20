@@ -15,6 +15,7 @@ export const SHIP_MAX_VELOCITY = 80;
 
 export default system<ShooterSchema>(
     ({
+        t,
         rotation,
         players,
         addEntity,
@@ -27,6 +28,7 @@ export default system<ShooterSchema>(
         entity,
         velocity,
         deltaTime,
+        timer,
     }) => {
         // create a ship entity for each player
         for (const player of players) {
@@ -42,11 +44,15 @@ export default system<ShooterSchema>(
                     stats,
                     entity,
                 });
+                // set round timer:
+                timer.round[player.ship] = 0;
             }
 
             // reset ship stats
             stats.hasExploded[player.ship] = 0;
             stats.hasRespawned[player.ship] = 0;
+            
+            
 
             // respawn ship if requested or if it's the first spawn generation
             if (
@@ -63,8 +69,7 @@ export default system<ShooterSchema>(
                     entity,
                 });
             }
-
-            if (entity.active[player.ship]) {
+            if (entity.active[player.ship] && (timer.round[player.ship] > t)) {
                 // calc thurst for input
                 const thrust = hasInput(player.input, Input.Forward)
                     ? SHIP_THRUST_RATE
