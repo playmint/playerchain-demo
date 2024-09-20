@@ -105,8 +105,10 @@ export const schema = {
         position: Vec3,
         rotation: Vec3,
         velocity: Vec2,
-        startTimer: Type.u32,
-        roundTimer: Type.u32,
+        timer: {
+            start: Type.u32,
+            round: Type.u32,
+        },
         stats: {
             damage: Type.u8,
             health: Type.u8,

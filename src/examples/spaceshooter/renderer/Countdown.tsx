@@ -41,16 +41,16 @@ export default function Countdown(props: { currentTick: number, player: PlayerIn
         }
         else
         {
-            if(props.worldRef.current.components.startTimer.data[props.player.ship] > 0)
+            if(props.worldRef.current.components.timer.data.start[props.player.ship] > 0)
             {
                 if (startTime==0)
                 {
-                    setStartTime(props.worldRef.current.components.startTimer.data[props.player.ship]);
+                    setStartTime(props.worldRef.current.components.timer.data.start[props.player.ship]);
                     console.log("start time set");
                 }
-                else if(props.worldRef.current.components.roundTimer.data[props.player.ship] > 0 && roundTime ==0)
+                else if(props.worldRef.current.components.timer.data.round[props.player.ship] > 0 && roundTime ==0)
                 {
-                    setRoundTime(props.worldRef.current.components.roundTimer.data[props.player.ship]);
+                    setRoundTime(props.worldRef.current.components.timer.data.round[props.player.ship]);
                     console.log("round time set");
                 }
                 else  if (startTime>0 && roundTime>0)

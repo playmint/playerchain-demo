@@ -3,6 +3,7 @@ import styles from './EndRoundLeaderBoard.module.css';
 import { PlayerInfo } from "./PlayerHUD";
 import { LeaderboardGap, Score, shadeColor } from "./LeaderBoard";
 import Modal from "./Modal";
+import { getPlayerColorCSS } from "../../../gui/fixtures/player-colors";
 
 
 export default function EndRoundLeaderBoard({
@@ -15,13 +16,13 @@ export default function EndRoundLeaderBoard({
     peerId: string;
 }) {
 
-    const color = `#${player.id.slice(0, 6)}`
+    const color = getPlayerColorCSS(players.findIndex((pp) => pp.id === player.id));
     const shadowColor = shadeColor(color, -25);
     const scores: Score[] = players
         .map((p) => ({
             user: p.name,
             score: p.score,
-            color: `#${p.id.slice(0, 6)}`, //'#ac75eb',
+            color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)), //'#ac75eb',
             isMe: peerId === p.id,
         }))
         .sort((a, b) => b.score - a.score);
@@ -85,7 +86,7 @@ function EndRoundLeaderBoardScores({
         .map((p) => ({
             user: p.name,
             score: p.score,
-            color: `#${p.id.slice(0, 6)}`, //'#ac75eb',
+            color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)), //'#ac75eb',
             isMe: peerId === p.id,
         }))
         .sort((a, b) => b.score - a.score);
