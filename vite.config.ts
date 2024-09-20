@@ -26,10 +26,12 @@ export default defineConfig({
             },
         },
         emptyOutDir: false,
+        cssMinify: 'lightningcss',
     },
     css: {
-        modules: {
-            localsConvention: 'camelCase',
+        transformer: 'lightningcss',
+        lightningcss: {
+            cssModules: {},
         },
     },
     assetsInclude: ['**/*.gltf', '**/*.glb', '**/*.wasm'],

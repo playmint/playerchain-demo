@@ -5,21 +5,7 @@ import {
     useRef,
     useState,
 } from 'react';
-import topazFont from '../../assets/fonts/TopazNew.woff2';
-import '../styles/terminal.css';
-
-export const TerminalStyle: React.CSSProperties = {
-    color: 'rgb(170, 216, 255)',
-    textAlign: 'left',
-    backgroundColor: 'rgb(6, 0, 56)',
-    fontFamily: 'TopazNew, monospace',
-    fontSize: '1rem',
-    padding: '1rem',
-    // margin: '1rem',
-    // borderRadius: '0.5rem',
-    flexGrow: 1,
-    overflow: 'hidden',
-};
+import termstyles from './Terminal.module.css';
 
 const InputStyle: React.CSSProperties = {
     color: 'white',
@@ -53,48 +39,13 @@ interface OperationText {
     text: (string | JSX.Element)[];
 }
 
-export const Carat: FunctionComponent = () => {
+const Carat: FunctionComponent = () => {
     return (
-        <div className="carat">
+        <div className={termstyles.carat}>
             &nbsp;
-            <div className="inner"></div>
+            <div className={termstyles.caratInner}></div>
         </div>
     );
-};
-
-export const Spinner: FunctionComponent = () => {
-    const spinner = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!spinner.current) {
-            return;
-        }
-        const spinFrames = ['-', '\\', '|', '/'];
-        const frameDelay = 4;
-        let frameCount = 0;
-        let spinFrame = 0;
-
-        let animationFrameId: number;
-        const updateFrame = () => {
-            if (!spinner.current) {
-                return;
-            }
-            spinner.current.innerText = spinFrames[spinFrame];
-            if (frameCount % frameDelay === 0) {
-                spinFrame = (spinFrame + 1) % spinFrames.length;
-            }
-            frameCount++;
-            animationFrameId = requestAnimationFrame(updateFrame);
-        };
-
-        updateFrame();
-
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-        };
-    }, []);
-
-    return <span ref={spinner}></span>;
 };
 
 export const TerminalView: FunctionComponent<TerminalViewProps> = ({
@@ -161,13 +112,10 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
         }
 
         if (operation.choices) {
-            operation.choices.forEach((choice, index) => {
+            operation.choices.forEach((choice, _index) => {
                 setText((text) => {
                     const lastOpText = { ...text[text.length - 1] };
-                    lastOpText.text = [
-                        ...lastOpText.text,
-                        `${index + 1}. ${choice.text}`,
-                    ];
+                    lastOpText.text = [...lastOpText.text, `${choice.text}`];
                     const newText = text.slice(0, -1);
                     newText.push(lastOpText);
                     return newText;
@@ -354,36 +302,33 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
 
     return (
         <>
-            <style>
-                {`
-                    @font-face {
-                        font-family: 'TopazNew';
-                        src: url(${topazFont}) format('woff2');
-                    }
-                `}
-            </style>
-            <div ref={terminalRef} style={{ ...TerminalStyle, ...style }}>
+            <div
+                ref={terminalRef}
+                className={termstyles.terminal}
+                style={style}
+            >
                 <div>
                     {text.map((operationText, loopOpIdx) => (
-                        <div key={loopOpIdx}>
+                        <div
+                            className={termstyles.defaultTextColor}
+                            key={loopOpIdx}
+                        >
                             {operationText.text.map((t, index) => (
                                 <div key={index}>
                                     {flow[operationText.opIndex].choices &&
                                     index > 0 ? (
                                         <div
                                             style={{
+                                                whiteSpace: 'pre',
                                                 color:
                                                     currentChoice == index - 1
-                                                        ? 'pink'
-                                                        : 'rgb(62, 66, 119)',
+                                                        ? '#fff'
+                                                        : '#888',
                                             }}
                                         >
-                                            {currentChoice == index - 1 ? (
-                                                '> '
-                                            ) : (
-                                                <span>. </span>
-                                                // &nbsp;&nbsp; was failing with embedded font
-                                            )}
+                                            {currentChoice == index - 1
+                                                ? '❯ '
+                                                : '  '}
                                             {t}
                                         </div>
                                     ) : flow[operationText.opIndex].userInput &&

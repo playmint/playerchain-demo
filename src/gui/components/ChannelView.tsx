@@ -11,11 +11,13 @@ import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import PacketLace from './PacketLace';
 import Renderer from './Renderer';
-import { Operation, Spinner, TerminalStyle, TerminalView } from './Terminal';
+import { Spinner } from './Spinner';
+import { Operation, TerminalView } from './Terminal';
+import termstyles from './Terminal.module.css';
 
-const FIXED_UPDATE_RATE = 60;
-const INTERLACE = 2;
-const SIM_INPUT_DELAY = 1; // number of ticks to avoid
+const FIXED_UPDATE_RATE = 30;
+const INTERLACE = 6;
+const SIM_INPUT_DELAY = 3; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export function ChannelView({
@@ -145,31 +147,36 @@ export function ChannelView({
 
     const terminalFlow: Operation[] = [
         {
-            text: 'playerchain initialized.',
+            text: (
+                <span className={termstyles.boldTextColor}>
+                    Playerchain initializing...
+                </span>
+            ),
             promise: () =>
                 new Promise((resolve) => {
-                    setTimeout(resolve, 1000);
+                    setTimeout(() => resolve('OK'), 500);
                 }),
         },
         {
             text: (
-                <span>
-                    share this key (click to copy):
-                    <span
-                        className={theme.materialSymbolsOutlined}
-                        style={{ padding: '0 4px', cursor: 'pointer' }}
-                        onClick={copyKeyToClipboard}
-                    >
-                        content_copy
-                    </span>
+                <span className={termstyles.promptTextColor}>
+                    <br />
+                    Share this key with others to connect (click to copy):
                     <div
+                        className={termstyles.boldTextColor}
                         onClick={copyKeyToClipboard}
                         style={{
-                            color: 'rgb(140, 255, 140)',
                             cursor: 'pointer',
                         }}
                     >
-                        {channelId}
+                        {channelId}{' '}
+                        <span
+                            className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
+                            style={{ padding: '0 4px', cursor: 'pointer' }}
+                            onClick={copyKeyToClipboard}
+                        >
+                            content_copy
+                        </span>
                     </div>
                 </span>
             ),
@@ -185,7 +192,12 @@ export function ChannelView({
 
     if (channel.creator === peerId) {
         terminalFlow.push({
-            text: `Type 'go' to start the game`,
+            text: (
+                <span className={termstyles.promptTextColor}>
+                    <br />
+                    Wait for peers to connect then type &quot;go&quot; to start:
+                </span>
+            ),
             userInput: true,
             promise: (input?: string) =>
                 new Promise((resolve, reject) => {
@@ -214,11 +226,13 @@ export function ChannelView({
         terminalFlow.push({
             text: (
                 <span>
-                    waiting for{' '}
+                    <br />
+                    Waiting for{' '}
                     <span style={{ color: 'white' }}>
-                        {channel.creator.slice(0, 8)}
+                        {peerNames.find((p) => p.peerId === channel.creator)
+                            ?.name || channel.creator.slice(0, 8)}
                     </span>{' '}
-                    to accept peers
+                    to confirm peers
                 </span>
             ),
             promise: () =>
@@ -249,7 +263,7 @@ export function ChannelView({
                             style={{ height: '50vh' }}
                         />
                         {showConnectedPeers && (
-                            <div style={TerminalStyle}>
+                            <div className={termstyles.terminal}>
                                 <p>connected peers:</p>
                                 <ul>
                                     {potentialPeers.map((pid, playerIdx) => (
@@ -278,8 +292,8 @@ export function ChannelView({
                                     'session was started without you, sorry!'
                                 ) : (
                                     <span>
-                                        <Spinner /> waiting for majority peers
-                                        online...
+                                        <Spinner /> Waiting for Playerchain
+                                        peers
                                     </span>
                                 ),
                                 promise: () =>

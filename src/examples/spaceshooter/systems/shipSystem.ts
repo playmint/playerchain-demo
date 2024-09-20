@@ -8,10 +8,10 @@ import {
     hasInput,
 } from '../../spaceshooter';
 
-export const SHIP_THRUST_RATE = 50;
-export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 1);
+export const SHIP_THRUST_RATE = 70;
+export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.6);
 export const SHIP_RESPAWN_RADIUS = 400;
-export const SHIP_MAX_VELOCITY = 70;
+export const SHIP_MAX_VELOCITY = 80;
 
 export default system<ShooterSchema>(
     ({

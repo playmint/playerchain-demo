@@ -1240,7 +1240,8 @@ export class Peer {
         const cid: string = packet.clusterId.toString('base64');
         const scid: string = packet.subclusterId.toString('base64');
 
-        if (proxy) {
+        if (proxy && proxy.indexed) {
+            // FIXME: we should allow non-index peers as proxies, but we need a heuristic for a "good" proxy
             if (peer.proxies.has(proxy.peerId)) {
                 this._onDebug(
                     `<- CONNECTION UPDATING PROXY PEER (id=${peer.peerId}, address=${address}:${port} proxy=${proxy.peerId.slice(0, 6)} count=${peer.proxies.size})`,

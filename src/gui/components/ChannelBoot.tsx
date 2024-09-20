@@ -5,6 +5,9 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { TerminalView } from './Terminal';
+import termstyles from './Terminal.module.css';
+
+const TERM_DELAY = 500;
 
 export function ChannelBoot() {
     const { peerId } = useCredentials();
@@ -17,23 +20,33 @@ export function ChannelBoot() {
         {
             text: (
                 <>
-                    <div style={{ color: 'rgb(140, 255, 140)' }}>
-                        initializing{' '}
-                        <span style={{ color: 'white' }}>
-                            substream playerchain
-                        </span>{' '}
-                        runtime v0.0.1-dev
+                    <div className={termstyles.boldTextColor}>
+                        Initializing substream playerchain runtime{' '}
                     </div>
                     <br />
                 </>
             ),
             promise: () =>
                 new Promise((resolve) => {
-                    setTimeout(resolve, 1000);
+                    setTimeout(() => {
+                        resolve(
+                            <>
+                                <p>v0.0.1-dev</p>
+                                <br />
+                            </>,
+                        );
+                    }, TERM_DELAY);
                 }),
         },
         {
-            text: 'bootstrapping playerchain network...',
+            text: (
+                <>
+                    <div className={termstyles.boldTextColor}>
+                        Discovering playerchain peers...
+                    </div>
+                    <br />
+                </>
+            ),
             promise: () =>
                 new Promise((resolve) => {
                     setTimeout(() => {
@@ -41,20 +54,30 @@ export function ChannelBoot() {
                             <>
                                 {BOOTSTRAP_PEERS.map((p, idx) => (
                                     <p key={idx}>
-                                        <span style={{ color: 'white' }}>
-                                            {p.peerId.slice(0, 8) + ' '}
+                                        <span
+                                            className={
+                                                termstyles.defaultTextColor
+                                            }
+                                        >
+                                            {p.peerId.slice(0, 32) + ' '}
                                         </span>
-                                        {p.address + ':' + p.port}
                                     </p>
                                 ))}
                                 <br />
                             </>,
                         );
-                    }, 1000);
+                    }, TERM_DELAY);
                 }),
         },
         {
-            text: 'getting network info...',
+            text: (
+                <>
+                    <div className={termstyles.boldTextColor}>
+                        Generating client keypair...
+                    </div>
+                    <br />
+                </>
+            ),
             promise: () =>
                 new Promise((resolve, reject) => {
                     db.network
@@ -64,17 +87,56 @@ export function ChannelBoot() {
                                 reject('network info not found');
                                 return;
                             }
-                            const { peerId, natName } = net;
+                            const { peerId } = net;
                             resolve(
                                 <>
                                     <p>
-                                        peerId:{' '}
+                                        Peer ID:{' '}
                                         <span style={{ color: 'white' }}>
                                             {peerId}
                                         </span>
                                     </p>
                                     <p>
-                                        natType:{' '}
+                                        Public Key:{' '}
+                                        <span style={{ color: 'white' }}>
+                                            {Buffer.from(
+                                                peerId,
+                                                'hex',
+                                            ).toString('base64')}
+                                        </span>
+                                    </p>
+                                    <br />
+                                </>,
+                            );
+                        })
+                        .catch(() => {
+                            reject('unable to get network info');
+                        });
+                }),
+        },
+        {
+            text: (
+                <>
+                    <div className={termstyles.boldTextColor}>
+                        Detecting NAT requirements...
+                    </div>
+                    <br />
+                </>
+            ),
+            promise: () =>
+                new Promise((resolve, reject) => {
+                    db.network
+                        .get(NETWORK_ID)
+                        .then((net) => {
+                            if (!net) {
+                                reject('network info not found');
+                                return;
+                            }
+                            const { natName } = net;
+                            resolve(
+                                <>
+                                    <p>
+                                        Type:{' '}
                                         <span style={{ color: 'white' }}>
                                             {natName}
                                         </span>
@@ -90,8 +152,8 @@ export function ChannelBoot() {
         },
         {
             text: (
-                <span style={{ color: 'rgb(140, 255, 140)' }}>
-                    what is your player name?
+                <span className={termstyles.promptTextColor}>
+                    Enter a name:
                 </span>
             ),
             userInput: true,
@@ -105,14 +167,14 @@ export function ChannelBoot() {
                         );
 
                     // Will always resolve since setting the name isn't critical
-                    resolve('player name set');
+                    resolve('OK');
                 }),
         },
         {
             text: (
-                <span style={{ color: 'rgb(140, 255, 140)' }}>
+                <span className={termstyles.promptTextColor}>
                     <br />
-                    what would you like to do?
+                    Select an option:
                 </span>
             ),
             choices: [
@@ -121,7 +183,7 @@ export function ChannelBoot() {
             ],
             promise: () =>
                 new Promise((resolve) => {
-                    setTimeout(resolve, 1000);
+                    setTimeout(resolve, TERM_DELAY);
                 }),
         },
         {
@@ -144,34 +206,41 @@ export function ChannelBoot() {
                                 // navigator.clipboard.writeText(ch).catch((err) => {
                                 //     console.error('clipboard write failed:', err);
                                 // });
-                                resolve('playerchain created: ' + ch);
+                                resolve('OK' + ch);
                             })
                             .catch((err) => {
                                 console.error('newChannel failed:', err);
                                 reject('failed to create channel');
                             });
-                    }, 1000);
+                    }, TERM_DELAY);
                 }),
         },
         {
-            text: 'paste playerchain key',
+            text: (
+                <span className={termstyles.promptTextColor}>
+                    <br />
+                    Paste a Playerchain key to join:
+                </span>
+            ),
             userInput: true,
 
             promise: (input: string) =>
                 new Promise((resolve, reject) => {
                     if (input.length < 5) {
                         reject(
-                            <span className={'errorText'}>invalid key</span>,
+                            <span className={termstyles.errorText}>
+                                invalid key
+                            </span>,
                         );
                         return;
                     }
 
                     setGroupKey(input);
-                    resolve('Playerchain key set');
+                    resolve('OK');
                 }),
         },
         {
-            text: 'joining playerchain: ' + groupKey,
+            text: 'Connecting with key' + groupKey,
             promise: () =>
                 new Promise((resolve, reject) => {
                     if (!client) {
@@ -186,7 +255,7 @@ export function ChannelBoot() {
                     client
                         .joinChannel(groupKey)
                         .then(() => {
-                            resolve('group joined');
+                            resolve('OK');
                         })
                         .catch((err) =>
                             console.error('joinChannel failed:', err),
@@ -207,7 +276,7 @@ export function ChannelBoot() {
         >
             <TerminalView
                 flow={terminalFlow}
-                minWait={1000}
+                minWait={TERM_DELAY}
                 nextOpWait={500}
                 startIndex={0}
             />

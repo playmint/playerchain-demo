@@ -30,7 +30,7 @@ export interface SequencerConfig {
     interlace: number;
 }
 
-const MIN_SEQUENCE_RATE = 30;
+const MIN_SEQUENCE_RATE = 10;
 
 // the current input
 export class Sequencer {
@@ -216,7 +216,7 @@ export class Sequencer {
         round: number,
     ): Promise<[boolean, Uint8Array[] | null]> {
         // we can write a block (without acks) if our next round is below the interlace
-        if (round < this.interlace + 1) {
+        if (round < this.interlace * 2 + 1) {
             return [true, null];
         }
         // must not write another block immediately after the last one
@@ -233,26 +233,7 @@ export class Sequencer {
                 return [false, null];
             }
         }
-        // we can write the block if we have seen enough blocks from the previous round
-        // FIXME: this is currently in lockstep
-        const requiredCount =
-            this.channelPeerIds.length > 2
-                ? this.channelPeerIds.length - 1 // maybe 2
-                : this.channelPeerIds.length - 1;
-        // const prevInterlaceRoundMessageCount = await this.db.messages
-        //     .where(['channel', 'round', 'peer'])
-        //     .between(
-        //         [this.channelId, round - this.interlace, Dexie.minKey],
-        //         [this.channelId, round - this.interlace, Dexie.maxKey],
-        //     )
-        //     .count();
-        // if (prevInterlaceRoundMessageCount < requiredCount) {
-        //     console.log(
-        //         `BLOCKED CORDIAL round=${round} waiton=${round - this.interlace} got=${prevInterlaceRoundMessageCount} need=${requiredCount}`,
-        //     );
-        //     return [false, null];
-        // }
-        // fetch all the messages we have from round - interlace to ack
+        // fetch all the messages we have from interlaced round to ack
         const ackIds = (
             await this.db.messages
                 .where(['channel', 'round', 'peer'])
@@ -264,11 +245,33 @@ export class Sequencer {
         )
             .filter((m) => Buffer.from(m.peer).toString('hex') !== this.peerId)
             .map((m) => m.sig);
-        // we can't write a block if we do not have enough acks
+        // we can't write a block if we do not have enough acks the interlaced round
+        // FIXME: this is currently in lockstep
+        const requiredCount =
+            this.channelPeerIds.length > 2
+                ? this.channelPeerIds.length - 2 // maybe 2
+                : this.channelPeerIds.length - 2;
         if (ackIds.length < requiredCount) {
             // console.log(
             //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
             // );
+            return [false, null];
+        }
+
+        // fetch all the messages we have from interlaced*N round to ack
+        const longAckIds = (
+            await this.db.messages
+                .where(['channel', 'round', 'peer'])
+                .between(
+                    [this.channelId, round - this.interlace * 2, Dexie.minKey],
+                    [this.channelId, round - this.interlace * 2, Dexie.maxKey],
+                )
+                .toArray()
+        )
+            .filter((m) => Buffer.from(m.peer).toString('hex') !== this.peerId)
+            .map((m) => m.sig);
+        // we can't write a block if we do not have enough acks on the interlaced*N round
+        if (longAckIds.length < this.channelPeerIds.length - 1) {
             return [false, null];
         }
         return [true, ackIds];

@@ -7,14 +7,14 @@
     overflow: hidden;
 }
 
-.leaderboard-entry-row {
+.leaderboardEntryRow {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
 }
 
-.leaderboard-entry {
+.leaderboardEntry {
     display: flex;
     justify-content: flex-end;
     width: fit-content;
@@ -30,29 +30,29 @@
     transition: border-color 0.5s ease;
 }
 
-.leaderboard-gap svg {
+.leaderboardGap svg {
     margin-bottom: 3px;
     margin-right: 6px;
 }
 
-.leaderboard-user {
+.leaderboardUser {
     margin-right: 12px;
     color: rgb(240, 240, 240);
     font-weight: bold;
     text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.75);
 }
 
-.leaderboard-score {
+.leaderboardScore {
     margin-right: 30px;
     color: rgb(145, 145, 145);
 }
 
-.shadow-circle {
+.shadowCircle {
     right: 2px;
     top: 3px !important;
 }
 
-.score-circle {
+.scoreCircle {
     position: absolute;
     right: 4px;
     top: -1px;
@@ -68,7 +68,7 @@
 }
 
 @media (max-width: 880px) {
-    .leaderboard-entry {
+    .leaderboardEntry {
         padding: 8px 14px;
         background: linear-gradient(180deg, #0000002f, rgba(7, 13, 27, 0.2));
         border-radius: 42px;
@@ -76,12 +76,12 @@
         margin-left: auto;
         max-width: 100%;
     }
-    .leaderboard-gap svg {
+    .leaderboardGap svg {
         margin-bottom: 2px;
     }
 }
 
-.swap-to-up {
+.swapToUp {
     animation: swapToUp 0.3s ease-in-out;
 }
 
@@ -94,7 +94,7 @@
     }
 }
 
-.swap-to-left {
+.swapToLeft {
     animation: swapToLeft 0.2s ease-in-out;
     opacity: 1;
 }
@@ -110,7 +110,7 @@
     }
 }
 
-.swap-to-down {
+.swapToDown {
     animation: swapToDown 0.3s ease-in-out;
 }
 

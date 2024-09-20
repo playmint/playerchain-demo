@@ -1,0 +1,57 @@
+.terminal {
+    color: #eee;
+    text-align: left;
+    background-color: #222;
+    font-family: 'Recursive Mono', monospace;
+    font-size: 0.93rem;
+    padding: 1rem;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.carat {
+    animation: fadeInOut 1s infinite;
+
+    position: relative;
+    display: inline-block;
+    height: 100%;
+}
+
+.caratInner {
+    background-color: orange;
+
+    position: absolute;
+    top: 0px;
+    left: 1px;
+    width: 0.4em;
+    height: 100%;
+}
+
+.errorText {
+    color: rgb(221, 37, 185);
+}
+
+.promptTextColor {
+    color: orange;
+}
+
+.accentTextColor {
+    color: orange;
+}
+
+.defaultTextColor {
+    color: #888;
+}
+.boldTextColor {
+    color: #fff;
+}
+
+@keyframes fadeInOut {
+    0%,
+    100% {
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+}

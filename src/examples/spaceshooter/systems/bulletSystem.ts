@@ -1,10 +1,10 @@
 import { system } from '../../../runtime/ecs';
 import { Input, ShooterSchema, Tags, hasInput } from '../../spaceshooter';
 
-export const BULLET_SPEED = 100;
-export const BULLET_LIFETIME = 35;
+export const BULLET_SPEED = 150;
+export const BULLET_LIFETIME = 55;
 export const BULLET_MAX_VELOCITY = 150;
-export const SHIP_SHOOT_COOLOFF = 2;
+export const SHIP_SHOOT_COOLOFF = 7;
 
 export default system<ShooterSchema>(
     ({

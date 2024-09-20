@@ -40,7 +40,7 @@ export default memo(function BulletEntity({
     const hitSfxRef = useRef<PositionalAudioImpl>(null!);
     const gltf = useGLTF(assetPath(shipGLTF));
     const model = useMemo(() => {
-        gltf.scene.scale.set(1, 1, 1);
+        gltf.scene.scale.set(1.1, 1.1, 1.1);
         gltf.scene.traverse((child) => {
             if (child instanceof Mesh) {
                 child.material.blending = AdditiveBlending;
