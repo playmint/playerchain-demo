@@ -21,7 +21,7 @@ interface Menu {
 }
 
 export const devMenu: Menu = {
-    name: 'Context',
+    name: 'Dev',
     visible: () => !isProduction,
     items: [
         {
@@ -63,7 +63,7 @@ export const devMenu: Menu = {
     ],
 };
 
-const macMenu: Menu[] = [
+const sysMenu: Menu[] = [
     {
         name: 'Substream',
         items: [
@@ -164,20 +164,22 @@ async function handleMenuSelection(
     menu: Menu[],
     parent: string,
     title: string,
+    isContextMenu?: boolean,
 ) {
-    if (title === '---') {
-        return;
-    }
     for (const item of menu) {
-        if (item.name === parent) {
-            for (const subitem of item.items) {
-                if (subitem.name === title) {
-                    if (subitem.handler) {
-                        return subitem.handler();
-                    }
+        if (!isContextMenu && item.name !== parent) {
+            continue;
+        }
+        for (const subitem of item.items) {
+            if (subitem.name === title) {
+                if (subitem.handler) {
+                    return subitem.handler();
                 }
             }
         }
+    }
+    if (title === '---') {
+        return;
     }
     return unhandledMenuSelection(parent, title);
 }
@@ -195,7 +197,7 @@ export async function setSystemMenu() {
     globalThis.__hasSetSystemMenu = true;
     // setup menu
     if (!isMobile) {
-        const menuString = toMenuString(macMenu);
+        const menuString = toMenuString(sysMenu);
         const win = await application.getCurrentWindow();
         await application.setSystemMenu({
             index: win.index,
@@ -204,7 +206,7 @@ export async function setSystemMenu() {
 
         window.addEventListener('menuItemSelected', (event) => {
             handleMenuSelection(
-                macMenu,
+                sysMenu,
                 event.detail.parent,
                 event.detail.title,
             ).catch((err) => console.error(err));
@@ -216,30 +218,28 @@ export async function setContextMenu(menu: Menu[]) {
     if (isMobile) {
         return;
     }
-    const menuString = toMenuString(menu.map((m) => ({ ...m, name: '---' })));
+    const menuString = toMenuString(menu, true);
     const win = await application.getCurrentWindow();
-    await win.setContextMenu({
-        index: win.index,
-        value: menuString,
-    });
-
-    window.addEventListener('menuItemSelected', (event) => {
-        event.preventDefault();
-        handleMenuSelection(
-            menu,
-            event.detail.parent,
-            event.detail.title,
-        ).catch((err) => console.error(err));
-    });
+    await win
+        .setContextMenu({
+            index: win.index,
+            value: menuString,
+        })
+        .then((value) =>
+            handleMenuSelection(menu, '---', value as unknown as string, true),
+        );
 }
 
-function toMenuString(menu: Menu[]) {
+function toMenuString(menu: Menu[], isContext?: boolean) {
     let menuString = '';
     for (const item of menu) {
         if (item.visible && !item.visible()) {
             continue;
         }
-        menuString += `\n${item.name}:\n`;
+        if (!isContext) {
+            // context menus don't have titles
+            menuString += `\n${item.name}:\n`;
+        }
         for (const subitem of item.items) {
             if (subitem.visible && !subitem.visible()) {
                 continue;
@@ -247,10 +247,10 @@ function toMenuString(menu: Menu[]) {
             if (subitem.name === '---') {
                 menuString += '    ---\n';
             } else {
-                menuString += `    ${subitem.name}: ${subitem.shortcut}\n`;
+                menuString += `    ${subitem.name}: ${isContext ? subitem.name : subitem.shortcut}\n`;
             }
         }
-        menuString = menuString.slice(0, -1) + ';';
+        menuString = menuString.slice(0, -1) + (isContext ? '' : ';');
     }
     return menuString;
 }

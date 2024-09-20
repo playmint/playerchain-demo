@@ -5,8 +5,10 @@ import application from 'socket:application';
 import gc from 'socket:gc';
 import App from './App';
 import './styles/reset.css';
+import { setSystemMenu } from './system/menu';
 
 async function init() {
+    await setSystemMenu();
     const windowIndex = await application.getCurrentWindowIndex();
 
     // expose some stuff on window for debugging

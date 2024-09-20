@@ -1,7 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-import process from 'socket:process';
 import { useDatabase } from '../hooks/use-database';
 import theme from '../styles/default.module.css';
 import { devMenu, isWindows, setContextMenu } from '../system/menu';

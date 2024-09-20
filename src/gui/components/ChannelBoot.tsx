@@ -153,21 +153,30 @@ export function ChannelBoot() {
         {
             text: (
                 <span className={termstyles.promptTextColor}>
-                    Enter a name:
+                    Enter your name:
                 </span>
             ),
             userInput: true,
             promise: (input: string) =>
-                new Promise((resolve) => {
-                    // Update name
+                new Promise((resolve, reject) => {
+                    if (input.length > 30) {
+                        reject('TOO LONG');
+                        return;
+                    }
+                    if (input.length < 3) {
+                        reject('TOO SHORT');
+                        return;
+                    }
+                    if (!/^[a-zA-Z0-9]+$/.test(input)) {
+                        reject('ALPHA NUMERIC ONLY');
+                        return;
+                    }
                     db.peerNames
                         .put({ peerId, name: input })
+                        .then(() => resolve('OK'))
                         .catch((err) =>
-                            console.error('unable to set player name', err),
+                            reject(`unable to set player name ${err}`),
                         );
-
-                    // Will always resolve since setting the name isn't critical
-                    resolve('OK');
                 }),
         },
         {
@@ -187,7 +196,7 @@ export function ChannelBoot() {
                 }),
         },
         {
-            text: 'starting playerchain...',
+            text: 'Starting chain...',
             next: 9999,
             promise: () =>
                 new Promise((resolve, reject) => {
