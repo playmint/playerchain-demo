@@ -4,7 +4,7 @@ import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
 
 const isMobile = /android|ios/.test(process.platform);
-const isWindows = /win/.test(process.platform);
+export const isWindows = /win32/.test(process.platform);
 const isProduction = false; // import.meta.env.MODE === 'production'
 
 interface MenuItem {
@@ -20,9 +20,52 @@ interface Menu {
     items: Array<MenuItem>;
 }
 
-const menu: Menu[] = [
+export const devMenu: Menu = {
+    name: 'Context',
+    visible: () => !isProduction,
+    items: [
+        {
+            name: 'New Player',
+            shortcut: 'p + CommandOrControl',
+            handler: newPlayerWindow,
+        },
+        {
+            name: '---',
+        },
+        {
+            name: 'View Test Runner',
+            shortcut: '1',
+            handler: newTestRunnerWindow,
+        },
+        {
+            name: '---',
+        },
+        {
+            name: 'Rebuild state',
+            shortcut: '2',
+            handler: async () => {
+                const w = window as any;
+                if (w.db) {
+                    await w.db.state.clear();
+                }
+            },
+        },
+        {
+            name: 'Hard Reset!',
+            shortcut: '3',
+            handler: async () => {
+                hardReset()
+                    .then(() => sleep(1000))
+                    .then(() => window.location.reload())
+                    .catch((err) => alert(`hard-reset-fail: ${err}`));
+            },
+        },
+    ],
+};
+
+const macMenu: Menu[] = [
     {
-        name: isWindows ? 'File' : 'Substream',
+        name: 'Substream',
         items: [
             {
                 name: 'About Substream',
@@ -80,48 +123,7 @@ const menu: Menu[] = [
             },
         ],
     },
-    {
-        name: 'Dev',
-        visible: () => !isProduction,
-        items: [
-            {
-                name: 'New Player',
-                shortcut: 'p + CommandOrControl',
-                handler: newPlayerWindow,
-            },
-            {
-                name: '---',
-            },
-            {
-                name: 'View Test Runner',
-                shortcut: '1',
-                handler: newTestRunnerWindow,
-            },
-            {
-                name: '---',
-            },
-            {
-                name: 'Rebuild state',
-                shortcut: '2',
-                handler: async () => {
-                    const w = window as any;
-                    if (w.db) {
-                        await w.db.state.clear();
-                    }
-                },
-            },
-            {
-                name: 'Hard Reset!',
-                shortcut: '3',
-                handler: async () => {
-                    hardReset()
-                        .then(() => sleep(1000))
-                        .then(() => window.location.reload())
-                        .catch((err) => alert(`hard-reset-fail: ${err}`));
-                },
-            },
-        ],
-    },
+    devMenu,
 ];
 
 async function newPlayerWindow() {
@@ -158,7 +160,11 @@ function unhandledMenuSelection(parent: string, title: string) {
     alert(`unhandled menu item ${parent} -> ${title}`);
 }
 
-async function handleMenuSelection(parent: string, title: string) {
+async function handleMenuSelection(
+    menu: Menu[],
+    parent: string,
+    title: string,
+) {
     if (title === '---') {
         return;
     }
@@ -177,13 +183,19 @@ async function handleMenuSelection(parent: string, title: string) {
 }
 
 export async function setSystemMenu() {
+    if (isWindows) {
+        // causes duplicate menus on windows
+        // for now we are putting important items in the "menu" button top right
+        // of the layout.
+        return;
+    }
     if (globalThis.__hasSetSystemMenu) {
         return;
     }
     globalThis.__hasSetSystemMenu = true;
     // setup menu
     if (!isMobile) {
-        const menuString = toMenuString();
+        const menuString = toMenuString(macMenu);
         const win = await application.getCurrentWindow();
         await application.setSystemMenu({
             index: win.index,
@@ -191,14 +203,37 @@ export async function setSystemMenu() {
         });
 
         window.addEventListener('menuItemSelected', (event) => {
-            handleMenuSelection(event.detail.parent, event.detail.title).catch(
-                (err) => console.error(err),
-            );
+            handleMenuSelection(
+                macMenu,
+                event.detail.parent,
+                event.detail.title,
+            ).catch((err) => console.error(err));
         });
     }
 }
 
-function toMenuString() {
+export async function setContextMenu(menu: Menu[]) {
+    if (isMobile) {
+        return;
+    }
+    const menuString = toMenuString(menu.map((m) => ({ ...m, name: '---' })));
+    const win = await application.getCurrentWindow();
+    await win.setContextMenu({
+        index: win.index,
+        value: menuString,
+    });
+
+    window.addEventListener('menuItemSelected', (event) => {
+        event.preventDefault();
+        handleMenuSelection(
+            menu,
+            event.detail.parent,
+            event.detail.title,
+        ).catch((err) => console.error(err));
+    });
+}
+
+function toMenuString(menu: Menu[]) {
     let menuString = '';
     for (const item of menu) {
         if (item.visible && !item.visible()) {
