@@ -239,8 +239,10 @@ export default memo(function ShipEntity({
         ) {
             labelRef.current.style.display = 'none';
         }
-        labelRef.current.innerHTML =
-            players[playerIdx].name || peerId.slice(0, 8);
+        if (labelRef.current) {
+            labelRef.current.innerHTML =
+                players[playerIdx]?.name || peerId.slice(0, 8);
+        }
 
         // mark prev states
         updateEntityGeneration(group, world, eid);
@@ -254,7 +256,11 @@ export default memo(function ShipEntity({
             <Html
                 zIndexRange={[0, 100]}
                 ref={labelRef}
-                style={{ fontSize: 11 }}
+                style={{
+                    fontSize: 11,
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                }}
                 position={[3, 5, 0]}
             ></Html>
             <PositionalAudio
