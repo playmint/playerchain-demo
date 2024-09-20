@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { getPlayerColorCSS } from '../fixtures/player-colors';
@@ -20,7 +20,7 @@ const INTERLACE = 6;
 const SIM_INPUT_DELAY = 3; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
-export function ChannelView({
+export default memo(function ChannelView({
     channelId,
     details,
 }: {
@@ -404,7 +404,7 @@ export function ChannelView({
             )}
         </div>
     );
-}
+});
 
 function PeerStatus({
     peerId,

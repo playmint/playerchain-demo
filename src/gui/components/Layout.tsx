@@ -3,9 +3,9 @@ import { useCallback, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useDatabase } from '../hooks/use-database';
 import theme from '../styles/default.module.css';
-import { devMenu, isWindows, setContextMenu } from '../system/menu';
-import { ChannelBoot } from './ChannelBoot';
-import { ChannelView } from './ChannelView';
+import { isWindows } from '../system/menu';
+import ChannelBoot from './ChannelBoot';
+import ChannelView from './ChannelView';
 import StatusBar from './StatusBar';
 
 function fallbackRender({ error }) {
@@ -23,10 +23,6 @@ export function Layout() {
 
     const toggleChannelPanel = useCallback(() => {
         setChannelPanelOpen((prev) => !prev);
-    }, []);
-
-    const toggleContextMenu = useCallback(() => {
-        setContextMenu([devMenu]).catch((err) => console.error(err));
     }, []);
 
     const channels = useLiveQuery(async () => db.channels.toArray(), [], []);
@@ -88,12 +84,6 @@ export function Layout() {
                         className={theme.materialSymbolsOutlined}
                     >
                         right_panel_close
-                    </span>
-                    <span
-                        onClick={toggleContextMenu}
-                        className={theme.materialSymbolsOutlined}
-                    >
-                        menu
                     </span>
                 </div>
             </div>

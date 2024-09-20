@@ -5,7 +5,7 @@ import { hardReset } from '../../runtime/utils';
 
 const isMobile = /android|ios/.test(process.platform);
 export const isWindows = /win32/.test(process.platform);
-const isProduction = false; // import.meta.env.MODE === 'production'
+const isProduction = import.meta.env.MODE === 'production';
 
 interface MenuItem {
     name: string;
@@ -126,7 +126,7 @@ const sysMenu: Menu[] = [
     devMenu,
 ];
 
-async function newPlayerWindow() {
+export async function newPlayerWindow() {
     const windows = await application.getWindows();
     const maxIndex = Math.max(...windows.values().map((w) => w.index));
     await application.createWindow({
@@ -156,10 +156,6 @@ async function newTestRunnerWindow() {
     });
 }
 
-function unhandledMenuSelection(parent: string, title: string) {
-    alert(`unhandled menu item ${parent} -> ${title}`);
-}
-
 async function handleMenuSelection(
     menu: Menu[],
     parent: string,
@@ -178,10 +174,6 @@ async function handleMenuSelection(
             }
         }
     }
-    if (title === '---') {
-        return;
-    }
-    return unhandledMenuSelection(parent, title);
 }
 
 export async function setSystemMenu() {
