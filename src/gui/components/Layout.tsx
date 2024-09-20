@@ -7,6 +7,8 @@ import { ChannelBoot } from './ChannelBoot';
 import { ChannelView } from './ChannelView';
 import StatusBar from './StatusBar';
 
+const isWindows = /win/.test(process.platform);
+
 function fallbackRender({ error }) {
     return (
         <div role="alert">
@@ -58,6 +60,7 @@ export function Layout() {
                     <div></div>
                 </div>
                 <div
+                    className={theme.windowDrag}
                     style={{
                         display: 'flex',
                         justifyContent: 'center',

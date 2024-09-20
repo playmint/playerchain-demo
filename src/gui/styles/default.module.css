@@ -16,9 +16,12 @@
     direction: ltr;
 }
 
-.titlebar {
+.windowDrag {
     -webkit-app-region: drag;
     --app-region: drag;
+}
+
+.titlebar {
     background-color: var(--gui-titlebar-bg-color);
     color: rgba(255, 255, 255, 0.7);
     font-size: 1em;

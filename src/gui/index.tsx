@@ -5,17 +5,11 @@ import application from 'socket:application';
 import gc from 'socket:gc';
 import App from './App';
 import './styles/reset.css';
-import { setSystemMenu } from './system/menu';
 
 async function init() {
-    await setSystemMenu();
-
-    // await hello(); //.then((x) => alert(`got ${JSON.stringify(x)}`));
-
-    const win = await application.getCurrentWindow();
+    const windowIndex = await application.getCurrentWindowIndex();
 
     // expose some stuff on window for debugging
-    (window as any).webview = win;
     (window as any).application = application;
     (window as any).gc = gc;
 
@@ -25,9 +19,9 @@ async function init() {
         window.location.href = '/src/tests/tests.html';
     } else {
         ReactDOM.createRoot(document.getElementById('root')!).render(
-            <App instance={win.index} />,
+            <App instance={windowIndex} />,
         );
     }
 }
 
-init().catch(console.error);
+setTimeout(() => init().catch((err) => console.error(err)), 100);

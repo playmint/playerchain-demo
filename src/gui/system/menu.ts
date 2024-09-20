@@ -3,8 +3,8 @@ import process from 'socket:process';
 import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
 
-const isMobile = ['android', 'ios'].includes(process.platform);
-const isWindows = ['win'].includes(process.platform);
+const isMobile = /android|ios/.test(process.platform);
+const isWindows = /win/.test(process.platform);
 const isProduction = false; // import.meta.env.MODE === 'production'
 
 interface MenuItem {
@@ -22,7 +22,7 @@ interface Menu {
 
 const menu: Menu[] = [
     {
-        name: 'Substream',
+        name: isWindows ? 'File' : 'Substream',
         items: [
             {
                 name: 'About Substream',
@@ -177,10 +177,18 @@ async function handleMenuSelection(parent: string, title: string) {
 }
 
 export async function setSystemMenu() {
+    if (globalThis.__hasSetSystemMenu) {
+        return;
+    }
+    globalThis.__hasSetSystemMenu = true;
     // setup menu
     if (!isMobile) {
         const menuString = toMenuString();
-        await application.setSystemMenu({ index: 0, value: menuString });
+        const win = await application.getCurrentWindow();
+        await application.setSystemMenu({
+            index: win.index,
+            value: menuString,
+        });
 
         window.addEventListener('menuItemSelected', (event) => {
             handleMenuSelection(event.detail.parent, event.detail.title).catch(
