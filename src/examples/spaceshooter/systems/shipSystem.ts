@@ -51,8 +51,6 @@ export default system<ShooterSchema>(
             // reset ship stats
             stats.hasExploded[player.ship] = 0;
             stats.hasRespawned[player.ship] = 0;
-            
-            
 
             // respawn ship if requested or if it's the first spawn generation
             if (

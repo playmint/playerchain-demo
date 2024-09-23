@@ -1,10 +1,9 @@
 import { memo } from 'react';
 import { PlayerData } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
+import Countdown from './Countdown';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
-import Countdown from './Countdown';
-import React from 'react';
 import { WorldRef } from './ShooterRenderer';
 
 export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
@@ -44,7 +43,13 @@ export default memo(function PlayerHUD({
         >
             <div></div>
             <div style={{ flexGrow: 1 }}></div>
-            <Countdown currentTick={tick} player={player} worldRef={worldRef} players={players} peerId={peerId}/>
+            <Countdown
+                currentTick={tick}
+                player={player}
+                worldRef={worldRef}
+                players={players}
+                peerId={peerId}
+            />
             <div
                 style={{
                     display: 'flex',

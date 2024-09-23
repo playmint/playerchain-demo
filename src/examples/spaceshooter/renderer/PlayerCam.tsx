@@ -9,7 +9,6 @@ import {
 } from '../utils/RenderUtils';
 import { BackgroundGrid } from './Background';
 import { WorldRef } from './ShooterRenderer';
-import React from 'react';
 
 const CAM_INITIAL_ZOOM = 160;
 
@@ -37,7 +36,7 @@ export default memo(function PlayerCam({
         const snapiness =
             world.components.entity.data.generation[player.ship] ===
             (camera as EntityObject3D).__generation
-                ? InterpolateSpeed.Smooth
+                ? InterpolateSpeed.Quick * 1.5
                 : InterpolateSpeed.Snap;
         camera.position.x = Math.max(
             Math.min(
@@ -93,9 +92,17 @@ export default memo(function PlayerCam({
                 far={1000}
             />
             <color attach="background" args={[0x112059]} />
-            <ambientLight color={0x404040}/>
-            <directionalLight position={[-1, 1, 1]} intensity={12} color={0xffffff} />
-            <directionalLight position={[1, -1, 1]} intensity={8} color={0xffaf7b}/>
+            <ambientLight color={0x404040} />
+            <directionalLight
+                position={[-1, 1, 1]}
+                intensity={12}
+                color={0xffffff}
+            />
+            <directionalLight
+                position={[1, -1, 1]}
+                intensity={8}
+                color={0xffaf7b}
+            />
             <fog attach="fog" args={[0x444466, 100, 1]} />
             <BackgroundGrid />
         </>

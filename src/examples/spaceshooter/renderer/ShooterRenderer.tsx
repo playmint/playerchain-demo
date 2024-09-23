@@ -122,7 +122,7 @@ export default memo(function ShooterCanvas({
     }, [nextEntities, worldRef]);
 
     if (!worldRef.current) {
-        return <div>Loading world...</div>;
+        return <div>Loading world....</div>;
     }
     return (
         <>
@@ -135,7 +135,11 @@ export default memo(function ShooterCanvas({
                         playersRef={playersRef}
                     />
                 ))}
-                <PlayerCam peerId={peerId} worldRef={worldRef} />
+                <PlayerCam
+                    peerId={peerId}
+                    worldRef={worldRef}
+                    metrics={metrics}
+                />
                 <PositionalAudio
                     autoplay={true}
                     url={assetPath(backgroundMusic)}
@@ -144,7 +148,12 @@ export default memo(function ShooterCanvas({
                 />
                 <AudioControls />
             </Canvas>
-            <PlayerHUD peerId={peerId} players={nextPlayers} tick={tick} worldRef={worldRef}/>
+            <PlayerHUD
+                peerId={peerId}
+                players={nextPlayers}
+                tick={tick}
+                worldRef={worldRef}
+            />
         </>
     );
 });

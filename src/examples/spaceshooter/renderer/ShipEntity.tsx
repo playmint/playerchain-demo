@@ -88,7 +88,7 @@ export default memo(function ShipEntity({
             world,
             eid,
             deltaTime,
-            InterpolateSpeed.Fastest,
+            InterpolateSpeed.Quick * 2,
         );
         interpolateEntityRotation(
             ship,

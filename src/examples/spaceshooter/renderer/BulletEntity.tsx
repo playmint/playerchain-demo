@@ -16,6 +16,7 @@ import fxPopData from '../effects/FXShoot';
 import { BULLET_LIFETIME } from '../systems/bulletSystem';
 import {
     EntityObject3D,
+    InterpolateMethod,
     InterpolateSpeed,
     assetPath,
     interpolateEntityPosition,
@@ -57,7 +58,7 @@ export default memo(function BulletEntity({
         // alighed with the interpolated position of the ship so we hide it for
         // a bit and snap position to make it look bit better
         const isNewlySpawned =
-            world.components.stats.data.health[eid] > BULLET_LIFETIME - 2;
+            world.components.stats.data.health[eid] > BULLET_LIFETIME - 1;
         if (isNewlySpawned) {
             bullet.visible = false;
         } else {
@@ -69,7 +70,10 @@ export default memo(function BulletEntity({
             world,
             eid,
             deltaTime,
-            isNewlySpawned ? InterpolateSpeed.Snap : InterpolateSpeed.Fastest,
+            isNewlySpawned
+                ? InterpolateSpeed.Snap
+                : InterpolateSpeed.Fastest * 2,
+            InterpolateMethod.Linear,
         );
         interpolateEntityRotation(
             group,

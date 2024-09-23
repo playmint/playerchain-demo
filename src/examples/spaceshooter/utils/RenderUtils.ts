@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { MutableRefObject, useRef } from 'react';
-import { Object3D, Vector3 } from 'three';
+import { MathUtils, Object3D, Vector3 } from 'three';
 import { useAsyncEffect } from '../../../gui/hooks/use-async';
 import { EntityId, World } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
@@ -15,9 +15,14 @@ export type EntityObject3D = Object3D & {
     __generation?: number;
 };
 
+export enum InterpolateMethod {
+    Linear,
+    ExpDecay,
+}
+
 export enum InterpolateSpeed {
     Snap = -1,
-    Fastest = 12,
+    Fastest = 9,
     Quick = 5,
     Smooth = 2.5,
     Slow = 0.5,
@@ -35,6 +40,7 @@ export function interpolate(
     b: number,
     deltaTime: number,
     speed?: InterpolateSpeed,
+    method: InterpolateMethod = InterpolateMethod.ExpDecay,
 ) {
     if (speed === InterpolateSpeed.Snap) {
         return b;
@@ -42,7 +48,15 @@ export function interpolate(
     if (speed === undefined) {
         speed = InterpolateSpeed.Quick;
     }
-    return b + (a - b) * Math.exp(-speed * deltaTime);
+    if (Math.abs(a - b) < 0.001) {
+        return b;
+    }
+    switch (method) {
+        case InterpolateMethod.Linear:
+            return MathUtils.lerp(a, b, speed * deltaTime);
+        case InterpolateMethod.ExpDecay:
+            return b + (a - b) * Math.exp(-speed * deltaTime);
+    }
 }
 
 // export function interpolate3(a: Vec3, b: Vec3, speed: InterpolateSpeed, deltaTime: number) {
@@ -57,6 +71,7 @@ export function interpolateEntityPosition(
     eid: EntityId,
     deltaTime: number,
     decay?: InterpolateSpeed,
+    method?: InterpolateMethod,
 ) {
     const speed =
         world.components.entity.data.generation[eid] !== obj.__generation
@@ -68,18 +83,21 @@ export function interpolateEntityPosition(
         world.components.position.data.x[eid],
         deltaTime,
         speed,
+        method,
     );
     obj.position.y = interpolate(
         obj.position.y,
         world.components.position.data.y[eid],
         deltaTime,
         speed,
+        method,
     );
     obj.position.z = interpolate(
         obj.position.z,
         world.components.position.data.z[eid],
         deltaTime,
         speed,
+        method,
     );
 }
 
