@@ -2,16 +2,24 @@ import * as Comlink from 'comlink';
 import Dexie from 'dexie';
 import * as THREE from 'three';
 import database, { DB } from '../../runtime/db';
+import { Message } from '../../runtime/messages';
 
 const PACKET_SCALE = 0.1;
-const SPREAD_X = 5;
+const SPREAD_X = 5.5;
 const SPREAD_Y = 2;
 const LINE_WIDTH = 2; // NOTE: Due to limitations of the OpenGL Core Profile with the WebGL renderer on most platforms linewidth will always be 1 regardless of the set value. (taken from Three.js doc)
 const DEFAULT_LINE_COLOR = 'grey';
 const DEFAULT_PACKET_COLOR_1 = 0xffffff;
-const DEFAULT_PACKET_COLOR_2 = 0x888888;
+const DEFAULT_PACKET_COLOR_2 = 0xdddddd;
 // const PARENTLESS_PACKET_COLOR = 0xff0000;
 
+type BlockProps = {
+    key: string;
+    acks: string[];
+    parent: string | null;
+    position: number[];
+    peerId: string;
+};
 const packetGeometry = new THREE.BoxGeometry(
     PACKET_SCALE,
     PACKET_SCALE,
@@ -22,7 +30,7 @@ let db: DB;
 let fetching = false;
 let canvas: OffscreenCanvas | undefined;
 let aspectRatio: number;
-let packets: any;
+let packets: MessageData | undefined;
 let peers: string[] = [];
 let peerColors: number[] = [];
 
@@ -108,7 +116,18 @@ export async function stopGraph() {
     peers = [];
 }
 
-async function fetchPackets(channelId: string, limit: number = 100) {
+type MessageData = {
+    minRound: number;
+    maxRound: number;
+    messagesWithOffsetRound: (Message & {
+        originalRound: number;
+        round: number;
+    })[];
+};
+async function fetchPackets(
+    channelId: string,
+    limit: number = 100,
+): Promise<MessageData | undefined> {
     if (fetching) {
         console.log('worker: lace fetch skip');
         return;
@@ -149,7 +168,7 @@ function render() {
         hasRendered.set(key, false);
     });
 
-    const renderedPackets = renderPackets(packets.messagesWithOffsetRound);
+    const renderedPackets = renderPackets(packets);
     renderLines(renderedPackets);
 
     // remove objects that were not rendered
@@ -196,12 +215,16 @@ function render() {
     renderer.render(scene, camera);
 }
 
-function renderPackets(messages: any[]) {
-    if (!messages) {
-        return;
+function renderPackets(msgData: MessageData): Map<string, BlockProps> {
+    if (!msgData.messagesWithOffsetRound) {
+        return new Map();
     }
 
-    const packets = messages.reduce((data, m) => {
+    const packets = msgData.messagesWithOffsetRound.reduce((data, m) => {
+        if (m.originalRound === msgData.minRound) {
+            // skip the very last round to make it look neater
+            return data;
+        }
         const msgId = Buffer.from(m.sig).toString('hex');
         const peerId = Buffer.from(m.peer).toString('hex');
 
@@ -228,7 +251,7 @@ function renderPackets(messages: any[]) {
 
         // Update colour
         const packetColor =
-            m.originalRound % 4 === 0
+            m.originalRound % 8 === 0
                 ? DEFAULT_PACKET_COLOR_1
                 : DEFAULT_PACKET_COLOR_2;
         if (
@@ -245,7 +268,7 @@ function renderPackets(messages: any[]) {
 
         hasRendered.set(msgId, true);
 
-        const props = {
+        const props: BlockProps = {
             key: msgId,
             acks: m.acks.map((ack) => Buffer.from(ack).toString('hex')),
             parent: m.parent ? Buffer.from(m.parent).toString('hex') : null,
@@ -254,7 +277,7 @@ function renderPackets(messages: any[]) {
         };
         data.set(msgId, props);
         return data;
-    }, new Map());
+    }, new Map<string, BlockProps>());
 
     return packets;
 }
