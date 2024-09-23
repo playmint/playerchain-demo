@@ -442,16 +442,30 @@ function PeerStatus({
 }) {
     const [_tick, setTick] = useState(0);
     const isSelf = peerId === selfId;
-    const outbound = (info?.lastSeen || 0) > Date.now() - 7000 || isSelf;
     const isWellConnected = info?.sees.length === peerCount - 1 || isSelf;
     const lastSeen = isSelf
         ? 1
         : Math.max(Date.now() - (info?.lastSeen || 0), 1);
-    const inbound = lastSeen < 10000 || isSelf;
+    const online = lastSeen < 10000 || isSelf;
     useEffect(() => {
         const interval = setInterval(() => setTick((t) => t + 1), 1000);
         return () => clearInterval(interval);
     }, []);
+    let signalStrength = 0;
+    if (online) {
+        signalStrength++;
+        if (info?.sees.includes(selfId.slice(0, 8)) || isSelf) {
+            signalStrength++;
+        }
+        if (isWellConnected) {
+            signalStrength++;
+        }
+        if (isWellConnected && !info?.proxy) {
+            signalStrength++;
+        }
+    }
+    const green = '#339129';
+
     return (
         <div
             style={{
@@ -459,36 +473,72 @@ function PeerStatus({
                 flexDirection: 'row',
                 gap: '0.5rem',
                 borderBottom: '1px solid #444',
-                padding: '0.1rem',
+                padding: '0.1rem 0.5rem',
                 color: '#888',
                 fontSize: '11px',
+                justifyContent: 'space-between',
             }}
         >
-            <span
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '2px',
+                }}
+            >
+                <div
+                    style={{
+                        backgroundColor: signalStrength > 0 ? green : '#333',
+                        border: `1px solid ${signalStrength > 0 ? green : '#555'}`,
+                        width: '5px',
+                        height: '11px',
+                    }}
+                ></div>
+                <div
+                    style={{
+                        backgroundColor: signalStrength > 1 ? green : '#333',
+                        border: `1px solid ${signalStrength > 1 ? green : '#555'}`,
+                        width: '5px',
+                        height: '11px',
+                    }}
+                ></div>
+                <div
+                    style={{
+                        backgroundColor: signalStrength > 2 ? green : '#333',
+                        border: `1px solid ${signalStrength > 2 ? green : '#555'}`,
+                        width: '5px',
+                        height: '11px',
+                    }}
+                ></div>
+                <div
+                    style={{
+                        backgroundColor: signalStrength > 3 ? green : '#333',
+                        border: `1px solid ${signalStrength > 3 ? green : '#555'}`,
+                        width: '5px',
+                        height: '11px',
+                    }}
+                ></div>
+            </div>
+            <div
                 style={{
                     // backgroundColor: outbound ? 'green' : 'red',
-                    width: '30%',
                     textOverflow: 'ellipsis',
                     overflow: 'hidden',
                 }}
             >
-                {peerName || peerId.slice(0, 8)}
-            </span>
-            <span>
-                {inbound
-                    ? info?.sees.includes(selfId.slice(0, 8)) || isSelf
-                        ? '<<' // fully connected inbound
-                        : '<-' // partially connected
-                    : '--'}
-                {outbound && info?.proxy
-                    ? 'P' // proxing
-                    : info?.connected
-                      ? 'C'
-                      : '-'}
-                {outbound ? (isWellConnected ? '>>' : '->') : '--'}
-            </span>
-            <span>{info?.validHeight}</span>
-            <span>{Math.floor(lastSeen / 1000)}s</span>
+                {peerName}
+            </div>
+            <div
+                style={{
+                    // backgroundColor: outbound ? 'green' : 'red',
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                }}
+            >
+                {peerId.slice(0, 8)}{' '}
+            </div>
         </div>
     );
 }
