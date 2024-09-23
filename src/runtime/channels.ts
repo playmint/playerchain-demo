@@ -134,34 +134,7 @@ export class Channel {
             }
             const m = decodeMessage(b);
             if (m.type === MessageType.KEEP_ALIVE) {
-                const peerId = Buffer.from(m.peer).toString('hex');
-                const prev = this.alivePeerIds.get(peerId);
-                if (prev && m.timestamp < prev.timestamp) {
-                    // console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
-                    return;
-                }
-                // console.log('UPDATE ALIVE PEER', peerId);
-                this.alivePeerIds.set(peerId, m);
-                this.client.db.peers
-                    .update(peerId, {
-                        lastSeen: m.timestamp,
-                        sees: m.sees.map((s) => Buffer.from(s).toString('hex')),
-                    })
-                    .catch((err) => {
-                        console.error('update-peer-err:', err);
-                    });
-                if (!this.peerNames.has(peerId)) {
-                    console.log('setitng peer name', peerId, m.name);
-                    this.client.db.peerNames
-                        .put({
-                            peerId: peerId,
-                            name: m.name,
-                        })
-                        .catch((err) => {
-                            console.error('update-peer-name-err:', err);
-                        });
-                    this.peerNames.set(peerId, m.name);
-                }
+                return this.handleKeepAlive(m);
             } else {
                 this._onMsg(m, this.id);
             }
@@ -169,6 +142,39 @@ export class Channel {
         1000,
         'onChannelMsg',
     );
+
+    // this really should not be in channel, but that's where the logic
+    // for peer updates is currently so it's here for now
+    handleKeepAlive = async (m: KeepAliveMessage) => {
+        const peerId = Buffer.from(m.peer).toString('hex');
+        const prev = this.alivePeerIds.get(peerId);
+        if (prev && m.timestamp < prev.timestamp) {
+            // console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
+            return;
+        }
+        // console.log('UPDATE ALIVE PEER', peerId);
+        this.alivePeerIds.set(peerId, m);
+        this.client.db.peers
+            .update(peerId, {
+                lastSeen: m.timestamp,
+                sees: m.sees.map((s) => Buffer.from(s).toString('hex')),
+            })
+            .catch((err) => {
+                console.error('update-peer-err:', err);
+            });
+        if (!this.peerNames.has(peerId)) {
+            console.log('setitng peer name', peerId, m.name);
+            this.client.db.peerNames
+                .put({
+                    peerId: peerId,
+                    name: m.name,
+                })
+                .catch((err) => {
+                    console.error('update-peer-name-err:', err);
+                });
+            this.peerNames.set(peerId, m.name);
+        }
+    };
 
     send = async (m: Message, opts?: EmitOpts) => {
         const bytes = encodeMessage(m);
