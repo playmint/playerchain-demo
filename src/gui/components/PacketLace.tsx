@@ -84,8 +84,8 @@ export default memo(function PacketLace({
             .startGraph(
                 Comlink.transfer(offscreenCanvas, [offscreenCanvas]),
                 channelId,
-                64,
-                1000,
+                48,
+                120,
                 peers,
             )
             .catch(console.error);
@@ -102,8 +102,8 @@ export default memo(function PacketLace({
             style={{
                 position: 'relative',
                 width: '100%',
-                height: '100%',
                 backgroundColor: 'transparent',
+                overflow: 'hidden',
             }}
         ></div>
     );
