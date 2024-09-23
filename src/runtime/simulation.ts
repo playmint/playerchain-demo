@@ -191,6 +191,7 @@ export class Simulation {
                     return;
                 }
                 if (
+                    m.peer &&
                     !this.channelPeerIds.includes(
                         Buffer.from(m.peer).toString('hex'),
                     )
@@ -321,10 +322,12 @@ export class Simulation {
                 .toArray()
         )
             .filter((m) => m.type === MessageType.INPUT)
-            .filter((m) =>
-                this.channelPeerIds.includes(
-                    Buffer.from(m.peer).toString('hex'),
-                ),
+            .filter(
+                (m) =>
+                    m.peer &&
+                    this.channelPeerIds.includes(
+                        Buffer.from(m.peer).toString('hex'),
+                    ),
             )
             .sort((a, b) => {
                 return a.round - b.round;
@@ -357,6 +360,9 @@ export class Simulation {
             }
             if (m.arrived > round.arrived) {
                 round.arrived = m.arrived;
+            }
+            if (!m.peer) {
+                throw new Error('input-message-missing-peer');
             }
             const peerId = Buffer.from(m.peer).toString('hex');
             round.inputs.push({

@@ -1,144 +1,191 @@
-export type Base64ID = string;
-
-export type ActionArg = number | boolean;
-
-export interface Action {
-    name: string;
-    args?: ActionArg[];
-}
+import * as cbor from 'cbor-x';
+import { Buffer } from 'socket:buffer';
 
 export enum MessageType {
     INVALID = 0,
     CREATE_CHANNEL = 1,
     INPUT = 2,
-    SET_PEERS = 3,
+    KEEP_ALIVE = 3,
+    SET_PEERS = 4,
 }
 
-export type CreateChannelMessage = {
+export type ChainMessageProps = {
+    peer: Uint8Array;
+    parent: Uint8Array | null;
+    acks: Uint8Array[];
+    height: number;
+    sig: Uint8Array;
+};
+
+export type KeepAliveMessage = {
+    type: MessageType.KEEP_ALIVE;
+    peer: Uint8Array;
+    name: string;
+    timestamp: number;
+    sees: Uint8Array[];
+};
+
+export type InputMessage = Partial<ChainMessageProps> & {
+    type: MessageType.INPUT;
+    round: number;
+    channel: string;
+    data: number;
+};
+
+export type SetPeersMessage = Partial<ChainMessageProps> & {
+    type: MessageType.SET_PEERS;
+    channel: string;
+    peers: Uint8Array[];
+};
+
+export type CreateChannelMessage = Partial<ChainMessageProps> & {
     type: MessageType.CREATE_CHANNEL;
     name: string;
 };
 
-export type InputMessage = {
-    type: MessageType.INPUT;
-    round: number;
-    channel: Base64ID;
-    data: number;
-};
-
-export type SetPeersMessage = {
-    type: MessageType.SET_PEERS;
-    channel: Base64ID;
-    peers: Uint8Array[];
-};
-
-export type UnsignedMessage =
-    | CreateChannelMessage
+export type Message =
     | InputMessage
-    | SetPeersMessage;
+    | SetPeersMessage
+    | CreateChannelMessage
+    | KeepAliveMessage;
 
-export type ChainMessageProps = {
-    peer: Uint8Array;
-    acks: Uint8Array[];
-    parent: Uint8Array | null;
-    height: number;
-};
-export type PresignedMessage = UnsignedMessage & ChainMessageProps;
-export type PostSignMessageProps = {
-    sig: Uint8Array;
-};
-export type Message = PresignedMessage & PostSignMessageProps;
+export type ChainMessage =
+    | InputMessage
+    | SetPeersMessage
+    | CreateChannelMessage;
 
-export function unknownToMessage(o: any): Message {
-    if (!o || typeof o !== 'object') {
-        throw new Error('message is not an object');
-    }
-    const header = {
-        sig: mustGetUint8Array(o, 'sig'),
-        peer: mustGetUint8Array(o, 'peer'),
-        acks: mustGetUint8ArrayArray(o, 'acks'),
-        parent: o.parent === null ? null : mustGetUint8Array(o, 'parent'),
-        height: mustGetNumber(o, 'height'),
-    };
-    switch (mustGetNumber(o, 'type')) {
+export function encodeMessage(m: Message): Uint8Array {
+    switch (m.type) {
         case MessageType.INPUT:
-            return {
-                ...header,
-                channel: mustGetString(o, 'channel'),
-                type: MessageType.INPUT,
-                round: mustGetNumber(o, 'round'),
-                data: mustGetNumber(o, 'data'),
-            };
+            return encodeInputMessage(m);
         case MessageType.CREATE_CHANNEL:
-            return {
-                ...header,
-                type: MessageType.CREATE_CHANNEL,
-                name: mustGetString(o, 'name'),
-            };
+            return encodeCreateChannelMessage(m);
         case MessageType.SET_PEERS:
-            return {
-                ...header,
-                type: MessageType.SET_PEERS,
-                channel: mustGetString(o, 'channel'),
-                peers: mustGetUint8ArrayArray(o, 'peers'),
-            };
+            return encodeSetPeersMessage(m);
+        case MessageType.KEEP_ALIVE:
+            return encodeKeepAliveMessage(m);
         default:
-            throw new Error(`unknown message type: ${JSON.stringify(o)}`);
+            throw new Error(`unsupported message type: ${(m as any).type}`);
     }
 }
 
-export function mustGetString(o: object, p: string): string {
-    const v = o[p];
-    if (typeof v !== 'string') {
-        throw new Error(
-            `expected string for ${p} got ${typeof v}: ${JSON.stringify(o)}`,
-        );
+export function decodeMessage(b: Uint8Array | Buffer): Message {
+    const [type, ...props] = cbor.decode(Buffer.from(b));
+    switch (type) {
+        case MessageType.INPUT:
+            return decodeInputMessage(props);
+        case MessageType.CREATE_CHANNEL:
+            return decodeCreateChannelMessage(props);
+        case MessageType.SET_PEERS:
+            return decodeSetPeersMessage(props);
+        case MessageType.KEEP_ALIVE:
+            return decodeKeepAliveMessage(props);
+        default:
+            throw new Error(`unsupported message type: ${type}`);
     }
-    return v;
 }
 
-export function mustGetNumber(o: object, p: string): number {
-    const v = o[p];
-    if (typeof v !== 'number') {
-        throw new Error(`expected number for ${p} got ${typeof v}`);
-    }
-    return v;
+function encodeKeepAliveMessage(p: KeepAliveMessage): Uint8Array {
+    return cbor.encode([
+        MessageType.KEEP_ALIVE,
+        p.peer,
+        p.name,
+        p.timestamp,
+        p.sees,
+    ]);
 }
 
-export function mustGetUint8Array(o: object, p: string): Uint8Array {
-    const v = o[p];
-    if (typeof v !== 'object' || !(v instanceof Uint8Array)) {
-        throw new Error(`expected Uint8Array for ${p} got ${typeof v} ${v}`);
-    }
-    return v;
+function decodeKeepAliveMessage(props: any[]): KeepAliveMessage {
+    const [peer, name, timestamp, sees] = props;
+    return {
+        type: MessageType.KEEP_ALIVE,
+        peer,
+        name,
+        timestamp,
+        sees,
+    };
 }
 
-export function mustGetUint8ArrayArray(o: object, p: string): Uint8Array[] {
-    const v = o[p];
-    if (!Array.isArray(v)) {
-        throw new Error(
-            `expected Array<Uint8Array> for ${p} got ${typeof v}: ${v}`,
-        );
-    }
-    for (const x of v) {
-        if (!(x instanceof Uint8Array)) {
-            throw new Error(
-                `expected item in Array<Uint8Array> to be Uint8Array for ${p} got ${typeof x}: ${x}`,
-            );
-        }
-    }
-    return v;
+function encodeInputMessage(m: InputMessage): Uint8Array {
+    return cbor.encode([
+        MessageType.INPUT,
+        m.round,
+        m.channel,
+        m.data,
+
+        m.peer,
+        m.parent,
+        m.acks,
+        m.height,
+        m.sig,
+    ]);
 }
 
-export function mustGetMessage(o: object, p: string): Message {
-    const v = o[p];
-    return unknownToMessage(v);
+function decodeInputMessage(props: any[]): InputMessage {
+    const [round, channel, data, peer, parent, acks, height, sig] = props;
+    return {
+        type: MessageType.INPUT,
+        parent,
+        round,
+        height,
+        channel,
+        data,
+        peer,
+        acks,
+        sig,
+    };
 }
 
-export function mustGetMessages(o: object, p: string): Message[] {
-    const v = o[p];
-    if (!Array.isArray(v)) {
-        throw new Error(`expected Array<Message> for ${p} got ${typeof v}`);
-    }
-    return v.map((item) => unknownToMessage(item));
+function encodeCreateChannelMessage(m: CreateChannelMessage): Uint8Array {
+    return cbor.encode([
+        MessageType.CREATE_CHANNEL,
+        m.name,
+
+        m.peer,
+        m.parent,
+        m.acks,
+        m.height,
+        m.sig,
+    ]);
+}
+
+function decodeCreateChannelMessage(props: any[]): CreateChannelMessage {
+    const [name, peer, parent, acks, height, sig] = props;
+    return {
+        type: MessageType.CREATE_CHANNEL,
+        name,
+        peer,
+        parent,
+        acks,
+        height,
+        sig,
+    };
+}
+
+function encodeSetPeersMessage(m: SetPeersMessage): Uint8Array {
+    return cbor.encode([
+        MessageType.SET_PEERS,
+        m.channel,
+        m.peers,
+
+        m.peer,
+        m.parent,
+        m.acks,
+        m.height,
+        m.sig,
+    ]);
+}
+
+function decodeSetPeersMessage(props: any[]): SetPeersMessage {
+    const [channel, peers, peer, parent, acks, height, sig] = props;
+    return {
+        type: MessageType.SET_PEERS,
+        channel,
+        peers,
+        peer,
+        parent,
+        acks,
+        height,
+        sig,
+    };
 }

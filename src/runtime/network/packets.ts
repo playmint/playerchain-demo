@@ -113,14 +113,14 @@ export const MESSAGE_BYTES = 1024;
  */
 export const CACHE_TTL = 60_000 * 60 * 6;
 
-interface PacketField {
+export interface PacketField {
     bytes: number;
     encoding?: string;
     default: any;
     signed?: boolean;
 }
 
-interface PacketSpec {
+export interface PacketSpec {
     [key: string]: PacketField;
 }
 

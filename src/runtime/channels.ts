@@ -1,28 +1,27 @@
-import * as cbor from 'cbor-x';
 import { Buffer } from 'socket:buffer';
 import { Client } from './client';
-import { Base64ID } from './messages';
-import { Subcluster } from './network/Subcluster';
 import {
-    KeepAlivePacket,
-    Packet,
-    PacketType,
-    TransportEmitOpts,
-    unknownToPacket,
-} from './transport';
+    KeepAliveMessage,
+    Message,
+    MessageType,
+    decodeMessage,
+    encodeMessage,
+} from './messages';
+import { SocketEmitOpts } from './network';
+import { Subcluster } from './network/Subcluster';
 import { CancelFunction, bufferedCall, setPeriodic } from './utils';
 
 export type ChannelConfig = {
     id: string;
     name: string;
     subcluster: Subcluster;
-    onPacket?: (packet: Packet) => void;
+    onMsg?: (m: Message) => void;
     client: Client;
     Buffer: typeof Buffer;
 };
 
 export interface ChannelInfo {
-    id: Base64ID; // base64ified id that matches the commitment id of the CREATE_CHANNEL message
+    id: string; // base64ified id that matches the commitment id of the CREATE_CHANNEL message
     scid: string; // cluster id
     name: string;
     creator: string; // peer id of the creator
@@ -34,6 +33,15 @@ export type PeerStatus = {
     proxy: boolean;
 };
 
+export interface EmitOpts extends SocketEmitOpts {
+    // list of peer ids to send to (implies direct=true)
+    peers?: string[];
+    // list of channel ids to send to (will honor direct flag)
+    channels?: string[];
+    // if direct is true, message will only be emitted to currently connected peers
+    direct?: boolean;
+}
+
 export class Channel {
     id: string;
     shortId: string;
@@ -42,9 +50,9 @@ export class Channel {
     Buffer: typeof Buffer;
     subcluster: Subcluster;
     threads: CancelFunction[] = [];
-    _onPacket?: (packet: Packet) => void;
+    _onMsg?: (m: Message) => void;
     lastKnowPeers = new Map<string, PeerStatus>();
-    alivePeerIds: Map<string, KeepAlivePacket> = new Map();
+    alivePeerIds: Map<string, KeepAliveMessage> = new Map();
     peerNames: Map<string, string> = new Map();
 
     constructor({
@@ -52,17 +60,17 @@ export class Channel {
         client,
         subcluster,
         name,
-        onPacket,
+        onMsg: onPacket,
         Buffer,
     }: ChannelConfig) {
         this.Buffer = Buffer;
         this.id = id;
         this.shortId = id.slice(0, 8);
         this.name = name;
-        this._onPacket = onPacket;
+        this._onMsg = onPacket;
         this.subcluster = subcluster;
         this.client = client;
-        subcluster.onBytes = this.onChannelBytes;
+        subcluster.onMsg = this.onChannelMsg;
         this.threads.push(setPeriodic(this.updatePeers, 1000));
     }
 
@@ -119,57 +127,57 @@ export class Channel {
         }
     }
 
-    private onChannelBytes = bufferedCall(
+    private onChannelMsg = bufferedCall(
         async (b: Buffer) => {
-            if (!this._onPacket) {
+            if (!this._onMsg) {
                 return;
             }
-            const p = unknownToPacket(cbor.decode(this.Buffer.from(b)));
-            if (p.type === PacketType.KEEP_ALIVE) {
-                const peerId = Buffer.from(p.peer).toString('hex');
+            const m = decodeMessage(b);
+            if (m.type === MessageType.KEEP_ALIVE) {
+                const peerId = Buffer.from(m.peer).toString('hex');
                 const prev = this.alivePeerIds.get(peerId);
-                if (prev && p.timestamp < prev.timestamp) {
+                if (prev && m.timestamp < prev.timestamp) {
                     // console.log('IGNORING OLDER KEEPALIVE FOR PEER', peerId);
                     return;
                 }
                 // console.log('UPDATE ALIVE PEER', peerId);
-                this.alivePeerIds.set(peerId, p);
+                this.alivePeerIds.set(peerId, m);
                 this.client.db.peers
                     .update(peerId, {
-                        lastSeen: p.timestamp,
-                        sees: p.sees.map((s) => Buffer.from(s).toString('hex')),
+                        lastSeen: m.timestamp,
+                        sees: m.sees.map((s) => Buffer.from(s).toString('hex')),
                     })
                     .catch((err) => {
                         console.error('update-peer-err:', err);
                     });
                 if (!this.peerNames.has(peerId)) {
-                    console.log('setitng peer name', peerId, p.name);
+                    console.log('setitng peer name', peerId, m.name);
                     this.client.db.peerNames
                         .put({
                             peerId: peerId,
-                            name: p.name,
+                            name: m.name,
                         })
                         .catch((err) => {
                             console.error('update-peer-name-err:', err);
                         });
-                    this.peerNames.set(peerId, p.name);
+                    this.peerNames.set(peerId, m.name);
                 }
             } else {
-                this._onPacket(p);
+                this._onMsg(m);
             }
         },
         1000,
-        'onChannelBytes',
+        'onChannelMsg',
     );
 
-    send = async (packet: Packet, opts?: TransportEmitOpts) => {
-        const bytes = this.Buffer.from(cbor.encode(packet));
-        this.emit('bytes', bytes, opts).catch((err) => {
+    send = async (m: Message, opts?: EmitOpts) => {
+        const bytes = encodeMessage(m);
+        this.emit('msg', bytes, opts).catch((err) => {
             console.error('send-err:', err);
         });
     };
 
-    emit = async (evt: string, buf: Uint8Array, opts?: TransportEmitOpts) => {
+    emit = async (evt: string, buf: Uint8Array, opts?: EmitOpts) => {
         // const ourPeerIds = ourPeers.map((p) => p.peerId);
         if (this.subcluster.peers().length === 0) {
             console.log(`${this.client.shortId} USING CRAPPY SEND`);
@@ -190,7 +198,5 @@ export class Channel {
 
     destroy() {
         this.threads.forEach((cancel) => cancel());
-        // this.socket.off('bytes', this.onChannelBytes);
-        // this.socket.off('#join', this.onPeerJoin);
     }
 }

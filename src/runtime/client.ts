@@ -4,16 +4,16 @@ import _sodium from 'libsodium-wrappers';
 import { LRUCache } from 'lru-cache';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:latica';
-import { Channel, ChannelInfo } from './channels';
+import { Channel, ChannelInfo, EmitOpts } from './channels';
 import database, { DB, StoredMessage } from './db';
 import {
-    Base64ID,
+    ChainMessage,
     CreateChannelMessage,
+    InputMessage,
     Message,
     MessageType,
-    PresignedMessage,
     SetPeersMessage,
-    UnsignedMessage,
+    encodeMessage,
 } from './messages';
 import {
     SocketNetwork,
@@ -22,7 +22,6 @@ import {
     createSocketCluster,
 } from './network';
 import { PeerConfig } from './network/Peer';
-import { Packet, PacketType, TransportEmitOpts } from './transport';
 import { CancelFunction, bufferedCall, setPeriodic } from './utils';
 
 await _sodium.ready;
@@ -53,7 +52,7 @@ export class Client {
     syncInterval: number = 1000;
     seqNum: number | null = null;
     height: number | null = null;
-    parent: Message | null = null;
+    parent: ChainMessage | null = null;
     parentParent: Message | null = null;
     committing: boolean = false;
     channels: Map<string, Channel> = new Map();
@@ -125,39 +124,39 @@ export class Client {
     }
 
     // commit will sign, store and broadcast the message
-    async commit(msg: UnsignedMessage, acks?: Uint8Array[]): Promise<Message> {
+    async commit(msg: ChainMessage): Promise<ChainMessage> {
         if (this.committing) {
             throw new Error('already-committing');
         }
         this.committing = true;
-        return this._commit(msg, acks).finally(() => {
+        return this._commit(msg).finally(() => {
             this.committing = false;
         });
     }
 
-    private async _commit(
-        msg: UnsignedMessage,
-        acks?: Uint8Array[],
-    ): Promise<Message> {
+    private async _commit(msg: ChainMessage): Promise<ChainMessage> {
         if (this.height === null) {
-            const latest = await this.db.messages
+            const latest = (await this.db.messages
                 .where(['peer', 'height'])
                 .between([this.id, Dexie.minKey], [this.id, Dexie.maxKey])
-                .last();
+                .last()) as ChainMessage | undefined;
             if (!latest) {
                 this.height = 0;
                 this.parent = null;
             } else {
+                if (!latest.height) {
+                    throw new Error('invalid-height');
+                }
                 this.height = latest.height + 1;
                 this.parent = latest;
             }
         }
         // build the msg to attest to
-        const attest: PresignedMessage = {
+        const attest: ChainMessage = {
             ...msg,
             peer: this.id,
             height: this.height,
-            acks: acks ?? [], // TODO: ask consensus system what to do
+            acks: msg.acks ?? [], // TODO: ask consensus system what to do
             parent: this.parent ? this.parent.sig : null,
         };
         const signed = await this.sign(attest);
@@ -166,6 +165,9 @@ export class Client {
             arrived: await this.nextSequenceNumber(),
         };
         await this.db.messages.add(stored);
+        if (!signed.height) {
+            throw new Error('invalid-height');
+        }
         this.height = signed.height + 1;
         // include the parent too for good measure, double the bandwidth, double the fun
         // if (this.parentParent) {
@@ -190,32 +192,20 @@ export class Client {
         //         },
         //     );
         // }
-        this.send(
-            {
-                type: PacketType.MESSAGE,
-                msgs: [signed],
-            },
-            {
-                ttl: 1000,
-            },
-        );
+        this.send(signed, {
+            ttl: 1000,
+        });
         this.parentParent = this.parent;
         this.parent = signed;
         setTimeout(() => {
-            this.send(
-                {
-                    type: PacketType.MESSAGE,
-                    msgs: [signed],
-                },
-                {
-                    ttl: 1000,
-                },
-            );
+            this.send(signed, {
+                ttl: 1000,
+            });
         }, 15);
         return signed;
     }
 
-    async sign(msg: PresignedMessage): Promise<Message> {
+    async sign(msg: ChainMessage): Promise<ChainMessage> {
         // const hash = await this.hash(msg);
         // const sig = sodium.crypto_sign_detached(
         //     Buffer.from(hash),
@@ -233,7 +223,7 @@ export class Client {
         };
     }
 
-    async verify(_msg: Message): Promise<boolean> {
+    async verify(_msg: ChainMessage): Promise<boolean> {
         return true;
         // try {
         //     const { sig, ...unsigned } = msg;
@@ -250,7 +240,7 @@ export class Client {
         // }
     }
 
-    async hash(msg: PresignedMessage): Promise<Uint8Array> {
+    async hash(msg: ChainMessage): Promise<Uint8Array> {
         const values = [
             msg.peer,
             msg.parent,
@@ -269,31 +259,27 @@ export class Client {
         );
     }
 
-    private onPacket = async (packet: Packet) => {
-        switch (packet.type) {
-            case PacketType.SYNC_NEED:
+    private onMsg = async (m: Message) => {
+        switch (m.type) {
+            case MessageType.INPUT:
+                await this.onInputMessage(m);
                 return;
-            case PacketType.MESSAGE:
-                // this.debug('GOT onPacket', 'MESSAGE', packet.msgs.length);
-                await this.onMessages(packet.msgs);
+            case MessageType.CREATE_CHANNEL:
+                await this.onCreateChannel(m);
                 return;
-            case PacketType.KEEP_ALIVE:
+            case MessageType.SET_PEERS:
+                await this.onSetPeers(m);
+                return;
+            case MessageType.KEEP_ALIVE:
                 // this.debug('GOT onPacket', 'KEEP_ALIVE');
                 return;
             default:
-                console.warn('unhandled-packet', packet);
+                console.warn('unhandled-msg', m);
                 return;
         }
     };
 
-    onMessages = async (msgs: Message[]): Promise<Message[]> => {
-        for (const msg of msgs) {
-            await this.onMessage(msg);
-        }
-        return msgs;
-    };
-
-    onMessage = async (msg: Message): Promise<void> => {
+    onInputMessage = async (msg: InputMessage): Promise<void> => {
         // ignore own messages, assume we can take care of those
         if (Buffer.from(msg.peer).toString('hex') === this.peerId) {
             return;
@@ -308,6 +294,9 @@ export class Client {
             return;
         }
         // TODO: validate that no acks belong to the sender
+        if (!msg.sig) {
+            throw new Error('no-sig');
+        }
 
         // store it
         const existing = await this.db.messages.get(msg.sig);
@@ -327,18 +316,6 @@ export class Client {
                     console.error('quick-req-missing-parent-error', err),
                 );
             }
-        }
-
-        switch (msg.type) {
-            case MessageType.CREATE_CHANNEL:
-                await this.onCreateChannel(msg);
-                return;
-            case MessageType.SET_PEERS:
-                await this.onSetPeers(msg);
-                return;
-            case MessageType.INPUT:
-                // TODO: pass to consensus
-                return;
         }
     };
 
@@ -363,8 +340,8 @@ export class Client {
         }
     }
 
-    async requestMissingParent(child: Message) {
-        if (child.parent === null) {
+    async requestMissingParent(child: ChainMessage) {
+        if (!child.parent) {
             return;
         }
         const exists = await this.db.messages.get(child.parent);
@@ -395,7 +372,7 @@ export class Client {
         return this.seqNum;
     }
 
-    private async onCreateChannel(msg: Message) {
+    private async onCreateChannel(msg: CreateChannelMessage) {
         if (msg.type !== MessageType.CREATE_CHANNEL) {
             throw new Error('expected-create-channel');
         }
@@ -438,13 +415,7 @@ export class Client {
         for (const head of heads) {
             // tell everyone about the heads
             // console.log('peersendhead', ch.shortId);
-            this.send(
-                {
-                    type: PacketType.MESSAGE,
-                    msgs: [head],
-                },
-                { ttl: 1000 },
-            );
+            this.send(head, { ttl: 1000 });
         }
         this.debug(`emit-peer-heads count=${heads.length}`);
     }
@@ -462,6 +433,9 @@ export class Client {
         }
         const prevVerified = this.verifiedHeight.get(peerId) || -1;
         const tip = child.height;
+        if (typeof tip !== 'number') {
+            throw new Error('invalid height');
+        }
         for (;;) {
             if (!child) {
                 throw new Error('invalid value for child');
@@ -473,6 +447,9 @@ export class Client {
                     validHeight: tip,
                 });
                 return;
+            }
+            if (typeof child.height !== 'number') {
+                throw new Error('invalid height');
             }
             if (child.height <= prevVerified) {
                 this.debug(`updated-chain-ok! peer=${peerId.slice(0, 8)}`);
@@ -507,18 +484,16 @@ export class Client {
             const subclusterPeers = ch.subcluster.peers();
             const peerName = await this.db.peerNames.get(this.peerId);
             await ch.emit(
-                'bytes',
-                Buffer.from(
-                    cbor.encode({
-                        type: PacketType.KEEP_ALIVE,
-                        peer: this.id,
-                        timestamp: Date.now(),
-                        sees: subclusterPeers.map((p) =>
-                            Buffer.from(p.peerId.slice(0, 8), 'hex'),
-                        ),
-                        name: peerName?.name || '',
-                    }),
-                ),
+                'msg',
+                encodeMessage({
+                    type: MessageType.KEEP_ALIVE,
+                    peer: this.id,
+                    timestamp: Date.now(),
+                    sees: subclusterPeers.map((p) =>
+                        Buffer.from(p.peerId.slice(0, 8), 'hex'),
+                    ),
+                    name: peerName?.name || '',
+                }),
                 {
                     ttl: 1000,
                 },
@@ -544,16 +519,10 @@ export class Client {
                         'emit-genesis',
                         Buffer.from(genesis.sig).toString('hex').slice(0, 10),
                     );
-                    ch.send(
-                        {
-                            type: PacketType.MESSAGE,
-                            msgs: [genesis],
-                        },
-                        {
-                            channels: [ch.id],
-                            ttl: 1000,
-                        },
-                    ).catch((err) => {
+                    ch.send(genesis, {
+                        channels: [ch.id],
+                        ttl: 1000,
+                    }).catch((err) => {
                         console.error('emit-genesis-error', err);
                     });
                 }
@@ -642,7 +611,7 @@ export class Client {
                 client: this,
                 subcluster,
                 name: config.name || '',
-                onPacket: this.onPacket,
+                onMsg: this.onMsg,
                 Buffer: Buffer,
             });
             this.debug(
@@ -652,7 +621,7 @@ export class Client {
         this.channels.set(config.id, channel);
     }
 
-    async joinChannel(channelId: Base64ID) {
+    async joinChannel(channelId: string) {
         if (typeof channelId !== 'string') {
             throw new Error('join-channel-fail: err=channel-id-must-be-string');
         }
@@ -670,18 +639,21 @@ export class Client {
         }
     }
 
-    async createChannel(name: string): Promise<Base64ID> {
+    async createChannel(name: string): Promise<string> {
         const msg: CreateChannelMessage = {
             type: MessageType.CREATE_CHANNEL,
             name,
         };
         const commitment = await this.commit(msg);
+        if (!commitment.sig) {
+            throw new Error('commitment-sig-missing');
+        }
         const channelId = Buffer.from(commitment.sig).toString('base64');
         await this.joinChannel(channelId);
         return channelId;
     }
 
-    async setPeers(channelId: Base64ID, peers: string[]) {
+    async setPeers(channelId: string, peers: string[]) {
         const msg: SetPeersMessage = {
             type: MessageType.SET_PEERS,
             channel: channelId,
@@ -766,19 +738,13 @@ export class Client {
         if (!msg) {
             return 0;
         }
-        this.send(
-            {
-                type: PacketType.MESSAGE,
-                msgs: [msg],
-            },
-            { ttl: 1000 },
-        );
+        this.send(msg, { ttl: 1000 });
         return 1;
     };
 
-    send = (packet: Packet, opts?: TransportEmitOpts) => {
+    send = (m: Message, opts?: EmitOpts) => {
         for (const [_, ch] of this.channels) {
-            ch.send(packet, opts).catch((err) => {
+            ch.send(m, opts).catch((err) => {
                 console.error('send-err:', err);
             });
         }

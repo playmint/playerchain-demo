@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { ChannelInfo } from './channels';
-import { Message } from './messages';
+import { ChainMessage } from './messages';
 import type { State } from './simulation';
 
 export enum StateTag {
@@ -72,7 +72,7 @@ export type PeerNames = {
     name: string;
 };
 
-export type StoredMessage = Message & { arrived: number };
+export type StoredMessage = ChainMessage & { arrived: number };
 
 export type DB = Dexie & {
     channels: EntityTable<ChannelInfo, 'id'>;

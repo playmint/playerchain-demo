@@ -23,7 +23,7 @@ export class Subcluster {
     sharedKey: Uint8Array;
     signingKeys: Keys;
     localPeer: Peer;
-    onBytes?: (msg: Buffer) => void;
+    onMsg?: (msg: Buffer) => void;
     onRPC?: (msg: Buffer) => void;
 
     constructor(config: SubclusterConfig) {
@@ -159,9 +159,9 @@ export class Subcluster {
         }
         const eventName = packet.usr1.toString('utf8');
         switch (eventName) {
-            case 'bytes':
-                if (this.onBytes) {
-                    this.onBytes(opened);
+            case 'msg':
+                if (this.onMsg) {
+                    this.onMsg(opened);
                 }
                 return;
             case 'rpc':
