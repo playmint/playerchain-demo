@@ -18,6 +18,7 @@ type BlockProps = {
     parent: string | null;
     position: number[];
     peerId: string;
+    originalRound: number;
 };
 const packetGeometry = new THREE.BoxGeometry(
     PACKET_SCALE,
@@ -115,13 +116,15 @@ export async function stopGraph() {
     peers = [];
 }
 
+type MessageWithOffsetRound = StoredMessage & {
+    originalRound: number;
+    round: number;
+};
+
 type MessageData = {
     minRound: number;
     maxRound: number;
-    messagesWithOffsetRound: (StoredMessage & {
-        originalRound: number;
-        round: number;
-    })[];
+    messagesWithOffsetRound: MessageWithOffsetRound[];
 };
 async function fetchPackets(
     channelId: string,
@@ -220,14 +223,13 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
     }
 
     const packets = msgData.messagesWithOffsetRound.reduce((data, m) => {
-        if (m.originalRound === msgData.minRound) {
-            // skip the very last round to make it look neater
+        // skip the very last round to make it look neater unless it's the first round
+        if (m.originalRound > 1 && m.originalRound === msgData.minRound) {
             return data;
         }
         const msgId = Buffer.from(m.id).toString('hex');
         const peerId = m.peer ? Buffer.from(m.peer).toString('hex') : '';
 
-        // FIXME: peers should be passed in
         if (!peers.includes(peerId)) {
             peers.push(peerId);
         }
@@ -275,6 +277,7 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
             parent: m.parent ? Buffer.from(m.parent).toString('hex') : null,
             position,
             peerId,
+            originalRound: m.originalRound,
         };
         data.set(msgId, props);
         return data;
@@ -283,34 +286,45 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
     return packets;
 }
 
-function renderLines(packets: Map<string, any>) {
-    const lines = Array.from(packets.values()).reduce((data, packet) => {
-        const fromPos = [...packet.position];
-        const parentPos =
-            packet.parent && packets.has(packet.parent)
-                ? [...packets.get(packet.parent).position]
+function renderLines(packets: Map<string, BlockProps>) {
+    const lines = Array.from(packets.values()).reduce(
+        (data, packet) => {
+            const fromPos = [...packet.position];
+            const parentPacket = packet.parent
+                ? packets.get(packet.parent)
                 : null;
-        if (parentPos) {
-            // console.log('line', fromPos, parentPos);
-            data.push({
-                key: `${packet.key}-${packet.parent}`,
-                points: [fromPos, parentPos],
-                color: getPeerColor(packet.peerId),
-            });
-        }
-        packet.acks.forEach((ack) => {
-            const toAckPos =
-                ack && packets.has(ack) ? [...packets.get(ack).position] : null;
-            if (toAckPos) {
+            const parentPos = parentPacket ? [...parentPacket.position] : null;
+            if (packet.originalRound === 1) {
+                // add line from packet straight down off screen
+                const nullPos = [fromPos[0], -100, 0];
                 data.push({
-                    key: `${packet.key}-${ack}`,
-                    points: [fromPos, toAckPos],
+                    key: `${packet.key}-null`,
+                    points: [fromPos, nullPos],
+                    color: getPeerColor(packet.peerId),
+                });
+            } else if (parentPos) {
+                // add line linking to parent
+                data.push({
+                    key: `${packet.key}-${packet.parent}`,
+                    points: [fromPos, parentPos],
                     color: getPeerColor(packet.peerId),
                 });
             }
-        });
-        return data;
-    }, []);
+            packet.acks.forEach((ack) => {
+                const ackPacket = ack ? packets.get(ack) : null;
+                const toAckPos = ackPacket ? [...ackPacket.position] : null;
+                if (toAckPos) {
+                    data.push({
+                        key: `${packet.key}-${ack}`,
+                        points: [fromPos, toAckPos],
+                        color: getPeerColor(packet.peerId),
+                    });
+                }
+            });
+            return data;
+        },
+        [] as { key: string; points: number[][]; color?: number | string }[],
+    );
 
     lines.forEach(({ key, ...props }) => {
         if (threeObjects.has(key)) {

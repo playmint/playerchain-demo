@@ -268,7 +268,7 @@ export default memo(function ChannelView({
                         />
                         {showConnectedPeers && (
                             <div className={termstyles.terminal}>
-                                <p>connected peers:</p>
+                                <p>Connected peers:</p>
                                 <ul>
                                     {potentialPeers.map((pid, playerIdx) => (
                                         <li

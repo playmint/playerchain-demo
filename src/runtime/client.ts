@@ -553,6 +553,7 @@ export class Client {
                     const channelSig = Uint8Array.from(atob(ch.id), (c) =>
                         c.charCodeAt(0),
                     );
+                    // emit the channel genesis message if we have it
                     const genesis = await this.db.messages
                         .where('sig')
                         .equals(channelSig)
@@ -673,6 +674,14 @@ export class Client {
             throw new Error('commitment-sig-missing');
         }
         const channelId = Buffer.from(commitment.sig).toString('base64');
+        await this.commit(
+            {
+                type: MessageType.INPUT,
+                round: 1, //(Date.now() + 100) / 50,
+                data: 0,
+            },
+            channelId,
+        );
         await this.joinChannel(channelId);
         return channelId;
     }

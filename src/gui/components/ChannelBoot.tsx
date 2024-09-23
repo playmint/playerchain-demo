@@ -8,7 +8,7 @@ import { useDatabase } from '../hooks/use-database';
 import { TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-const TERM_DELAY = 500;
+const TERM_DELAY = import.meta.env.MODE !== 'production' ? 100 : 500;
 
 type TerminalFlowArgs = {
     db: DB;
@@ -277,7 +277,7 @@ export default memo(function ChannelBoot() {
             <TerminalView
                 flow={flow}
                 minWait={TERM_DELAY}
-                nextOpWait={500}
+                nextOpWait={TERM_DELAY}
                 startIndex={0}
             />
         </div>
