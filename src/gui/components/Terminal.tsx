@@ -213,17 +213,17 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
         }
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Stops the event bubbling up and the app making a noise when the keyboard isn't handled
-            e.preventDefault();
-
             if (flow[opIndex].choices) {
                 if (e.key === 'ArrowUp') {
+                    e.preventDefault();
                     setCurrentChoice((choice) => Math.max(0, choice - 1));
                 } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
                     setCurrentChoice((choice) =>
                         Math.min(flow[opIndex].choices!.length - 1, choice + 1),
                     );
                 } else if (e.key === 'Enter') {
+                    e.preventDefault();
                     const choice = flow[opIndex].choices![currentChoice];
                     if (choice) {
                         setOpIndex(opIndex + choice.next);
