@@ -13,7 +13,6 @@ import {
     Message,
     MessageType,
     SetPeersMessage,
-    encodeMessage,
 } from './messages';
 import {
     SocketNetwork,
@@ -101,7 +100,7 @@ export class Client {
             this.threads.push(
                 setPeriodic(async () => {
                     await this.emitHeads();
-                }, 1000),
+                }, 10000),
             );
             this.debug('starting-ch-sync');
             this.threads.push(
@@ -439,8 +438,7 @@ export class Client {
         const heads = await this.getHeads();
         for (const head of heads) {
             // tell everyone about the heads
-            // console.log('peersendhead', ch.shortId);
-            this.send(head, { ttl: 1000 });
+            this.send(head, { ttl: 500 });
         }
         this.debug(`emit-peer-heads count=${heads.length}`);
     }
@@ -508,9 +506,8 @@ export class Client {
 
             const subclusterPeers = ch.subcluster.peers();
             const peerName = await this.db.peerNames.get(this.peerId);
-            await ch.emit(
-                'msg',
-                encodeMessage({
+            await ch.send(
+                {
                     type: MessageType.KEEP_ALIVE,
                     peer: this.id,
                     timestamp: Date.now(),
@@ -518,40 +515,12 @@ export class Client {
                         Buffer.from(p.peerId.slice(0, 8), 'hex'),
                     ),
                     name: peerName?.name || '',
-                }),
+                },
                 {
                     ttl: 1000,
                 },
             );
             // sync channel name with genesis and rebroadcast it
-            const channelSig = Uint8Array.from(atob(ch.id), (c) =>
-                c.charCodeAt(0),
-            );
-            const genesis = await this.db.messages
-                .where('sig')
-                .equals(channelSig)
-                .first();
-            if (genesis) {
-                if (genesis.type === MessageType.CREATE_CHANNEL) {
-                    if (ch.name === '') {
-                        ch.name = genesis.name;
-                        await this.db.channels.update(ch.id, {
-                            name: genesis.name,
-                            creator: Buffer.from(genesis.peer).toString('hex'),
-                        });
-                    }
-                    this.debug(
-                        'emit-genesis',
-                        Buffer.from(genesis.sig).toString('hex').slice(0, 10),
-                    );
-                    ch.send(genesis, {
-                        channels: [ch.id],
-                        ttl: 1000,
-                    }).catch((err) => {
-                        console.error('emit-genesis-error', err);
-                    });
-                }
-            }
             // const subclusterPeerIds = subclusterPeers
             //     .map((p) => p.peerId.slice(0, 8))
             //     .sort()
@@ -578,10 +547,41 @@ export class Client {
             //     lastKnowPeers=${lastKnowPeers}
             //     alivePeers=${alivePeers}
             // `);
-            // sync channel peers and rebroadcast it
             const info = await this.db.channels.get(ch.id);
             if (info) {
                 if (info.peers.length === 0) {
+                    const channelSig = Uint8Array.from(atob(ch.id), (c) =>
+                        c.charCodeAt(0),
+                    );
+                    const genesis = await this.db.messages
+                        .where('sig')
+                        .equals(channelSig)
+                        .first();
+                    if (genesis) {
+                        if (genesis.type === MessageType.CREATE_CHANNEL) {
+                            if (ch.name === '') {
+                                ch.name = genesis.name;
+                                await this.db.channels.update(ch.id, {
+                                    name: genesis.name,
+                                    creator: Buffer.from(genesis.peer).toString(
+                                        'hex',
+                                    ),
+                                });
+                            }
+                            this.debug(
+                                'emit-genesis',
+                                Buffer.from(genesis.sig)
+                                    .toString('hex')
+                                    .slice(0, 10),
+                            );
+                            ch.send(genesis, {
+                                channels: [ch.id],
+                                ttl: 1000,
+                            }).catch((err) => {
+                                console.error('emit-genesis-error', err);
+                            });
+                        }
+                    }
                     // try to find the SetPeers message
                     const setPeers = await this.db.messages
                         .where(['channel', 'type'])
@@ -596,9 +596,6 @@ export class Client {
                         this.debug('no-set-peers', ch.id);
                     }
                 }
-                // check we have the peer set
-            } else {
-                this.debug('NO CHANNEL FOR ID', ch.id);
             }
             // check each channel peer chain
             if (info?.peers) {
