@@ -15,7 +15,7 @@ export type ChannelConfig = {
     id: string;
     name: string;
     subcluster: Subcluster;
-    onMsg?: (m: Message) => void;
+    onMsg?: (m: Message, channelId: string) => void;
     client: Client;
     Buffer: typeof Buffer;
 };
@@ -50,7 +50,7 @@ export class Channel {
     Buffer: typeof Buffer;
     subcluster: Subcluster;
     threads: CancelFunction[] = [];
-    _onMsg?: (m: Message) => void;
+    _onMsg?: (m: Message, channelId: string) => void;
     lastKnowPeers = new Map<string, PeerStatus>();
     alivePeerIds: Map<string, KeepAliveMessage> = new Map();
     peerNames: Map<string, string> = new Map();
@@ -60,14 +60,14 @@ export class Channel {
         client,
         subcluster,
         name,
-        onMsg: onPacket,
+        onMsg,
         Buffer,
     }: ChannelConfig) {
         this.Buffer = Buffer;
         this.id = id;
         this.shortId = id.slice(0, 8);
         this.name = name;
-        this._onMsg = onPacket;
+        this._onMsg = onMsg;
         this.subcluster = subcluster;
         this.client = client;
         subcluster.onMsg = this.onChannelMsg;
@@ -163,7 +163,7 @@ export class Channel {
                     this.peerNames.set(peerId, m.name);
                 }
             } else {
-                this._onMsg(m);
+                this._onMsg(m, this.id);
             }
         },
         1000,

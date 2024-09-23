@@ -24,9 +24,6 @@ import {
 import { PeerConfig } from './network/Peer';
 import { CancelFunction, bufferedCall, setPeriodic } from './utils';
 
-await _sodium.ready;
-const sodium = _sodium;
-
 export interface ClientKeys {
     publicKey: Uint8Array;
     privateKey: Uint8Array;
@@ -52,8 +49,7 @@ export class Client {
     syncInterval: number = 1000;
     seqNum: number | null = null;
     height: number | null = null;
-    parent: ChainMessage | null = null;
-    parentParent: Message | null = null;
+    parent: Uint8Array | null = null;
     committing: boolean = false;
     channels: Map<string, Channel> = new Map();
     threads: CancelFunction[] = [];
@@ -124,31 +120,37 @@ export class Client {
     }
 
     // commit will sign, store and broadcast the message
-    async commit(msg: ChainMessage): Promise<ChainMessage> {
+    async commit(
+        msg: ChainMessage,
+        channelId: string | null,
+    ): Promise<ChainMessage> {
         if (this.committing) {
             throw new Error('already-committing');
         }
         this.committing = true;
-        return this._commit(msg).finally(() => {
+        return this._commit(msg, channelId).finally(() => {
             this.committing = false;
         });
     }
 
-    private async _commit(msg: ChainMessage): Promise<ChainMessage> {
+    private async _commit(
+        msg: ChainMessage,
+        channelId: string | null,
+    ): Promise<ChainMessage> {
         if (this.height === null) {
-            const latest = (await this.db.messages
+            const latest = await this.db.messages
                 .where(['peer', 'height'])
                 .between([this.id, Dexie.minKey], [this.id, Dexie.maxKey])
-                .last()) as ChainMessage | undefined;
+                .last();
             if (!latest) {
                 this.height = 0;
                 this.parent = null;
             } else {
-                if (!latest.height) {
-                    throw new Error('invalid-height');
+                if (typeof latest.height !== 'number') {
+                    throw new Error('latest-height-missing');
                 }
                 this.height = latest.height + 1;
-                this.parent = latest;
+                this.parent = latest.id;
             }
         }
         // build the msg to attest to
@@ -157,46 +159,24 @@ export class Client {
             peer: this.id,
             height: this.height,
             acks: msg.acks ?? [], // TODO: ask consensus system what to do
-            parent: this.parent ? this.parent.sig : null,
+            parent: this.parent ? this.parent : null,
         };
-        const signed = await this.sign(attest);
+        const [signed, id] = await this.sign(attest);
         const stored: StoredMessage = {
             ...signed,
+            id,
             arrived: await this.nextSequenceNumber(),
+            channel: channelId,
         };
         await this.db.messages.add(stored);
-        if (!signed.height) {
-            throw new Error('invalid-height');
+        if (typeof signed.height !== 'number') {
+            throw new Error('signed-invalid-height');
         }
         this.height = signed.height + 1;
-        // include the parent too for good measure, double the bandwidth, double the fun
-        // if (this.parentParent) {
-        //     this.send(
-        //         {
-        //             type: PacketType.MESSAGE,
-        //             msgs: [this.parentParent],
-        //         },
-        //         {
-        //             ttl: 1000,
-        //         },
-        //     );
-        // }
-        // if (this.parent) {
-        //     this.send(
-        //         {
-        //             type: PacketType.MESSAGE,
-        //             msgs: [this.parent],
-        //         },
-        //         {
-        //             ttl: 1000,
-        //         },
-        //     );
-        // }
         this.send(signed, {
             ttl: 1000,
         });
-        this.parentParent = this.parent;
-        this.parent = signed;
+        this.parent = id;
         setTimeout(() => {
             this.send(signed, {
                 ttl: 1000,
@@ -205,42 +185,76 @@ export class Client {
         return signed;
     }
 
-    async sign(msg: ChainMessage): Promise<ChainMessage> {
-        // const hash = await this.hash(msg);
-        // const sig = sodium.crypto_sign_detached(
-        //     Buffer.from(hash),
-        //     Buffer.from(this.key),
-        // );
-        const sig = Buffer.from(`${this.shortId}-${msg.height}`);
+    // returns the signed message and the id
+    async sign(msg: ChainMessage): Promise<[ChainMessage, Uint8Array]> {
+        await _sodium.ready;
+        const sodium = _sodium;
+        const hash = await this.hash(msg);
+        const id = hash.slice(0, 8);
+        const sig = sodium.crypto_sign_detached(
+            Buffer.from(hash),
+            Buffer.from(this.key),
+        );
+        // const sig = Buffer.from(`${this.shortId}-${msg.height}`);
         // console.log('-----SIGN>', {
         //     sig: Buffer.from(sig).toString('hex'),
         //     hsh: Buffer.from(hash).toString('hex'),
         //     pub: Buffer.from(msg.peer).toString('hex'),
         // });
-        return {
-            ...msg,
-            sig,
-        };
+        return [
+            {
+                ...msg,
+                sig,
+            },
+            id,
+        ];
     }
 
-    async verify(_msg: ChainMessage): Promise<boolean> {
-        return true;
-        // try {
-        //     const { sig, ...unsigned } = msg;
-        //     const hash = await this.hash(unsigned);
-        //     const pk = msg.peer;
-        //     return sodium.crypto_sign_verify_detached(sig, hash, pk);
-        // } catch (err) {
-        //     console.error(`
-        //         verify-error
-        //         msg=${msg}
-        //         err=${err}
-        //     `);
-        //     return false;
-        // }
+    // verified the message and produce the message id
+    // returns [true, id] if the message is verified
+    // returns [false, null] if the message is not verified
+    async verify(
+        msg: ChainMessage,
+    ): Promise<[true, Uint8Array] | [false, null]> {
+        await _sodium.ready;
+        const sodium = _sodium;
+        // return true;
+        try {
+            const { sig, ...unsigned } = msg;
+            if (!sig) {
+                throw new Error('no-sig');
+            }
+            const hash = await this.hash(unsigned);
+            const pk = msg.peer;
+            if (!pk) {
+                throw new Error('no-pk');
+            }
+            const ok = sodium.crypto_sign_verify_detached(sig, hash, pk);
+            if (!ok) {
+                return [false, null];
+            }
+            // 64bits of the hash is the id
+            // FIXME: we should think about this carefully!
+            // this truncation does not affect the signature, but it does affect
+            // the acks which are based on the id ... the pool of ids is not global
+            // as it is per peer set, so _some_ truncation here can be tollerated
+            // but it is possible for collisions in the db, so we may need to
+            // store the with a composite key of peer and id
+            const id = hash.slice(0, 8);
+            return [true, id];
+        } catch (err) {
+            console.error(`
+                verify-error
+                msg=${msg}
+                err=${err}
+            `);
+            return [false, null];
+        }
     }
 
     async hash(msg: ChainMessage): Promise<Uint8Array> {
+        await _sodium.ready;
+        const sodium = _sodium;
         const values = [
             msg.peer,
             msg.parent,
@@ -249,7 +263,6 @@ export class Client {
             msg.acks,
             (msg as any).data || 0,
             (msg as any).round || 0,
-            (msg as any).channel || 0,
         ];
         const data = JSON.stringify(values);
         // FIXME: is "BYTES_MIN" enough?
@@ -259,7 +272,50 @@ export class Client {
         );
     }
 
-    private onMsg = async (m: Message) => {
+    private onMsg = async (m: Message, channelId: string) => {
+        // ignore keep alive messages
+        // these are (weirdly) being handled in the channel
+        if (m.type === MessageType.KEEP_ALIVE) {
+            return;
+        }
+        // ignore own messages, assume we took care of those
+        if (Buffer.from(m.peer).toString('hex') === this.peerId) {
+            return;
+        }
+        // verify it
+        const [verified, id] = await this.verify(m);
+        if (!verified) {
+            this.debug(
+                'drop-message-verification-fail',
+                Buffer.from(m.sig).toString('hex'),
+            );
+            return;
+        }
+        if (!id) {
+            this.debug(
+                'drop-message-no-id',
+                Buffer.from(m.sig).toString('hex'),
+            );
+            return;
+        }
+        if (!m.sig) {
+            this.debug(
+                'drop-message-no-id',
+                Buffer.from(m.sig).toString('hex'),
+            );
+            return;
+        }
+        // store it
+        const existing = await this.db.messages.get(id);
+        if (!existing) {
+            await this.db.messages.put({
+                ...m,
+                arrived: await this.nextSequenceNumber(),
+                id,
+                channel: channelId,
+            });
+        }
+        // process it
         switch (m.type) {
             case MessageType.INPUT:
                 await this.onInputMessage(m);
@@ -268,10 +324,7 @@ export class Client {
                 await this.onCreateChannel(m);
                 return;
             case MessageType.SET_PEERS:
-                await this.onSetPeers(m);
-                return;
-            case MessageType.KEEP_ALIVE:
-                // this.debug('GOT onPacket', 'KEEP_ALIVE');
+                await this.onSetPeers(m, channelId);
                 return;
             default:
                 console.warn('unhandled-msg', m);
@@ -279,52 +332,24 @@ export class Client {
         }
     };
 
-    onInputMessage = async (msg: InputMessage): Promise<void> => {
-        // ignore own messages, assume we can take care of those
-        if (Buffer.from(msg.peer).toString('hex') === this.peerId) {
-            return;
-        }
-        // FIXME: this verify requires encoding, can we do it faster
-        const verified = await this.verify(msg);
-        if (!verified) {
-            console.warn(
-                'drop-message-verification-fail',
-                Buffer.from(msg.sig).toString('hex'),
-            );
-            return;
-        }
-        // TODO: validate that no acks belong to the sender
-        if (!msg.sig) {
-            throw new Error('no-sig');
-        }
-
-        // store it
-        const existing = await this.db.messages.get(msg.sig);
-        if (!existing) {
-            await this.db.messages.put({
-                ...msg,
-                arrived: await this.nextSequenceNumber(),
-            });
-        }
-
+    async onInputMessage(msg: InputMessage): Promise<void> {
         // do we have this message's parent?
-        const parentSig = msg.parent;
-        if (parentSig) {
-            const parent = await this.db.messages.get(parentSig);
+        const parentId = msg.parent;
+        if (parentId) {
+            const parent = await this.db.messages.get(parentId);
             if (!parent) {
                 this.requestMissingParent(msg).catch((err) =>
                     console.error('quick-req-missing-parent-error', err),
                 );
             }
         }
-    };
+    }
 
-    async onSetPeers(msg: SetPeersMessage) {
-        this.debug('SETTING PEERS', msg);
+    async onSetPeers(msg: SetPeersMessage, channelId: string) {
         // TODO: implement checking that SET_PEERS is from same peer as CREATE_CHANNEL
-        const channel = await this.db.channels.get(msg.channel);
+        const channel = await this.db.channels.get(channelId);
         if (!channel) {
-            console.warn('set-peers-unknown-channel', msg.channel);
+            console.warn('set-peers-unknown-channel', channelId);
             return;
         }
         // if channel peers has changed update it
@@ -356,7 +381,7 @@ export class Client {
             name: 'requestMessagesBySig',
             timestamp: Date.now(),
             args: {
-                sig: child.parent,
+                id: child.parent,
             },
         });
     }
@@ -566,7 +591,7 @@ export class Client {
                         )
                         .last();
                     if (setPeers && setPeers.type === MessageType.SET_PEERS) {
-                        await this.onSetPeers(setPeers);
+                        await this.onSetPeers(setPeers, ch.id);
                     } else {
                         this.debug('no-set-peers', ch.id);
                     }
@@ -630,12 +655,14 @@ export class Client {
         // FIXME: commit an empty input message, if we don't have one
         // we currently depend on this in the simulation but we really shouldn't!!
         if ((await this.db.messages.count()) === 0) {
-            await this.commit({
-                type: MessageType.INPUT,
-                round: 1, //(Date.now() + 100) / 50,
-                channel: channelId,
-                data: 0,
-            });
+            await this.commit(
+                {
+                    type: MessageType.INPUT,
+                    round: 1, //(Date.now() + 100) / 50,
+                    data: 0,
+                },
+                channelId,
+            );
         }
     }
 
@@ -644,7 +671,7 @@ export class Client {
             type: MessageType.CREATE_CHANNEL,
             name,
         };
-        const commitment = await this.commit(msg);
+        const commitment = await this.commit(msg, null);
         if (!commitment.sig) {
             throw new Error('commitment-sig-missing');
         }
@@ -656,11 +683,10 @@ export class Client {
     async setPeers(channelId: string, peers: string[]) {
         const msg: SetPeersMessage = {
             type: MessageType.SET_PEERS,
-            channel: channelId,
             peers: peers.sort().map((p) => Buffer.from(p, 'hex')),
         };
-        await this.commit(msg);
-        await this.onSetPeers(msg);
+        await this.commit(msg, channelId);
+        await this.onSetPeers(msg, channelId);
     }
 
     private debug(...args: any[]) {
@@ -723,18 +749,18 @@ export class Client {
     private getRequestHandler = (name: SocketRPCRequest['name']) => {
         switch (name) {
             case 'requestMessagesBySig':
-                return this.requestMessagesBySig;
+                return this.requestMessagesById;
             default:
                 return null;
         }
     };
 
-    private requestMessagesBySig = async ({
-        sig,
+    private requestMessagesById = async ({
+        id,
     }: {
-        sig: Uint8Array;
+        id: Uint8Array;
     }): Promise<number> => {
-        const msg = await this.db.messages.get(sig);
+        const msg = await this.db.messages.get(id);
         if (!msg) {
             return 0;
         }

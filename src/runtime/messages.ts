@@ -28,13 +28,11 @@ export type KeepAliveMessage = {
 export type InputMessage = Partial<ChainMessageProps> & {
     type: MessageType.INPUT;
     round: number;
-    channel: string;
     data: number;
 };
 
 export type SetPeersMessage = Partial<ChainMessageProps> & {
     type: MessageType.SET_PEERS;
-    channel: string;
     peers: Uint8Array[];
 };
 
@@ -110,7 +108,6 @@ function encodeInputMessage(m: InputMessage): Uint8Array {
     return cbor.encode([
         MessageType.INPUT,
         m.round,
-        m.channel,
         m.data,
 
         m.peer,
@@ -122,13 +119,12 @@ function encodeInputMessage(m: InputMessage): Uint8Array {
 }
 
 function decodeInputMessage(props: any[]): InputMessage {
-    const [round, channel, data, peer, parent, acks, height, sig] = props;
+    const [round, data, peer, parent, acks, height, sig] = props;
     return {
         type: MessageType.INPUT,
         parent,
         round,
         height,
-        channel,
         data,
         peer,
         acks,
@@ -165,7 +161,6 @@ function decodeCreateChannelMessage(props: any[]): CreateChannelMessage {
 function encodeSetPeersMessage(m: SetPeersMessage): Uint8Array {
     return cbor.encode([
         MessageType.SET_PEERS,
-        m.channel,
         m.peers,
 
         m.peer,
@@ -177,10 +172,9 @@ function encodeSetPeersMessage(m: SetPeersMessage): Uint8Array {
 }
 
 function decodeSetPeersMessage(props: any[]): SetPeersMessage {
-    const [channel, peers, peer, parent, acks, height, sig] = props;
+    const [peers, peer, parent, acks, height, sig] = props;
     return {
         type: MessageType.SET_PEERS,
-        channel,
         peers,
         peer,
         parent,

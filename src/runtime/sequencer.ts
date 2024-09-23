@@ -145,13 +145,15 @@ export class Sequencer {
             return 0;
         }
         // console.log('writing-input-block', round, input);
-        this.prev = await this.committer.commit({
-            type: MessageType.INPUT,
-            round: round,
-            channel: this.channelId,
-            data: input,
-            acks: ackIds || [],
-        });
+        this.prev = await this.committer.commit(
+            {
+                type: MessageType.INPUT,
+                round: round,
+                data: input,
+                acks: ackIds || [],
+            },
+            this.channelId,
+        );
         this.lastCommitted = Date.now();
         // we commited, count it
         return 1;
@@ -253,11 +255,10 @@ export class Sequencer {
         )
             .filter(
                 (m) =>
-                    m.sig &&
                     m.peer &&
                     Buffer.from(m.peer).toString('hex') !== this.peerId,
             )
-            .map((m) => m.sig as Uint8Array);
+            .map((m) => m.id);
         // we can't write a block if we do not have enough acks the interlaced round
         // FIXME: this is currently in lockstep
         const requiredCount =
@@ -286,7 +287,7 @@ export class Sequencer {
                     m.peer &&
                     Buffer.from(m.peer).toString('hex') !== this.peerId,
             )
-            .map((m) => m.sig);
+            .map((m) => m.id);
         // we can't write a block if we do not have enough acks on the interlaced*N round
         if (longAckIds.length < this.channelPeerIds.length - 1) {
             return [false, null];

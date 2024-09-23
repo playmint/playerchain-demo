@@ -1,8 +1,7 @@
 import * as Comlink from 'comlink';
 import Dexie from 'dexie';
 import * as THREE from 'three';
-import database, { DB } from '../../runtime/db';
-import { Message } from '../../runtime/messages';
+import database, { DB, StoredMessage } from '../../runtime/db';
 
 const PACKET_SCALE = 0.1;
 const SPREAD_X = 5.5;
@@ -119,7 +118,7 @@ export async function stopGraph() {
 type MessageData = {
     minRound: number;
     maxRound: number;
-    messagesWithOffsetRound: (Message & {
+    messagesWithOffsetRound: (StoredMessage & {
         originalRound: number;
         round: number;
     })[];
@@ -225,8 +224,8 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
             // skip the very last round to make it look neater
             return data;
         }
-        const msgId = Buffer.from(m.sig).toString('hex');
-        const peerId = Buffer.from(m.peer).toString('hex');
+        const msgId = Buffer.from(m.id).toString('hex');
+        const peerId = m.peer ? Buffer.from(m.peer).toString('hex') : '';
 
         // FIXME: peers should be passed in
         if (!peers.includes(peerId)) {
@@ -270,7 +269,9 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
 
         const props: BlockProps = {
             key: msgId,
-            acks: m.acks.map((ack) => Buffer.from(ack).toString('hex')),
+            acks: m.acks
+                ? m.acks.map((ack) => Buffer.from(ack).toString('hex'))
+                : [],
             parent: m.parent ? Buffer.from(m.parent).toString('hex') : null,
             position,
             peerId,

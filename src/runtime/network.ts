@@ -215,7 +215,7 @@ export type SocketRPCGetMessagesByHeight = {
     timestamp: number;
     sender: string;
     args: {
-        sig: Uint8Array;
+        id: Uint8Array;
     };
 };
 

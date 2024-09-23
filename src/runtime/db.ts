@@ -72,12 +72,15 @@ export type PeerNames = {
     name: string;
 };
 
-export type StoredMessage = ChainMessage & { arrived: number };
+export type StoredMessage = ChainMessage & {
+    id: Uint8Array;
+    arrived: number;
+    channel: string | null;
+};
 
 export type DB = Dexie & {
     channels: EntityTable<ChannelInfo, 'id'>;
-    messages: EntityTable<StoredMessage>;
-    missing: EntityTable<Missing, 'sig'>;
+    messages: EntityTable<StoredMessage, 'id'>;
     state: EntityTable<SerializedState>;
     peers: EntityTable<PeerInfo, 'peerId'>;
     network: EntityTable<NetworkInfo, 'id'>;
@@ -92,8 +95,7 @@ export function open(name: string): DB {
         channels: 'id',
         peers: 'peerId, connected',
         messages:
-            'sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+arrived]',
-        missing: 'sig',
+            'id, &sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+arrived]',
         state: '[channel+tag+round]',
         network: 'id',
         settings: 'id',
