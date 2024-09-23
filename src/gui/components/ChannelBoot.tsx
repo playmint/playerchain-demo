@@ -149,11 +149,17 @@ const terminalFlow = ({ db, peerId, client }: TerminalFlowArgs) => [
     },
     {
         text: (
-            <span className={termstyles.promptTextColor}>Enter your name:</span>
+            <span className={termstyles.promptTextColor}>
+                Enter your name [{peerId.slice(0, 8)}]:
+            </span>
         ),
         userInput: true,
         promise: (input: string) =>
             new Promise((resolve, reject) => {
+                if (input.length === 0) {
+                    // default to peerId
+                    input = peerId.slice(0, 8);
+                }
                 if (input.length > 30) {
                     reject('TOO LONG');
                     return;
