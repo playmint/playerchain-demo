@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import { Cubes } from '../examples/cubes';
 import { SpaceShooter } from '../examples/spaceshooter';
+import { DefaultMetrics } from './metrics';
 import { importStatic } from './utils';
 
 export enum Model {
@@ -19,6 +20,7 @@ export interface RendererProps {
     mod: GameModule; // the game module implementation
     peerNames: Record<string, string>; // the names of the players
     channelId: string; // the channelId of the game
+    metrics?: DefaultMetrics;
 }
 
 export type OnStateChange = (rawState: any) => void;

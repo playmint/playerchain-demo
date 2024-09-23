@@ -1,6 +1,7 @@
 import { PerspectiveCamera } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo } from 'react';
+import { DefaultMetrics } from '../../../runtime/metrics';
 import {
     EntityObject3D,
     InterpolateSpeed,
@@ -16,11 +17,17 @@ const CAM_INITIAL_ZOOM = 160;
 export default memo(function PlayerCam({
     worldRef,
     peerId,
+    metrics,
 }: {
     worldRef: WorldRef;
     peerId: string;
+    metrics?: DefaultMetrics;
 }) {
     useFrame(({ camera }, deltaTime) => {
+        // fps counter
+        if (metrics) {
+            metrics.fps.add(1);
+        }
         const world = worldRef.current;
         // find the player data for viewing peerId
         const player = world.players.get(peerId);

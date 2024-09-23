@@ -5,6 +5,7 @@ import type { Client } from './client';
 import { DB } from './db';
 import { GameModule } from './game';
 import { InputMessage, Message, MessageType } from './messages';
+import { DefaultMetrics } from './metrics';
 import { CancelFunction, setPeriodic } from './utils';
 
 export interface Committer {
@@ -28,9 +29,10 @@ export interface SequencerConfig {
     rate: number;
     mode: SequencerMode;
     interlace: number;
+    metrics?: DefaultMetrics;
 }
 
-const MIN_SEQUENCE_RATE = 10;
+const MIN_SEQUENCE_RATE = 16.666;
 
 // the current input
 export class Sequencer {
@@ -46,6 +48,7 @@ export class Sequencer {
     private inputDelay = 100;
     private mode: SequencerMode;
     private interlace: number;
+    private metrics?: DefaultMetrics;
     peerId: string;
     db: DB;
     lastCommitted = 0;
@@ -61,6 +64,7 @@ export class Sequencer {
         channelPeerIds,
         interlace,
         rate,
+        metrics,
     }: SequencerConfig) {
         this.db = db;
         this.mode = mode;
@@ -84,6 +88,7 @@ export class Sequencer {
                 ? this.fixedUpdateRate
                 : MIN_SEQUENCE_RATE;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 1; // 1s warmup
+        this.metrics = metrics;
     }
 
     private loop = async () => {
@@ -91,19 +96,22 @@ export class Sequencer {
             return;
         }
         try {
-            await this._loop();
+            const commits = await this._loop();
+            if (this.metrics) {
+                this.metrics.cps.add(commits);
+            }
         } catch (err) {
             console.error(`seq-loop-err: ${err}`);
         }
     };
 
-    private async _loop() {
+    private async _loop(): Promise<number> {
         // give it a couple of seconds to learn the network
         // TODO: how can we ever know for sure when ready?
         if (this.warmingUp > 0) {
             console.log('seq-warming-up', this.warmingUp);
             this.warmingUp -= 1;
-            return;
+            return 0;
         }
         // get the current round
         const round = await this.getRound();
@@ -115,7 +123,7 @@ export class Sequencer {
             round <= this.prev.round
         ) {
             console.log('seq-no-new-round', round);
-            return;
+            return 0;
         }
         // get the current input state
         const input = this.mod.getInput();
@@ -134,7 +142,7 @@ export class Sequencer {
             //         },
             //     );
             // }
-            return;
+            return 0;
         }
         // console.log('writing-input-block', round, input);
         this.prev = await this.committer.commit(
@@ -147,6 +155,8 @@ export class Sequencer {
             ackIds || [],
         );
         this.lastCommitted = Date.now();
+        // we commited, count it
+        return 1;
     }
 
     private async getRound(): Promise<number> {

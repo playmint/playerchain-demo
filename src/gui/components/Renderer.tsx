@@ -3,7 +3,9 @@ import { FC, memo, useEffect, useMemo } from 'react';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
 import { RendererProps } from '../../runtime/game';
+import { DefaultMetrics } from '../../runtime/metrics';
 import { Sequencer, SequencerMode } from '../../runtime/sequencer';
+import { SimResult } from '../../runtime/simulation';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -13,10 +15,12 @@ export default memo(function Renderer({
     channelId,
     channelPeerIds,
     interlace,
+    metrics,
 }: {
     channelId: string;
     channelPeerIds: string[];
     interlace: number;
+    metrics: DefaultMetrics;
 }) {
     const db = useDatabase();
     const { peerId } = useCredentials();
@@ -79,6 +83,7 @@ export default memo(function Renderer({
             interlace,
             channelPeerIds,
             peerId,
+            metrics,
             db,
         });
         seq.start();
@@ -87,7 +92,17 @@ export default memo(function Renderer({
             seq.destroy();
             console.log('stopping sequencer');
         };
-    }, [client, channelId, rate, mod, peerId, db, channelPeerIds, interlace]);
+    }, [
+        client,
+        channelId,
+        rate,
+        mod,
+        peerId,
+        db,
+        channelPeerIds,
+        interlace,
+        metrics,
+    ]);
 
     // configure event handlers
     useEffect(() => {
@@ -129,6 +144,7 @@ export default memo(function Renderer({
         if (!mod) {
             return;
         }
+        let prevRound: number | null = null;
         let cueing = false;
         let timer: any;
         timer = setInterval(() => {
@@ -138,18 +154,28 @@ export default memo(function Renderer({
             }
             cueing = true;
             try {
-                const now = Math.floor(Date.now() / rate);
-                sim.cue(now)
-                    .then((state: any) => {
-                        if (!state) {
+                sim.getCurrentRoundLimit()
+                    .then((round) => {
+                        if (prevRound !== null && round === prevRound) {
+                            cueing = false;
+                            metrics.sps.add(0);
+                            return null;
+                        }
+                        prevRound = round;
+                        return sim.cue(round);
+                    })
+                    .then((result: SimResult | null) => {
+                        if (!result) {
                             return;
                         }
-                        mod.load(state.data);
+                        metrics.sps.add(result.runs);
+                        mod.load(result.state.data);
                         mod.notify();
                     })
                     .catch((err) => {
                         cueing = false;
                         console.error('cue-to-err:', err);
+                        metrics.sps.add(0);
                     })
                     .finally(() => {
                         cueing = false;
@@ -157,6 +183,7 @@ export default memo(function Renderer({
             } catch (err) {
                 console.error('cue-err:', err);
                 cueing = false;
+                metrics.sps.add(0);
             }
         }, rate);
         return () => {
@@ -166,7 +193,7 @@ export default memo(function Renderer({
                 timer = null;
             }
         };
-    }, [sim, rate, mod]);
+    }, [sim, rate, mod, metrics.sps]);
 
     if (!mod) {
         return <div>NO MOD</div>;
@@ -181,6 +208,7 @@ export default memo(function Renderer({
             peerId={peerId}
             peerNames={peerNames}
             channelId={channelId}
+            metrics={metrics}
         />
     );
 });

@@ -50,6 +50,7 @@ export default memo(function ShooterCanvas({
     mod,
     peerId,
     peerNames,
+    metrics,
 }: RendererProps) {
     const worldRef = useMemo((): WorldRef => ({}) as WorldRef, []);
     const playersRef = useMemo(

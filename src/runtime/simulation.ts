@@ -19,6 +19,11 @@ export type RoundInput = {
     inputs: PlayerData[];
 };
 
+export type SimResult = {
+    state: State;
+    runs: number; // how many ticks were processed
+};
+
 export interface SimulationConfig {
     dbname: string;
     channelId: string;
@@ -38,7 +43,7 @@ export class Simulation {
     private mod: Promise<GameModule>;
     private idleTimeoutRounds: number;
     private stateCache: IncrementalCache<number, SerializedState>;
-    private stateBuffer = 100;
+    private stateBuffer = 200;
     private mode: SequencerMode;
     private peerId: string;
     private channelPeerIds: string[];
@@ -79,7 +84,7 @@ export class Simulation {
         return this.fixedUpdateRate;
     }
 
-    private async apply(inState: State, round: RoundInput): Promise<State> {
+    private async apply(inState: State, round: RoundInput): Promise<SimResult> {
         try {
             return this._apply(inState, round);
         } catch (err) {
@@ -88,7 +93,11 @@ export class Simulation {
         }
     }
 
-    private async _apply(inState: State, round: RoundInput): Promise<State> {
+    private async _apply(
+        inState: State,
+        round: RoundInput,
+    ): Promise<SimResult> {
+        let runs = 0;
         const deltaTime = this.fixedUpdateRate / 1000;
         const mod = await this.mod;
         // clone the world
@@ -113,6 +122,7 @@ export class Simulation {
             }
             mod.load(nextState.data);
             mod.run(nextState.inputs, deltaTime, nextState.t);
+            runs++;
             nextState.data = mod.dump();
         }
         // reset inputs on Nth round
@@ -127,12 +137,13 @@ export class Simulation {
         nextState.t = round.round;
         mod.load(nextState.data);
         mod.run(nextState.inputs, deltaTime, nextState.t);
+        runs++;
         nextState.data = mod.dump();
         // return the copy of the state
-        return nextState;
+        return { state: nextState, runs };
     }
 
-    private async getState(toRound: number): Promise<SerializedState> {
+    private async getRollbackState(toRound: number): Promise<SerializedState> {
         // what was the last state we processed?
         let latestState = this.stateCache.getBefore(toRound);
         if (!latestState) {
@@ -171,7 +182,7 @@ export class Simulation {
         await this.db.messages
             .where(['channel', 'arrived'])
             .between(
-                [this.channelId, latestState.arrived],
+                [this.channelId, latestState.arrived + 1],
                 [this.channelId, Dexie.maxKey],
                 false,
             )
@@ -217,12 +228,12 @@ export class Simulation {
             throw new Error('no-state-checkpoint-found-to-rollback-to');
         }
         if (checkpoint.round === startFromRound + 1) {
-            throw new Error('asset-failed: should be less than');
+            throw new Error('assert-failed: should be less than');
         }
         return checkpoint;
     }
 
-    private async getCurrentRoundLimit(): Promise<number> {
+    async getCurrentRoundLimit(): Promise<number> {
         if (this.mode === SequencerMode.WALLCLOCK) {
             return await this.getCurrentRoundLimitFromTime();
         } else if (this.mode === SequencerMode.CORDIAL) {
@@ -266,7 +277,7 @@ export class Simulation {
         return this.fixedUpdateRate;
     }
 
-    async cue(targetRound: number): Promise<State | null> {
+    async cue(targetRound: number): Promise<SimResult | null> {
         if (this.cueing) {
             console.warn('cue-already-in-progress');
             return null;
@@ -281,7 +292,7 @@ export class Simulation {
             this.cueing = false;
         }
     }
-    private async _cue(targetRound: number): Promise<State | null> {
+    private async _cue(targetRound: number): Promise<SimResult | null> {
         // find the round to process to
         const toRound = Math.min(
             await this.getCurrentRoundLimit(),
@@ -289,7 +300,7 @@ export class Simulation {
         );
 
         // find the round we need to process from
-        const rollbackState = await this.getState(toRound);
+        const rollbackState = await this.getRollbackState(toRound);
         const fromRound = rollbackState.round;
 
         // santize the range
@@ -305,7 +316,7 @@ export class Simulation {
                 .where(['channel', 'round', 'peer'])
                 .between(
                     [this.channelId, fromRound + 1, Dexie.minKey],
-                    [this.channelId, toRound + 1, Dexie.maxKey],
+                    [this.channelId, toRound, Dexie.maxKey],
                 )
                 .toArray()
         )
@@ -354,20 +365,24 @@ export class Simulation {
             });
         }
         // push in the emulated tick for toRound if no messages
-        if (prevRound < toRound) {
-            roundInputs.push({
-                round: toRound,
-                arrived: prevArrived,
-                delta: toRound - prevRound - 1,
-                inputs: [],
-                fake: true,
-            });
-        }
+        // FIXME: this is required for WALLCLOCK mode, commented out while investigating too many sim runs
+        // if (prevRound < toRound) {
+        //     roundInputs.push({
+        //         round: toRound,
+        //         arrived: prevArrived,
+        //         delta: toRound - prevRound - 1,
+        //         inputs: [],
+        //         fake: true,
+        //     });
+        // }
         // apply the messages on top of the state
+        let runs = 0;
         let state = rollbackState.state;
         const checkpoints: SerializedState[] = [];
         for (const round of roundInputs) {
-            state = await this.apply(state, round);
+            const res = await this.apply(state, round);
+            state = res.state;
+            runs += res.runs;
             // maybe write it if it's a checkpoint round
             if (!round.fake) {
                 const checkpoint: SerializedState = {
@@ -419,7 +434,7 @@ export class Simulation {
         //         fakes=${fakes}
         //     `,
         // );
-        return state;
+        return { state, runs };
     }
 
     destroy() {}

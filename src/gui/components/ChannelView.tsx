@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
+import { createDefaultMetrics } from '../../runtime/metrics';
 import { getPlayerColorCSS } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -12,12 +13,13 @@ import theme from '../styles/default.module.css';
 import PacketLace from './PacketLace';
 import Renderer from './Renderer';
 import { Spinner } from './Spinner';
+import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-const FIXED_UPDATE_RATE = 30;
-const INTERLACE = 6;
-const SIM_INPUT_DELAY = 3; // number of ticks to avoid
+const FIXED_UPDATE_RATE = 33;
+const INTERLACE = 4;
+const SIM_INPUT_DELAY = 2; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({
@@ -32,6 +34,8 @@ export default memo(function ChannelView({
     const db = useDatabase();
     const client = useClient();
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
+
+    const metrics = useMemo(() => createDefaultMetrics(FIXED_UPDATE_RATE), []);
 
     const copyKeyToClipboard = () => {
         console.log('copying key to clipboard: ', channelId);
@@ -323,6 +327,7 @@ export default memo(function ChannelView({
                             channelId={channel.id}
                             channelPeerIds={channelPeers}
                             interlace={INTERLACE}
+                            metrics={metrics}
                         />
                     </SimulationProvider>
                 )}
@@ -377,31 +382,45 @@ export default memo(function ChannelView({
                         flexGrow: 0,
                         display: 'flex',
                         flexDirection: 'column',
+                        justifyContent: 'space-between',
                     }}
                 >
-                    {(channel.peers.length === 0
-                        ? potentialPeers
-                        : channel.peers
-                    ).map((otherPeerId) => (
-                        <PeerStatus
-                            key={otherPeerId}
-                            peerId={otherPeerId}
-                            peerName={
-                                peerNames.find((p) => p.peerId === otherPeerId)
-                                    ?.name
-                            }
-                            selfId={peerId}
-                            info={peers.find((p) => p.peerId === otherPeerId)}
-                            peerCount={channel.peers.length}
-                        />
-                    ))}
+                    <div>
+                        {(channel.peers.length === 0
+                            ? potentialPeers
+                            : channel.peers
+                        ).map((otherPeerId) => (
+                            <PeerStatus
+                                key={otherPeerId}
+                                peerId={otherPeerId}
+                                peerName={
+                                    peerNames.find(
+                                        (p) => p.peerId === otherPeerId,
+                                    )?.name
+                                }
+                                selfId={peerId}
+                                info={peers.find(
+                                    (p) => p.peerId === otherPeerId,
+                                )}
+                                peerCount={channel.peers.length}
+                            />
+                        ))}
+                    </div>
 
                     {channelId && (
-                        <PacketLace
-                            channelId={channelId}
-                            peers={channel.peers}
-                        />
+                        <div style={{ flexGrow: 1, overflow: 'hidden' }}>
+                            <PacketLace
+                                channelId={channelId}
+                                peers={channel.peers}
+                            />
+                        </div>
                     )}
+
+                    <div style={{ height: '20rem' }}>
+                        <Stat metric={metrics.fps} />
+                        <Stat metric={metrics.sps} />
+                        <Stat metric={metrics.cps} />
+                    </div>
                 </div>
             )}
         </div>
