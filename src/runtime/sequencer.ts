@@ -130,18 +130,6 @@ export class Sequencer {
         // can we write a block?
         const [canWrite, ackIds] = await this.canWriteInputBlock(input, round);
         if (!canWrite) {
-            // if (this.prev) {
-            //     // resend the prev message again
-            //     this.committer.send(
-            //         {
-            //             type: PacketType.MESSAGE,
-            //             msgs: [this.prev],
-            //         },
-            //         {
-            //             ttl: 200,
-            //         },
-            //     );
-            // }
             return 0;
         }
         // console.log('writing-input-block', round, input);

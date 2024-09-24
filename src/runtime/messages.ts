@@ -162,7 +162,6 @@ function encodeSetPeersMessage(m: SetPeersMessage): Uint8Array {
     return cbor.encode([
         MessageType.SET_PEERS,
         m.peers,
-
         m.peer,
         m.parent,
         m.acks,

@@ -361,7 +361,6 @@ export async function onResize(width: number, height: number) {
     }
 
     // FIXME: This isn't working correctly
-
     canvas.width = width;
     canvas.height = height;
 
