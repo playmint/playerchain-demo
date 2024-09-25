@@ -98,7 +98,7 @@ export default memo(function PlayerCam({
                 near={1}
                 far={1000}
             />
-            <color attach="background" args={[0x112059]} />
+            <color attach="background" args={[0x060d37]} />
             <ambientLight color={0x404040} />
             <directionalLight
                 position={[-1, 1, 1]}

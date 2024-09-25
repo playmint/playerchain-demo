@@ -137,10 +137,16 @@ export function interpolateEntityVisibility(
     obj: EntityObject3D,
     world: World<ShooterSchema>,
     eid: EntityId,
-    _deltaTime?: number,
-    _decay?: InterpolateSpeed,
+    _delay?: number,
 ) {
-    obj.visible = !!world.components.entity.data.active[eid];
+    const isActive = world.components.entity.data.active[eid];
+    if (isActive) {
+        setTimeout(() => {
+            obj.visible = true;
+        }, _delay);
+    } else {
+        obj.visible = false;
+    }
 }
 
 export function updateEntityGeneration(

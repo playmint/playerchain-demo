@@ -10,6 +10,7 @@ export default system<ShooterSchema>(
     ({
         rotation,
         query,
+        hasTag,
         collider,
         players,
         stats,
@@ -29,8 +30,8 @@ export default system<ShooterSchema>(
 
             // CHECKME I THINK I MESSED THIS UP IN THE PORT
             if (
-                collider.hasCollided[bullet]
-                // hasTag(collider.collisionEntity[bullet], Tags.IsShip)
+                collider.hasCollided[bullet] &&
+                 hasTag(collider.collisionEntity[bullet], Tags.IsShip)
             ) {
                 // && IsBullet[physics.collisionEntity[bullet]])
                 // stats.health[bullet] = 0;
