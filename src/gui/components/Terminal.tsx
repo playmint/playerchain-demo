@@ -5,6 +5,7 @@ import {
     useRef,
     useState,
 } from 'react';
+import { isWindows, newPlayerWindow } from '../system/menu';
 import termstyles from './Terminal.module.css';
 
 const InputStyle: React.CSSProperties = {
@@ -213,6 +214,15 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
         }
 
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (isWindows) {
+                if (e.key === 'p' && e.ctrlKey) {
+                    e.preventDefault();
+                    newPlayerWindow().catch((err) => {
+                        console.error('Failed to open new player window', err);
+                    });
+                    return;
+                }
+            }
             if (flow[opIndex].choices) {
                 if (e.key === 'ArrowUp') {
                     e.preventDefault();
