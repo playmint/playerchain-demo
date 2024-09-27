@@ -16,6 +16,7 @@ export default memo(function SimulationProvider({
     peerId,
     channelPeerIds,
     inputDelay,
+    interlace,
 }: {
     peerId: string;
     channelPeerIds: string[];
@@ -24,6 +25,7 @@ export default memo(function SimulationProvider({
     rate: number;
     inputDelay: number; // in "ticks" not ms
     children: React.ReactNode;
+    interlace: number;
 }) {
     const { keys, dbname } = useCredentials();
     // console.log(`SimulationProvider ${src} ${rate}`);
@@ -61,6 +63,7 @@ export default memo(function SimulationProvider({
                 mode: SequencerMode.CORDIAL,
                 channelPeerIds,
                 inputDelay,
+                interlace,
             });
             await s.init();
             defer(async () => {
@@ -70,7 +73,15 @@ export default memo(function SimulationProvider({
 
             return s;
         },
-        [src, rate, dbname, keys, channelId, channelPeerIds.join('|')],
+        [
+            src,
+            rate,
+            dbname,
+            keys,
+            channelId,
+            channelPeerIds.join('|'),
+            interlace,
+        ],
     );
 
     const mod = useAsyncMemo(async () => load(src), [src]);

@@ -214,7 +214,7 @@ export class Sequencer {
         round: number,
     ): Promise<[boolean, Uint8Array[] | null]> {
         // we can write a block (without acks) if our next round is below the interlace
-        if (round < this.interlace * 2 + 1) {
+        if (round <= this.interlace * 2 + 1) {
             return [true, null];
         }
         // must not write another block immediately after the last one
@@ -254,9 +254,9 @@ export class Sequencer {
                 ? this.channelPeerIds.length - 2 // maybe 2
                 : this.channelPeerIds.length - 2;
         if (ackIds.length < requiredCount) {
-            // console.log(
-            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
-            // );
+            console.log(
+                `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
+            );
             return [false, null];
         }
 
@@ -265,8 +265,16 @@ export class Sequencer {
             await this.db.messages
                 .where(['channel', 'round', 'peer'])
                 .between(
-                    [this.channelId, round - this.interlace * 2, Dexie.minKey],
-                    [this.channelId, round - this.interlace * 2, Dexie.maxKey],
+                    [
+                        this.channelId,
+                        round - this.interlace * 2 - 1,
+                        Dexie.minKey,
+                    ],
+                    [
+                        this.channelId,
+                        round - this.interlace * 2 - 1,
+                        Dexie.maxKey,
+                    ],
                 )
                 .toArray()
         )
