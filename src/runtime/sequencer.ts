@@ -237,7 +237,7 @@ export class Sequencer {
                 console.log('ALLOW FASTFORWARD', numCommits);
             } else {
                 const wait = this.fixedUpdateRate - timeSinceLastCommit;
-                if (wait > 10) {
+                if (wait > 5) {
                     // console.log(
                     //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound} wait=${this.fixedUpdateRate - timeSinceLastCommit}`,
                     // );
