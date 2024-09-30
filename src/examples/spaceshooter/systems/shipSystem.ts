@@ -139,7 +139,6 @@ function addShip({
     stats.deathTimer[eid] = 200;
     stats.hasExploded[eid] = 0;
     stats.hasRespawned[eid] = 0;
-    stats.multiplier[eid] = 1;
     entity.generation[eid] = 0;
     // stats.initialSpawn[eid] = 1;
 

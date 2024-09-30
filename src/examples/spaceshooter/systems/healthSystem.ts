@@ -45,23 +45,24 @@ export default system<ShooterSchema>(
                 );
                 if (shooter) {
                     if (targetHealth === 0) {
-                        // top player
+                        // give bonus points for killing the top player
                         const topPlayer = players.reduce((a, b) =>
                             a.score > b.score ? a : b,
                         );
 
-                        const multiplier = stats.multiplier[shooter.ship];
-                        shooter.score += SCORE_KILL * multiplier;
-                        // give bonus points for killing the top player
                         if (
                             target === topPlayer.ship &&
                             topPlayer.score > shooter.score
                         ) {
                             shooter.score += TOP_PLAYER_KILL_BONUS;
                         }
+
+                        // give points for kill
+                        shooter.score += SCORE_KILL * shooter.scoreMul;
+
                         // increase multiplier
-                        if (multiplier < MAX_MULTIPLIER) {
-                            stats.multiplier[shooter.ship] = multiplier + 1;
+                        if (shooter.scoreMul < MAX_MULTIPLIER) {
+                            shooter.scoreMul++;
                         }
                     } else {
                         shooter.score += SCORE_HIT;
@@ -77,7 +78,7 @@ export default system<ShooterSchema>(
                         velocity.y[target] = 0;
                         entity.active[target] = 0;
                         // reset multiplier
-                        stats.multiplier[target] = 1;
+                        player.scoreMul = 1;
                     }
                 }
             }

@@ -66,6 +66,7 @@ export const schema = {
         input: Type.u32,
         ship: Type.eid,
         score: Type.u32,
+        scoreMul: Type.u8,
     },
     components: {
         entity: {
@@ -116,7 +117,6 @@ export const schema = {
             hasExploded: Type.u8,
             hasRespawned: Type.u8,
             deathTimer: Type.u8,
-            multiplier: Type.u8,
         },
     },
 };
@@ -230,6 +230,7 @@ export class SpaceShooter implements GameModule {
                     input: 0,
                     ship: 0,
                     score: 0,
+                    scoreMul: 1,
                 });
             }
             p.input = data.input;

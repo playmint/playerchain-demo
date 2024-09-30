@@ -56,6 +56,7 @@ export default memo(function ShipEntity({
     const sparksRef = useRef<SparksFXHandle>(null!);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
+    const isTopPlayerRef = useRef(false);
 
     const gltf = useGLTF(assetPath(shipGLTF));
     useEffect(() => {
@@ -70,12 +71,20 @@ export default memo(function ShipEntity({
         const players = playersRef.current;
         const [peerId, player] = getShipOwner();
         const playerIdx = players.findIndex((p) => p.id === peerId);
+        const sortedPlayers = [...players].sort((a, b) => a.score - b.score);
+        const topPlayer = sortedPlayers[sortedPlayers.length - 1];
+
         const color = new Color(peerId ? getPlayerColor(playerIdx) : '#ffffff');
         const group = groupRef.current;
         const ship = shipRef.current as EntityObject3D;
         if (!player) {
             return;
         }
+        isTopPlayerRef.current =
+            sortedPlayers.length > 1 &&
+            player.ship === topPlayer.ship &&
+            topPlayer.score > sortedPlayers[sortedPlayers.length - 2].score;
+
         // color the ship
         ship.children[0].children[0].traverse((child) => {
             if (child instanceof Mesh) {
@@ -247,7 +256,11 @@ export default memo(function ShipEntity({
         }
         if (labelRef.current) {
             labelRef.current.innerHTML =
-                players[playerIdx]?.name || peerId.slice(0, 8);
+                `${isTopPlayerRef.current ? '👑' : ''}` +
+                (players[playerIdx].scoreMul > 1
+                    ? `&nbsp;x${players[playerIdx].scoreMul}<br/>`
+                    : '') +
+                (players[playerIdx]?.name || peerId.slice(0, 8));
         }
         // mark prev states
         updateEntityGeneration(group, world, eid);
@@ -268,6 +281,7 @@ export default memo(function ShipEntity({
                     fontSize: 11,
                     pointerEvents: 'none',
                     userSelect: 'none',
+                    textAlign: 'center',
                 }}
                 position={[3, 5, 0]}
             ></Html>
