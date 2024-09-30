@@ -101,15 +101,16 @@ export default memo(function PlayerCam({
             <color attach="background" args={[0x060d37]} />
             <ambientLight color={0x404040} />
             <directionalLight
-                position={[-1, 1, 1]}
-                intensity={12}
-                color={0xffffff}
-            />
-            <directionalLight
                 position={[1, -1, 1]}
                 intensity={8}
                 color={0xffaf7b}
             />
+            <directionalLight
+                position={[-1, 1, 1]}
+                intensity={12}
+                color={0xffffff}
+            />
+            
             <fog attach="fog" args={[0x444466, 100, 1]} />
             <BackgroundGrid />
         </>

@@ -151,7 +151,7 @@ export default memo(function ShipEntity({
                 const pos = new Vector3(
                     world.components.collider.data.collisionPointX[eid],
                     world.components.collider.data.collisionPointY[eid],
-                    0,
+                    2,
                 );
                 sparksRef.current.triggerSparks(pos);
                 // We should maybe have a sound for this too
