@@ -856,33 +856,29 @@ export class Client {
         }
     };
 
-    private onRPCRequest = bufferedCall(
-        async (b: Buffer) => {
-            const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
-            if (req.sender === this.peerId) {
-                // don't answer own requests!
-                return;
-            }
-            if (!req.name) {
-                return;
-            }
-            if (
-                !req.timestamp ||
-                typeof req.timestamp !== 'number' ||
-                req.timestamp < Date.now() - 2000
-            ) {
-                // ignore old requests
-                return;
-            }
-            const handler = this.getRequestHandler(req.name);
-            if (!handler) {
-                return;
-            }
-            await handler(req.args as any);
-        },
-        5,
-        'onRPCRequest',
-    );
+    private onRPCRequest = async (b: Buffer) => {
+        const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
+        if (req.sender === this.peerId) {
+            // don't answer own requests!
+            return;
+        }
+        if (!req.name) {
+            return;
+        }
+        if (
+            !req.timestamp ||
+            typeof req.timestamp !== 'number' ||
+            req.timestamp < Date.now() - 2000
+        ) {
+            // ignore old requests
+            return;
+        }
+        const handler = this.getRequestHandler(req.name);
+        if (!handler) {
+            return;
+        }
+        await handler(req.args as any);
+    };
 
     private getRequestHandler = (name: SocketRPCRequest['name']) => {
         switch (name) {

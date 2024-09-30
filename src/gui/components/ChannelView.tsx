@@ -116,6 +116,11 @@ export default memo(function ChannelView({
 
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks
+    const required = channel
+        ? channel.peers.length > 2
+            ? channel.peers.length - 1
+            : channel.peers.length
+        : 0;
     const readyPeers = useMemo(() => {
         if (!channel) {
             return 0;
@@ -132,20 +137,19 @@ export default memo(function ChannelView({
             if (!alive) {
                 return acc;
             }
-            const seesChannelPeers = channel.peers.every(
+            const seesChannelPeers = channel.peers.filter(
                 (channelPeerId) =>
                     channelPeerId === pid ||
                     info.sees.includes(channelPeerId.slice(0, 8)),
             );
-            return seesChannelPeers ? acc + 1 : acc;
+            return seesChannelPeers.length >= required ? acc + 1 : acc;
         }, 0);
-    }, [channel, peerId, peers]);
+    }, [channel, peerId, peers, required]);
 
     if (!channel) {
         return <div>failed to load channel data</div>;
     }
 
-    const required = channel.peers.length; //channel.peers.length == 2 ? 2 : channel.peers.length / 2;
     const majorityReady = readyPeers >= required;
     const selfIsInTheClub = channel.peers.includes(peerId);
 

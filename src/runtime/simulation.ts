@@ -341,7 +341,10 @@ export class Simulation {
             let accepted = true;
             // is well acked?
             // TODO: reduce this number to supermajority
-            const requiredConfirmations = this.channelPeerIds.length - 1;
+            const requiredConfirmations =
+                this.channelPeerIds.length > 2
+                    ? this.channelPeerIds.length - 2
+                    : this.channelPeerIds.length - 1;
             if (
                 needsFinalization &&
                 m.confirmations[requiredConfirmations] < requiredConfirmations
