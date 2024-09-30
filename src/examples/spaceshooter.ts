@@ -8,11 +8,11 @@ import {
     RendererProps,
 } from '../runtime/game';
 import bulletSystem from './spaceshooter/systems/bulletSystem';
+import countdownSystem from './spaceshooter/systems/countdownSystem';
 import healthSystem from './spaceshooter/systems/healthSystem';
 import levelSystem from './spaceshooter/systems/levelSystem';
 import physicsSystem from './spaceshooter/systems/physicsSystem';
 import shipSystem from './spaceshooter/systems/shipSystem';
-import countdownSystem from './spaceshooter/systems/countdownSystem';
 
 // import { ShooterRenderer } from './spaceshooter/ShooterRenderer';
 
@@ -116,6 +116,7 @@ export const schema = {
             hasExploded: Type.u8,
             hasRespawned: Type.u8,
             deathTimer: Type.u8,
+            multiplier: Type.u8,
         },
     },
 };
@@ -233,7 +234,7 @@ export class SpaceShooter implements GameModule {
             }
             p.input = data.input;
         }
-        
+
         // execute the game systems
         levelSystem(this.world, deltaTime);
         shipSystem(this.world, deltaTime);

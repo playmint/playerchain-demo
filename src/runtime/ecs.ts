@@ -26,7 +26,7 @@ export const Type = {
 };
 
 type ComponentType = u8 | u16 | u32 | i8 | i16 | i32 | f32 | f64 | u64;
-type PlayerValueType = u32 | f32 | str | i8;
+type PlayerValueType = u32 | f32 | str;
 
 export const Vec3 = {
     x: Type.f32,

@@ -67,7 +67,7 @@ export default system<ShooterSchema>(
                     entity,
                 });
             }
-            if (entity.active[player.ship] && (timer.round[player.ship] > t)) {
+            if (entity.active[player.ship] && timer.round[player.ship] > t) {
                 // calc thurst for input
                 const thrust = hasInput(player.input, Input.Forward)
                     ? SHIP_THRUST_RATE
@@ -139,6 +139,7 @@ function addShip({
     stats.deathTimer[eid] = 200;
     stats.hasExploded[eid] = 0;
     stats.hasRespawned[eid] = 0;
+    stats.multiplier[eid] = 1;
     entity.generation[eid] = 0;
     // stats.initialSpawn[eid] = 1;
 
