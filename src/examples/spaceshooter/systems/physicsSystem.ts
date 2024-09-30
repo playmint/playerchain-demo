@@ -289,6 +289,9 @@ function collideBox(
         position.y[thisEid] = Math.fround(
             collision.point.y + collision.normal.y * circle.radius,
         );
+        collider.hasCollided[thisEid] = 1;
+        collider.collisionPointX[thisEid] = collision.point.x;
+        collider.collisionPointY[thisEid] = collision.point.y;
 
         if (physics.applyRotation[thisEid]) {
             // Rotate the object to match the new velocity

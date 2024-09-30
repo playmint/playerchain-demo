@@ -14,6 +14,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      three.quarks:
+        specifier: ^0.15.5
+        version: 0.15.5(three@0.167.1)
     devDependencies:
       '@eslint/js':
         specifier: ^9.8.0
@@ -2244,6 +2247,9 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  quarks.core@0.15.4:
+    resolution: {integrity: sha512-pNR8EVLkNNKgA0fQngtQk3EGdH2fJT7a7JJK73tDdW10C4sT7Pt2qpHcv/j8jWigQOFq0SajTPanoZRhxCOsCQ==}
+
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
@@ -2568,6 +2574,11 @@ packages:
     resolution: {integrity: sha512-ZgxxLAwtEaKkvfGP+hkW4s6IaDzif47evTdBPwVvdvLsOul3M6l0D4vO4/fzFguXT6FdoBlaTLhteOcn3uDzPg==}
     peerDependencies:
       three: '>=0.128.0'
+
+  three.quarks@0.15.5:
+    resolution: {integrity: sha512-ZI112Z8brSVnVWuL7vfLCMGhcuWSxGr1ihWr5T45v2HensNYwIQcUK8gRw3Dy4SqAYoilJPo4IOLQHIwusn9GQ==}
+    peerDependencies:
+      three: '>=0.165.0'
 
   three@0.167.1:
     resolution: {integrity: sha512-gYTLJA/UQip6J/tJvl91YYqlZF47+D/kxiWrbTon35ZHlXEN0VOo+Qke2walF1/x92v55H6enomymg4Dak52kw==}
@@ -5020,6 +5031,8 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  quarks.core@0.15.4: {}
+
   queue-microtask@1.2.3: {}
 
   randombytes@2.1.0:
@@ -5385,6 +5398,11 @@ snapshots:
       draco3d: 1.5.7
       fflate: 0.6.10
       potpack: 1.0.2
+      three: 0.167.1
+
+  three.quarks@0.15.5(three@0.167.1):
+    dependencies:
+      quarks.core: 0.15.4
       three: 0.167.1
 
   three@0.167.1: {}

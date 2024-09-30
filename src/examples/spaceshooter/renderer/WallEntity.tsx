@@ -32,7 +32,7 @@ export default memo(function WallEntity({
         <group ref={groupRef}>
             <mesh ref={meshRef} scale={1}>
                 <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial color={'red'} />
+                <meshStandardMaterial color={'#696969'} />
             </mesh>
         </group>
     );

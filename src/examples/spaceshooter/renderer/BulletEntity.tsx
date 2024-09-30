@@ -12,7 +12,6 @@ import {
 import sfxHit from '../assets/Hit.mp3?url';
 import sfxShot from '../assets/Shot.mp3?url';
 import shipGLTF from '../assets/bullet.glb?url';
-import fxPopData from '../effects/FXShoot';
 import { BULLET_LIFETIME } from '../systems/bulletSystem';
 import {
     EntityObject3D,
@@ -23,9 +22,10 @@ import {
     interpolateEntityRotation,
     interpolateEntityVisibility,
     updateEntityGeneration,
-    useParticleEffect,
 } from '../utils/RenderUtils';
 import { WorldRef } from './ShooterRenderer';
+import { ShipImpactFX, ShipImpactFXHandle } from '../effects/FXShipImpactQuarks';
+import { Tags } from '../../spaceshooter';
 
 export default memo(function BulletEntity({
     eid,
@@ -36,8 +36,8 @@ export default memo(function BulletEntity({
 }) {
     const groupRef = useRef<Group>(null!);
     const bulletRef = useRef<Group<Object3DEventMap>>(null!);
-    const popRef = useParticleEffect(groupRef, fxPopData, [0, 0, 0]);
     const shotSfxRef = useRef<PositionalAudioImpl>(null!);
+    const hitFXRef = useRef<ShipImpactFXHandle>(null!);
     const hitSfxRef = useRef<PositionalAudioImpl>(null!);
     const gltf = useGLTF(assetPath(shipGLTF));
     const model = useMemo(() => {
@@ -62,7 +62,7 @@ export default memo(function BulletEntity({
         if (isNewlySpawned) {
             bullet.visible = false;
         } else {
-            interpolateEntityVisibility(bullet, world, eid);
+            interpolateEntityVisibility(bullet, world, eid, 0);
         }
         // track bullet
         interpolateEntityPosition(
@@ -84,20 +84,16 @@ export default memo(function BulletEntity({
         );
 
         // run the pop effect on death
-        if (popRef.current) {
+        if (hitFXRef.current) {
             const hit = world.components.collider.data.hasCollided[eid];
-            popRef.current.particleSystems.forEach((particleObj) => {
-                particleObj.update(deltaTime);
-                if (hit && !particleObj.isPlaying) {
-                    const pos = new Vector3(0, 0, 0);
-                    particleObj.setPosition(pos);
-                    particleObj.start();
+                if (hit && world.hasTag(world.components.collider.data.collisionEntity[eid], Tags.IsShip)) {
+                    const pos = new Vector3(world.components.collider.data.collisionPointX[eid], world.components.collider.data.collisionPointY[eid], 0);
+                    hitFXRef.current.triggerShipImpact(pos);
                     // make noise too
                     if (!hitSfxRef.current.isPlaying) {
                         hitSfxRef.current.play();
                     }
                 }
-            });
         }
 
         // play the shot sfx on bullet spawn
@@ -117,6 +113,7 @@ export default memo(function BulletEntity({
 
     return (
         <group ref={groupRef}>
+            <ShipImpactFX ref={hitFXRef} />
             <Clone ref={bulletRef} object={model} scale={0.5} />
             <PositionalAudio
                 ref={shotSfxRef}

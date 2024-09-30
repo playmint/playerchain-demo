@@ -12,6 +12,7 @@ import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
 import ShipEntity from './ShipEntity';
 import WallEntity from './WallEntity';
+import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 
 useGLTF.setDecoderPath('/libs/draco');
 
@@ -128,6 +129,7 @@ export default memo(function ShooterCanvas({
     return (
         <>
             <Canvas resize={CANVAS_RESIZE}>
+                <StarFieldFX />
                 {entities.map((eid) => (
                     <ModelEntity
                         key={eid}

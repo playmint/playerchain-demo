@@ -10,12 +10,10 @@ import {
     Vector3,
 } from 'three';
 import { getPlayerColor } from '../../../gui/fixtures/player-colors';
-import { Input, hasInput } from '../../spaceshooter';
+import { Input, Tags, hasInput } from '../../spaceshooter';
 import sfxDestroy from '../assets/Destroy.mp3?url';
 import sfxThrust from '../assets/Thrust_Loop.mp3?url';
 import shipGLTF from '../assets/ship.glb?url';
-import fxExplodeData from '../effects/FXExplode';
-import fxRespawnData from '../effects/FXRespawn';
 import fxShootData from '../effects/FXShoot';
 import fxThrusterData from '../effects/FXThruster';
 import {
@@ -30,6 +28,9 @@ import {
     useParticleEffect,
 } from '../utils/RenderUtils';
 import { PlayersRef, WorldRef } from './ShooterRenderer';
+import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
+import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
+import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
 
 export default memo(function ShipEntity({
     eid,
@@ -47,11 +48,12 @@ export default memo(function ShipEntity({
     const groupRef = useRef<Group>(null!);
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
-    const explosionRef = useParticleEffect(groupRef, fxExplodeData, [0, 0, 0]);
+    const explosionRef = useRef<ExplodeFXHandle>(null!);
     const explosionSfxRef = useRef<PositionalAudioImpl>(null!);
     const thrustSfxRef = useRef<PositionalAudioImpl>(null!);
-    const respawnRef = useParticleEffect(groupRef, fxRespawnData, [0, 0, 0]);
+    const respawnRef = useRef<SpawnFXHandle>(null!);
     const shootRef = useParticleEffect(shipRef, fxShootData, [0, 0, 0]);
+    const sparksRef = useRef<SparksFXHandle>(null!);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
 
@@ -81,7 +83,7 @@ export default memo(function ShipEntity({
             }
         });
         // hide ship if not active (not the whole group, just the ship)
-        interpolateEntityVisibility(ship, world, eid, deltaTime);
+        interpolateEntityVisibility(ship, world, eid, 400);
         // lerp ship
         interpolateEntityPosition(
             group,
@@ -141,6 +143,21 @@ export default memo(function ShipEntity({
             }
         });
 
+        // create wall sparks
+        const hit = world.components.collider.data.hasCollided[eid];
+        if (hit && !world.hasTag(world.components.collider.data.collisionEntity[eid], Tags.IsShip) &&
+            !world.hasTag(world.components.collider.data.collisionEntity[eid], Tags.IsBullet)) {
+            if (sparksRef.current) {
+                const pos = new Vector3(
+                    world.components.collider.data.collisionPointX[eid],
+                    world.components.collider.data.collisionPointY[eid],
+                    2,
+                );
+                sparksRef.current.triggerSparks(pos);
+                // We should maybe have a sound for this too
+            }
+        }
+
         // update thruster effect
         if (thrustRef.current) {
             const thrusting =
@@ -173,43 +190,32 @@ export default memo(function ShipEntity({
         // run explosion effect (if we died)
         if (explosionRef.current) {
             const exploding = prevHealthRef.current > 0 && health <= 0;
-            explosionRef.current.particleSystems.forEach((particleObj) => {
-                if (exploding && !particleObj.isPlaying) {
-                    const pos = new Vector3(0, 0, 0);
-                    particleObj.setPosition(pos);
-                    particleObj.start();
-                    // make noise too
-                    if (!explosionSfxRef.current.isPlaying) {
-                        explosionSfxRef.current.play();
-                    }
-                } else if (
-                    particleObj.isPlaying &&
-                    world.components.entity.data.generation[eid] !==
-                        ship.__generation
-                ) {
-                    particleObj.stop();
+            if (exploding){
+                const pos = new Vector3(0, 0, 0);
+                if(explosionRef.current){
+                    explosionRef.current.triggerExplosion(pos, shipRef.current);
                 }
-                particleObj.update(deltaTime);
-            });
+                // make noise too
+                if (!explosionSfxRef.current.isPlaying) {
+                    explosionSfxRef.current.play();
+                }
+            }
         }
 
         // run respawn effect if generation changed
         if (respawnRef.current) {
             const respawned =
-                world.components.entity.data.generation[eid] !==
-                ship.__generation;
-            respawnRef.current.particleSystems.forEach((particleObj) => {
-                if (
-                    respawned &&
-                    !particleObj.isPlaying &&
-                    world.components.entity.data.active[eid]
-                ) {
-                    const pos = new Vector3(0, 0, 0);
-                    particleObj.setPosition(pos);
-                    particleObj.start();
+            world.components.entity.data.generation[eid] !==
+            ship.__generation;
+            if (
+                respawned &&
+                world.components.entity.data.active[eid]
+            ) {
+                const pos = new Vector3(0, 0, 0);
+                if(respawnRef.current){
+                    respawnRef.current.triggerSpawn(pos, shipRef.current);
                 }
-                particleObj.update(deltaTime);
-            });
+            }
         }
 
         // run shoot vfx if shooting
@@ -243,7 +249,6 @@ export default memo(function ShipEntity({
             labelRef.current.innerHTML =
                 players[playerIdx]?.name || peerId.slice(0, 8);
         }
-
         // mark prev states
         updateEntityGeneration(group, world, eid);
         updateEntityGeneration(ship, world, eid);
@@ -252,6 +257,9 @@ export default memo(function ShipEntity({
 
     return (
         <group ref={groupRef}>
+            <ExplodeFX ref={explosionRef} />
+            <SpawnFX ref={respawnRef} />
+            <SparksFX ref={sparksRef} />
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
             <Html
                 zIndexRange={[0, 100]}
