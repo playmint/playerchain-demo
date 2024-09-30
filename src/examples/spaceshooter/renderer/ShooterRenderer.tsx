@@ -150,7 +150,7 @@ export default memo(function ShooterCanvas({
         <>
             <Canvas resize={CANVAS_RESIZE} frameloop="demand">
                 <StarFieldFX />
-                <FPSLimiter fps={60} />
+                <FPSLimiter fps={30} />
                 {entities.map((eid) => (
                     <ModelEntity
                         key={eid}

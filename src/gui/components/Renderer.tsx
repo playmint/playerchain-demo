@@ -84,7 +84,7 @@ export default memo(function Renderer({
                 {
                     type: 'module',
                     /* @vite-ignore */
-                    name: `sim worker`,
+                    name: `seq worker`,
                 },
             );
             defer(async () => {
@@ -92,21 +92,26 @@ export default memo(function Renderer({
                 console.log(`seq worker terminated`);
             });
             const SequencerProxy = Comlink.wrap<typeof Sequencer>(w);
-            const seq = await new SequencerProxy({
+            defer(async () => {
+                SequencerProxy[Comlink.releaseProxy]();
+            });
+            const cfg = {
                 src,
-                committer: {
-                    commit: async (...args) => client.commit(...args),
-                    send: async (...args) => client.send(...args),
-                },
+                clientPort: await client[Comlink.createEndpoint](),
                 channelId,
                 rate,
                 mode: SequencerMode.CORDIAL,
                 interlace,
                 channelPeerIds,
                 peerId,
-                metrics,
+                // metrics,
                 dbname,
-            });
+            };
+            console.log('starting sequencer----------1', cfg);
+            const seq = await new SequencerProxy(
+                Comlink.transfer(cfg, [cfg.clientPort]),
+            );
+            console.log('starting sequencer----------2');
             seq.start().catch((err) => {
                 console.error('seq.start err:', err);
             });
@@ -136,9 +141,13 @@ export default memo(function Renderer({
                 return;
             }
             event.preventDefault();
+            if (event.repeat) {
+                return;
+            }
             if (!seq) {
                 return;
             }
+            console.log('keydown', event.key);
             seq.onKeyDown(event.key).catch((err) => {
                 console.error('keydown-err:', err);
             });
@@ -151,6 +160,7 @@ export default memo(function Renderer({
             if (!seq) {
                 return;
             }
+            console.log('keyup', event.key);
             seq.onKeyUp(event.key).catch((err) => {
                 console.error('keyup-err:', err);
             });

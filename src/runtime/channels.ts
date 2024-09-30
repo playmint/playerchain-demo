@@ -9,7 +9,7 @@ import {
 } from './messages';
 import { SocketEmitOpts } from './network';
 import { Subcluster } from './network/Subcluster';
-import { CancelFunction, bufferedCall, setPeriodic } from './utils';
+import { CancelFunction, setPeriodic } from './utils';
 
 export type ChannelConfig = {
     id: string;
@@ -127,21 +127,17 @@ export class Channel {
         }
     }
 
-    private onChannelMsg = bufferedCall(
-        async (b: Buffer) => {
-            if (!this._onMsg) {
-                return;
-            }
-            const m = decodeMessage(b);
-            if (m.type === MessageType.KEEP_ALIVE) {
-                return this.handleKeepAlive(m);
-            } else {
-                this._onMsg(m, this.id);
-            }
-        },
-        1000,
-        'onChannelMsg',
-    );
+    private onChannelMsg = async (b: Buffer) => {
+        if (!this._onMsg) {
+            return;
+        }
+        const m = decodeMessage(b);
+        if (m.type === MessageType.KEEP_ALIVE) {
+            return this.handleKeepAlive(m);
+        } else {
+            this._onMsg(m, this.id);
+        }
+    };
 
     // this really should not be in channel, but that's where the logic
     // for peer updates is currently so it's here for now

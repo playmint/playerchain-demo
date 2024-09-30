@@ -1,6 +1,8 @@
 // the sequencer is responsible for producing blocks
 // it is constantly attempting to write a block with
+import * as Comlink from 'comlink';
 import Dexie from 'dexie';
+import type { ClientContextType } from '../gui/hooks/use-client';
 import type { Client } from './client';
 import database, { DB } from './db';
 import { GameModule, load } from './game';
@@ -21,7 +23,7 @@ export enum SequencerMode {
 
 export interface SequencerConfig {
     src: string; // URL to the game module to load
-    committer: Committer;
+    clientPort: MessagePort;
     peerId: string;
     dbname: string;
     channelId: string;
@@ -32,11 +34,11 @@ export interface SequencerConfig {
     metrics?: DefaultMetrics;
 }
 
-const MIN_SEQUENCE_RATE = 16.666;
+const MIN_SEQUENCE_RATE = 33;
 
 // the current input
 export class Sequencer {
-    private committer: Committer;
+    private committer: Comlink.Remote<ClientContextType>;
     private mod: Promise<GameModule>;
     private loopInterval: number;
     private playing = false;
@@ -59,7 +61,7 @@ export class Sequencer {
         mode,
         dbname,
         peerId,
-        committer,
+        clientPort,
         channelId,
         channelPeerIds,
         interlace,
@@ -71,7 +73,7 @@ export class Sequencer {
         this.peerId = peerId;
         this.mod = load(src);
         this.interlace = interlace;
-        this.committer = committer;
+        this.committer = Comlink.wrap<ClientContextType>(clientPort);
         this.channelId = channelId;
         this.channelPeerIds = channelPeerIds;
         this.fixedUpdateRate = rate;
@@ -347,7 +349,7 @@ export class Sequencer {
 
     onKeyUp(key: string) {
         this.mod
-            .then((m) => m.onKeyDown(key))
+            .then((m) => m.onKeyUp(key))
             .catch((err) => {
                 console.error(`seq-onKeyDown-err: ${err}`);
             });
@@ -370,5 +372,8 @@ export class Sequencer {
 
     destroy() {
         this.stop();
+        if (this.committer) {
+            this.committer[Comlink.releaseProxy]();
+        }
     }
 }
