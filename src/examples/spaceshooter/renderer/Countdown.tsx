@@ -74,7 +74,6 @@ export default function Countdown(props: {
                     );
                     console.log('round time set');
                 } else if (startTime > 0 && roundTime > 0) {
-                    return null;
                     return (
                         <EndRoundLeaderBoard
                             players={props.players}
