@@ -2,8 +2,8 @@
 // it is constantly attempting to write a block with
 import Dexie from 'dexie';
 import type { Client } from './client';
-import { DB } from './db';
-import { GameModule } from './game';
+import database, { DB } from './db';
+import { GameModule, load } from './game';
 import { InputMessage, Message, MessageType } from './messages';
 import { DefaultMetrics } from './metrics';
 import { CancelFunction, setPeriodic } from './utils';
@@ -20,10 +20,10 @@ export enum SequencerMode {
 }
 
 export interface SequencerConfig {
-    mod: GameModule;
+    src: string; // URL to the game module to load
     committer: Committer;
     peerId: string;
-    db: DB;
+    dbname: string;
     channelId: string;
     channelPeerIds: string[];
     rate: number;
@@ -37,7 +37,7 @@ const MIN_SEQUENCE_RATE = 16.666;
 // the current input
 export class Sequencer {
     private committer: Committer;
-    private mod: GameModule;
+    private mod: Promise<GameModule>;
     private loopInterval: number;
     private playing = false;
     private channelId: string;
@@ -55,9 +55,9 @@ export class Sequencer {
     threads: CancelFunction[] = [];
 
     constructor({
-        mod,
+        src,
         mode,
-        db,
+        dbname,
         peerId,
         committer,
         channelId,
@@ -66,10 +66,10 @@ export class Sequencer {
         rate,
         metrics,
     }: SequencerConfig) {
-        this.db = db;
+        this.db = database.open(dbname);
         this.mode = mode;
         this.peerId = peerId;
-        this.mod = mod;
+        this.mod = load(src);
         this.interlace = interlace;
         this.committer = committer;
         this.channelId = channelId;
@@ -127,7 +127,8 @@ export class Sequencer {
             return 0;
         }
         // get the current input state
-        const input = this.mod.getInput();
+        const mod = await this.mod;
+        const input = mod.getInput();
         // can we write a block?
         const [numCommits, ackIds] = await this.canWriteInputBlock(
             input,
@@ -334,6 +335,22 @@ export class Sequencer {
         }
 
         return [0, null];
+    }
+
+    onKeyDown(key: string) {
+        this.mod
+            .then((m) => m.onKeyDown(key))
+            .catch((err) => {
+                console.error(`seq-onKeyDown-err: ${err}`);
+            });
+    }
+
+    onKeyUp(key: string) {
+        this.mod
+            .then((m) => m.onKeyDown(key))
+            .catch((err) => {
+                console.error(`seq-onKeyDown-err: ${err}`);
+            });
     }
 
     start() {

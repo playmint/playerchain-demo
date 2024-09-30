@@ -87,8 +87,8 @@ export default memo(function SimulationProvider({
     const mod = useAsyncMemo(async () => load(src), [src]);
 
     const ctx = useMemo(() => {
-        return { sim, rate, mod };
-    }, [sim, rate, mod]);
+        return { sim, rate, mod, src };
+    }, [sim, rate, mod, src]);
 
     if (!sim) {
         return <div className={termstyles.terminal}>Loading simulation...</div>;

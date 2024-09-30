@@ -7,6 +7,7 @@ export interface SimulationContextType {
     sim?: Comink.Remote<Simulation>;
     mod?: GameModule;
     rate?: number;
+    src?: string;
 }
 
 export const SimulationContext = createContext<SimulationContextType>({});
