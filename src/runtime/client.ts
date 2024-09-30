@@ -20,7 +20,7 @@ import {
     createSocketCluster,
 } from './network';
 import { PeerConfig } from './network/Peer';
-import { CancelFunction, bufferedCall, setPeriodic } from './utils';
+import { CancelFunction, setPeriodic } from './utils';
 
 export interface ClientKeys {
     publicKey: Uint8Array;

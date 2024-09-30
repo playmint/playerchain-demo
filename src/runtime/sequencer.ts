@@ -231,13 +231,13 @@ export class Sequencer {
         const timeSinceLastCommit = Date.now() - this.lastCommitted;
         if (timeSinceLastCommit < this.fixedUpdateRate) {
             const latestKnownRound = await this.getLatestKnownRound();
-            const weAreLagging = round < latestKnownRound;
+            const weAreLagging = round < latestKnownRound - 1;
             if (weAreLagging) {
                 numCommits = latestKnownRound - round;
                 console.log('ALLOW FASTFORWARD', numCommits);
             } else {
                 const wait = this.fixedUpdateRate - timeSinceLastCommit;
-                if (wait > 25) {
+                if (wait > 10) {
                     // console.log(
                     //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound} wait=${this.fixedUpdateRate - timeSinceLastCommit}`,
                     // );

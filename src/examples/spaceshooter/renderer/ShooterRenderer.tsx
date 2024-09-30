@@ -1,6 +1,13 @@
 import { PositionalAudio, useGLTF } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
+import {
+    memo,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { EntityId, World } from '../../../runtime/ecs';
 import { RendererProps } from '../../../runtime/game';
 import { ModelType, ShooterSchema } from '../../spaceshooter';
@@ -20,6 +27,19 @@ const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 
 export type WorldRef = { current: World<ShooterSchema> };
 export type PlayersRef = { current: PlayerInfo[] };
+
+const FPSLimiter = memo(function FPSLimiter({ fps }: { fps: number }) {
+    const invalidate = useThree((state) => state.invalidate);
+
+    useLayoutEffect(() => {
+        const timer = setInterval(() => {
+            invalidate();
+        }, 1000 / fps);
+        return () => clearInterval(timer);
+    }, [fps, invalidate]);
+
+    return null;
+});
 
 const ModelEntity = memo(function ModelEntity({
     worldRef,
@@ -128,8 +148,9 @@ export default memo(function ShooterCanvas({
     }
     return (
         <>
-            <Canvas resize={CANVAS_RESIZE}>
+            <Canvas resize={CANVAS_RESIZE} frameloop="demand">
                 <StarFieldFX />
+                <FPSLimiter fps={60} />
                 {entities.map((eid) => (
                     <ModelEntity
                         key={eid}

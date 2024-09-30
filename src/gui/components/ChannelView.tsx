@@ -17,9 +17,9 @@ import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-const FIXED_UPDATE_RATE = 66;
+const FIXED_UPDATE_RATE = 40;
 const INTERLACE = 4;
-const SIM_INPUT_DELAY = 2; // number of ticks to avoid
+const SIM_INPUT_DELAY = 1; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({
