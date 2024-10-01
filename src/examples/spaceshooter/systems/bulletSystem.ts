@@ -5,6 +5,7 @@ export const BULLET_SPEED = 150;
 export const BULLET_LIFETIME = 55;
 export const BULLET_MAX_VELOCITY = 150;
 export const SHIP_SHOOT_COOLOFF = 7;
+export const BULLET_HEALTH_COST = 24;
 
 export default system<ShooterSchema>(
     ({
@@ -31,7 +32,7 @@ export default system<ShooterSchema>(
             // CHECKME I THINK I MESSED THIS UP IN THE PORT
             if (
                 collider.hasCollided[bullet] &&
-                 hasTag(collider.collisionEntity[bullet], Tags.IsShip)
+                hasTag(collider.collisionEntity[bullet], Tags.IsShip)
             ) {
                 // && IsBullet[physics.collisionEntity[bullet]])
                 // stats.health[bullet] = 0;
@@ -74,7 +75,8 @@ export default system<ShooterSchema>(
             if (
                 entity.active[player.ship] &&
                 hasInput(player.input, Input.Fire) &&
-                stats.shootTimer[player.ship] === 0
+                stats.shootTimer[player.ship] === 0 &&
+                stats.health[player.ship] >= 25
             ) {
                 // find an available bullet
                 const bullet = bullets.find(
@@ -86,6 +88,7 @@ export default system<ShooterSchema>(
                     console.log('no bullets');
                     continue;
                 }
+                stats.health[player.ship] -= BULLET_HEALTH_COST;
                 stats.shootTimer[player.ship] = SHIP_SHOOT_COOLOFF;
                 position.x[bullet] = position.x[player.ship];
                 position.y[bullet] = position.y[player.ship];

@@ -5,6 +5,7 @@ const SCORE_HIT = 0;
 const SCORE_KILL = 100;
 const TOP_PLAYER_KILL_BONUS = 50;
 const MAX_MULTIPLIER = 5;
+const HEALTH_REGEN = 1;
 
 export default system<ShooterSchema>(
     ({ query, players, entity, collider, stats, velocity, deltaTime }) => {
@@ -87,8 +88,15 @@ export default system<ShooterSchema>(
             stats.health[target] = targetHealth;
         }
 
-        // tick down the death timer
         for (const ship of query(Tags.IsShip)) {
+            if (stats.health[ship] > 0) {
+                stats.health[ship] = Math.min(
+                    stats.health[ship] + HEALTH_REGEN,
+                    100,
+                );
+            }
+
+            // tick down the death timer
             stats.deathTimer[ship] = Math.max(
                 Math.fround(stats.deathTimer[ship] - deltaTime),
                 0,
