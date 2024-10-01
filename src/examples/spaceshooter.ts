@@ -8,11 +8,11 @@ import {
     RendererProps,
 } from '../runtime/game';
 import bulletSystem from './spaceshooter/systems/bulletSystem';
+import countdownSystem from './spaceshooter/systems/countdownSystem';
 import healthSystem from './spaceshooter/systems/healthSystem';
 import levelSystem from './spaceshooter/systems/levelSystem';
 import physicsSystem from './spaceshooter/systems/physicsSystem';
 import shipSystem from './spaceshooter/systems/shipSystem';
-import countdownSystem from './spaceshooter/systems/countdownSystem';
 
 // import { ShooterRenderer } from './spaceshooter/ShooterRenderer';
 
@@ -66,6 +66,7 @@ export const schema = {
         input: Type.u32,
         ship: Type.eid,
         score: Type.u32,
+        scoreMul: Type.u8,
     },
     components: {
         entity: {
@@ -229,11 +230,12 @@ export class SpaceShooter implements GameModule {
                     input: 0,
                     ship: 0,
                     score: 0,
+                    scoreMul: 1,
                 });
             }
             p.input = data.input;
         }
-        
+
         // execute the game systems
         levelSystem(this.world, deltaTime);
         shipSystem(this.world, deltaTime);

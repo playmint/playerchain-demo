@@ -67,7 +67,7 @@ export default system<ShooterSchema>(
                     entity,
                 });
             }
-            if (entity.active[player.ship] && (timer.round[player.ship] > t)) {
+            if (entity.active[player.ship] && timer.round[player.ship] > t) {
                 // calc thurst for input
                 const thrust = hasInput(player.input, Input.Forward)
                     ? SHIP_THRUST_RATE

@@ -2,7 +2,9 @@ import { system } from '../../../runtime/ecs';
 import { ShooterSchema, Tags } from '../../spaceshooter';
 
 const SCORE_HIT = 0;
-const SCORE_KILL = 1;
+const SCORE_KILL = 100;
+const TOP_PLAYER_KILL_BONUS = 50;
+const MAX_MULTIPLIER = 5;
 
 export default system<ShooterSchema>(
     ({ query, players, entity, collider, stats, velocity, deltaTime }) => {
@@ -42,10 +44,29 @@ export default system<ShooterSchema>(
                     (p) => p.ship === entity.parent[bullet],
                 );
                 if (shooter) {
-                    shooter.score +=
-                        targetHealth === 0 ? SCORE_KILL : SCORE_HIT;
-                    // handle ship kill
                     if (targetHealth === 0) {
+                        // give bonus points for killing the top player
+                        const topPlayer = players.reduce((a, b) =>
+                            a.score > b.score ? a : b,
+                        );
+
+                        if (
+                            target === topPlayer.ship &&
+                            topPlayer.score > shooter.score
+                        ) {
+                            shooter.score += TOP_PLAYER_KILL_BONUS;
+                        }
+
+                        // give points for kill. Multiply by both players' multipliers
+                        shooter.score +=
+                            SCORE_KILL * shooter.scoreMul * player.scoreMul;
+
+                        // increase multiplier
+                        if (shooter.scoreMul < MAX_MULTIPLIER) {
+                            shooter.scoreMul++;
+                        }
+
+                        // handle ship kill
                         // start the death timer
                         stats.deathTimer[target] = 200;
                         // mark as exploded and stop
@@ -54,6 +75,10 @@ export default system<ShooterSchema>(
                         velocity.x[target] = 0;
                         velocity.y[target] = 0;
                         entity.active[target] = 0;
+                        // reset multiplier
+                        player.scoreMul = 1;
+                    } else {
+                        shooter.score += SCORE_HIT;
                     }
                 }
             }
