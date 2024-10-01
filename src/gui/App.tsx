@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { createDefaultMetrics } from '../runtime/metrics';
 import ChannelLayout from './components/ChannelLayout';
 import StatusBar from './components/StatusBar';
 import { Titlebar } from './components/Titlebar';
@@ -23,6 +24,8 @@ export default function App(_props: { instance: number }) {
     const toggleChannelPanel = useCallback(() => {
         setChannelPanelOpen((prev) => !prev);
     }, []);
+
+    const metrics = useMemo(() => createDefaultMetrics(66), []);
 
     return (
         <div
@@ -52,9 +55,10 @@ export default function App(_props: { instance: number }) {
                                     >
                                         <ChannelLayout
                                             channelPanelOpen={channelPanelOpen}
+                                            metrics={metrics}
                                         />
                                     </div>
-                                    <StatusBar />
+                                    <StatusBar metrics={metrics} />
                                 </SettingsProvider>
                             </ClientProvider>
                         </DatabaseProvider>

@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
-import { createDefaultMetrics } from '../../runtime/metrics';
+import { DefaultMetrics } from '../../runtime/metrics';
 import { getPlayerColorCSS } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -25,17 +25,17 @@ const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.
 export default memo(function ChannelView({
     channelId,
     details,
+    metrics,
 }: {
     channelId: string;
     details: boolean;
+    metrics: DefaultMetrics;
 }) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const { peerId } = useCredentials();
     const db = useDatabase();
     const client = useClient();
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
-
-    const metrics = useMemo(() => createDefaultMetrics(FIXED_UPDATE_RATE), []);
 
     const copyKeyToClipboard = () => {
         console.log('copying key to clipboard: ', channelId);
