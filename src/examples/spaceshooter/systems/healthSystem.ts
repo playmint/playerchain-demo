@@ -57,18 +57,16 @@ export default system<ShooterSchema>(
                             shooter.score += TOP_PLAYER_KILL_BONUS;
                         }
 
-                        // give points for kill
-                        shooter.score += SCORE_KILL * shooter.scoreMul;
+                        // give points for kill. Multiply by both players' multipliers
+                        shooter.score +=
+                            SCORE_KILL * shooter.scoreMul * player.scoreMul;
 
                         // increase multiplier
                         if (shooter.scoreMul < MAX_MULTIPLIER) {
                             shooter.scoreMul++;
                         }
-                    } else {
-                        shooter.score += SCORE_HIT;
-                    }
-                    // handle ship kill
-                    if (targetHealth === 0) {
+
+                        // handle ship kill
                         // start the death timer
                         stats.deathTimer[target] = 200;
                         // mark as exploded and stop
@@ -79,6 +77,8 @@ export default system<ShooterSchema>(
                         entity.active[target] = 0;
                         // reset multiplier
                         player.scoreMul = 1;
+                    } else {
+                        shooter.score += SCORE_HIT;
                     }
                 }
             }
