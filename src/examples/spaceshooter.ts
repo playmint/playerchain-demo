@@ -7,7 +7,7 @@ import {
     PlayerData,
     RendererProps,
 } from '../runtime/game';
-import { mulberry32, xmur3 } from './spaceshooter/lib/math';
+import { mulberry32, patchMathLib, xmur3 } from './spaceshooter/lib/math';
 import bulletSystem from './spaceshooter/systems/bulletSystem';
 import countdownSystem from './spaceshooter/systems/countdownSystem';
 import healthSystem from './spaceshooter/systems/healthSystem';
@@ -130,6 +130,7 @@ export class SpaceShooter implements GameModule {
 
     constructor() {
         this.world = new World(schema, 1000);
+        patchMathLib();
     }
 
     init = async (): Promise<void> => {};
