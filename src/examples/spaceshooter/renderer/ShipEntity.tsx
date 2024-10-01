@@ -14,7 +14,10 @@ import { Input, Tags, hasInput } from '../../spaceshooter';
 import sfxDestroy from '../assets/Destroy.mp3?url';
 import sfxThrust from '../assets/Thrust_Loop.mp3?url';
 import shipGLTF from '../assets/ship.glb?url';
+import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
+import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
 import fxShootData from '../effects/FXShoot';
+import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
 import fxThrusterData from '../effects/FXThruster';
 import {
     EntityObject3D,
@@ -28,9 +31,6 @@ import {
     useParticleEffect,
 } from '../utils/RenderUtils';
 import { PlayersRef, WorldRef } from './ShooterRenderer';
-import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
-import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
-import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
 
 export default memo(function ShipEntity({
     eid,
@@ -154,8 +154,17 @@ export default memo(function ShipEntity({
 
         // create wall sparks
         const hit = world.components.collider.data.hasCollided[eid];
-        if (hit && !world.hasTag(world.components.collider.data.collisionEntity[eid], Tags.IsShip) &&
-            !world.hasTag(world.components.collider.data.collisionEntity[eid], Tags.IsBullet)) {
+        if (
+            hit &&
+            !world.hasTag(
+                world.components.collider.data.collisionEntity[eid],
+                Tags.IsShip,
+            ) &&
+            !world.hasTag(
+                world.components.collider.data.collisionEntity[eid],
+                Tags.IsBullet,
+            )
+        ) {
             if (sparksRef.current) {
                 const pos = new Vector3(
                     world.components.collider.data.collisionPointX[eid],
@@ -199,9 +208,9 @@ export default memo(function ShipEntity({
         // run explosion effect (if we died)
         if (explosionRef.current) {
             const exploding = prevHealthRef.current > 0 && health <= 0;
-            if (exploding){
+            if (exploding) {
                 const pos = new Vector3(0, 0, 0);
-                if(explosionRef.current){
+                if (explosionRef.current) {
                     explosionRef.current.triggerExplosion(pos, shipRef.current);
                 }
                 // make noise too
@@ -214,14 +223,11 @@ export default memo(function ShipEntity({
         // run respawn effect if generation changed
         if (respawnRef.current) {
             const respawned =
-            world.components.entity.data.generation[eid] !==
-            ship.__generation;
-            if (
-                respawned &&
-                world.components.entity.data.active[eid]
-            ) {
+                world.components.entity.data.generation[eid] !==
+                ship.__generation;
+            if (respawned && world.components.entity.data.active[eid]) {
                 const pos = new Vector3(0, 0, 0);
-                if(respawnRef.current){
+                if (respawnRef.current) {
                     respawnRef.current.triggerSpawn(pos, shipRef.current);
                 }
             }

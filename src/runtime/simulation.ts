@@ -51,7 +51,6 @@ export class Simulation {
     private inputDelay: number; // in "ticks"
     private db: DB;
     private interlace: number;
-    private maxInputPrediction = 2; // this is a mod (so 2=1 precdicted, 3=2 predicted)
     cueing = false;
 
     constructor({
@@ -288,7 +287,7 @@ export class Simulation {
         let latestRound: number | null = null;
         let prevUpdated = rollbackState.updated;
         let prevRound = fromRound;
-        const roundInputs: RoundInput[] = [];
+        const roundData: RoundInput[] = [];
         const validMessages = messages.reduce((acc, m) => {
             if (m.type !== MessageType.INPUT) {
                 return acc;
@@ -311,16 +310,19 @@ export class Simulation {
             if (m.updated > prevUpdated) {
                 prevUpdated = m.updated;
             }
-            let round = roundInputs.find((r) => r.round === m.round);
+            let round = roundData.find((r) => r.round === m.round);
             if (!round) {
                 round = {
                     round: m.round,
                     updated: m.updated,
                     delta: m.round - prevRound - 1,
-                    inputs: [],
+                    inputs: this.channelPeerIds.map((id) => ({
+                        id,
+                        input: 0,
+                    })),
                 };
                 prevRound = m.round;
-                roundInputs.push(round);
+                roundData.push(round);
                 // handle idle
                 if (round.delta > this.idleTimeoutRounds) {
                     round.delta = this.idleTimeoutRounds;
@@ -333,11 +335,15 @@ export class Simulation {
                 throw new Error('input-message-missing-peer');
             }
             const peerId = Buffer.from(m.peer).toString('hex');
+            const inp = round.inputs.find((inp) => inp.id === peerId);
+            if (!inp) {
+                throw new Error('input-message-peer-not-in-channel');
+            }
             // if round is at or after the finalization point, then
             // we need to check if the message is accepted or rejected
             const offsetFromFinalization = latestRound - m.round;
             const needsFinalization =
-                offsetFromFinalization > this.interlace * 2 + 2;
+                offsetFromFinalization > this.interlace * 3 + 2;
             let accepted = true;
             // is well acked?
             // TODO: reduce this number to supermajority
@@ -354,45 +360,68 @@ export class Simulation {
                 );
                 accepted = false;
             }
-            round.inputs.push({
-                id: peerId,
-                input: accepted && m.type == MessageType.INPUT ? m.data : 0,
-            });
+            inp.input = accepted && m.type == MessageType.INPUT ? m.data : 0;
 
             round.unconfirmed = !needsFinalization;
         }
-        // push in the emulated tick for toRound if no messages
-        // FIXME: this is required for WALLCLOCK mode, commented out while investigating too many sim runs
-        // if (prevRound < toRound) {
-        //     roundInputs.push({
-        //         round: toRound,
-        //         updated: prevUpdated,
-        //         delta: toRound - prevRound - 1,
-        //         inputs: [],
-        //         fake: true,
-        //     });
-        // }
         // apply the messages on top of the state
         let runs = 0;
         let state = rollbackState.state;
         const checkpoints: SerializedState[] = [];
-        for (const round of roundInputs) {
-            const res = await this.apply(state, round);
+        for (const round of roundData) {
+            // if there's a gap in rounds, then delta will be > 0
+            // we should not attempt to fill the gap and should abort
+            if (round.round > 1 && round.delta > 0) {
+                console.log(
+                    `GAP
+                        delta=${round.delta}
+                        round=${round.round}
+                    `,
+                );
+                break;
+            }
+            // ensure inputs are in deterministic order
+            const inputs = round.inputs.sort((a, b) => {
+                return a.id < b.id ? -1 : 1;
+            });
+            // check if we already have a state processed for these inputs
+            const cachedCheckpoint = this.stateCache.get(round.round);
+            if (cachedCheckpoint) {
+                // check the inputs are the same
+                const sameInputs =
+                    cachedCheckpoint.state.inputs.length === inputs.length &&
+                    cachedCheckpoint.state.inputs.every((input, i) => {
+                        return input.input === inputs[i].input;
+                    });
+                if (sameInputs) {
+                    state = cachedCheckpoint.state;
+                    continue;
+                    // } else {
+                    //     console.log(
+                    //         'CACHE MISS',
+                    //         JSON.stringify(
+                    //             {
+                    //                 cache: cachedCheckpoint.state.inputs,
+                    //                 inputs,
+                    //             },
+                    //             null,
+                    //             2,
+                    //         ),
+                    //     );
+                }
+            }
+            const res = await this.apply(state, round.round, inputs);
             state = res.state;
             runs += res.runs;
             // maybe write it if it's a checkpoint round
-            if (round.unconfirmed) {
-                continue;
-            }
             const checkpoint: SerializedState = {
-                tag: round.unconfirmed ? StateTag.PREDICTED : StateTag.ACCEPTED,
+                tag: StateTag.ACCEPTED,
                 channel: this.channelId,
-                round: round.unconfirmed ? -1 : round.round,
-                updated: round.unconfirmed ? -1 : round.updated,
+                round: round.round,
+                updated: round.updated,
                 state,
             };
             // invalidate all states from this point forward
-            // TODO: we don't need to do this in a loop, the first one clears them all
             await this.db.state
                 .where(['channel', 'tag', 'round'])
                 .between(
@@ -414,10 +443,10 @@ export class Simulation {
                     fromRound=${fromRound}
                     ticks=${toRound - fromRound}
                     states=${checkpoints.length}
-                    applies=${roundInputs.length}
+                    applies=${roundData.length}
                     emutick=${Math.min(toRound - prevRound, this.idleTimeoutRounds)}
                     messages=${messages.length}
-                    inputs=${roundInputs.length}
+                    inputs=${roundData.length}
                     prevUpdated=${prevUpdated}
                 `,
             );
@@ -435,51 +464,28 @@ export class Simulation {
         return { state, runs };
     }
 
-    private async apply(inState: State, round: RoundInput): Promise<SimResult> {
+    private async apply(
+        inState: State,
+        round: number,
+        inputs: PlayerData[],
+    ): Promise<SimResult> {
         let runs = 0;
         const deltaTime = this.fixedUpdateRate / 1000;
         const mod = await this.mod;
         // clone the world
-        const nextState = structuredClone(inState);
-        // ensure inputs are in deterministic order
-        const inputs = round.inputs.sort((a, b) => {
-            return a.id < b.id ? -1 : 1;
-        });
-        const resetInputs = (s: State) => {
-            s.inputs = s.inputs.map((input) => ({
-                ...input,
-                input: 0,
-            }));
-        };
-        // fast forward through all the empty deltas
-        for (let r = 0; r < round.delta; r++) {
-            nextState.t = round.round - round.delta + r;
-            // wipe out any existing input state, we do this every round%N
-            // see sequencer for mirror of the round%N logic
-            if (nextState.t % this.maxInputPrediction === 0) {
-                resetInputs(nextState);
-            }
-            mod.load(nextState.data);
-            mod.run(nextState.inputs, deltaTime, nextState.t);
-            runs++;
-            nextState.data = mod.dump();
-        }
-        // reset inputs on Nth round
-        if (round.round % this.maxInputPrediction === 0) {
-            resetInputs(nextState);
-        }
+        const state = structuredClone(inState);
         // update player input data
-        nextState.inputs = inputs.map((input) => ({
+        state.inputs = inputs.map((input) => ({
             ...input,
         }));
         // tick the game logic forward
-        nextState.t = round.round;
-        mod.load(nextState.data);
-        mod.run(nextState.inputs, deltaTime, nextState.t);
+        state.t = round;
+        mod.load(state.data);
+        mod.run(state.inputs, deltaTime, state.t);
         runs++;
-        nextState.data = mod.dump();
+        state.data = mod.dump();
         // return the copy of the state
-        return { state: nextState, runs };
+        return { state, runs };
     }
 
     destroy() {}

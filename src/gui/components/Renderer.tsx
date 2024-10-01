@@ -147,7 +147,6 @@ export default memo(function Renderer({
             if (!seq) {
                 return;
             }
-            console.log('keydown', event.key);
             seq.onKeyDown(event.key).catch((err) => {
                 console.error('keydown-err:', err);
             });
@@ -160,7 +159,6 @@ export default memo(function Renderer({
             if (!seq) {
                 return;
             }
-            console.log('keyup', event.key);
             seq.onKeyUp(event.key).catch((err) => {
                 console.error('keyup-err:', err);
             });
