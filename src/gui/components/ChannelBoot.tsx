@@ -228,6 +228,7 @@ const terminalFlow = ({ db, peerId, client }: TerminalFlowArgs) => [
 
         promise: (input: string) =>
             new Promise((resolve, reject) => {
+                input = input.trim();
                 if (input.length < 5) {
                     reject(
                         <span className={termstyles.errorText}>
