@@ -7,6 +7,7 @@ import {
     PlayerData,
     RendererProps,
 } from '../runtime/game';
+import { mulberry32, xmur3 } from './spaceshooter/lib/math';
 import bulletSystem from './spaceshooter/systems/bulletSystem';
 import countdownSystem from './spaceshooter/systems/countdownSystem';
 import healthSystem from './spaceshooter/systems/healthSystem';
@@ -219,6 +220,10 @@ export class SpaceShooter implements GameModule {
     };
 
     run = (playerData: PlayerData[], deltaTime: number, t: number): void => {
+        // patch math lib
+        const seed = xmur3(t.toString() + 'spaceShooter');
+        globalThis.Math.random = mulberry32(seed());
+
         // set the current tick
         this.world.t = t;
         // map playerData into the world
