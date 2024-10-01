@@ -5,7 +5,8 @@ const SCORE_HIT = 0;
 const SCORE_KILL = 100;
 const TOP_PLAYER_KILL_BONUS = 50;
 const MAX_MULTIPLIER = 5;
-const HEALTH_REGEN = 1;
+const HEALTH_REGEN_PERC = 1;
+const HEALTH_REGEN_TIME = 1; // To slow down the regen, increase this number
 
 export default system<ShooterSchema>(
     ({ query, players, entity, collider, stats, velocity, deltaTime }) => {
@@ -90,10 +91,19 @@ export default system<ShooterSchema>(
 
         for (const ship of query(Tags.IsShip)) {
             if (stats.health[ship] > 0) {
-                stats.health[ship] = Math.min(
-                    stats.health[ship] + HEALTH_REGEN,
-                    100,
+                stats.regenTimer[ship] = Math.max(
+                    Math.fround(stats.regenTimer[ship] - deltaTime),
+                    0,
                 );
+
+                if (stats.regenTimer[ship] === 0) {
+                    stats.regenTimer[ship] = HEALTH_REGEN_TIME;
+
+                    stats.health[ship] = Math.min(
+                        stats.health[ship] + HEALTH_REGEN_PERC,
+                        100,
+                    );
+                }
             }
 
             // tick down the death timer

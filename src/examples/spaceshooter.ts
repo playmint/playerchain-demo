@@ -118,6 +118,7 @@ export const schema = {
             hasExploded: Type.u8,
             hasRespawned: Type.u8,
             deathTimer: Type.u8,
+            regenTimer: Type.u8,
         },
     },
 };
