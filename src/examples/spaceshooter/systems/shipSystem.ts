@@ -15,6 +15,7 @@ export const SHIP_MAX_VELOCITY = 80;
 
 export default system<ShooterSchema>(
     ({
+        t,
         rotation,
         players,
         addEntity,

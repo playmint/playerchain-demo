@@ -92,7 +92,7 @@ export default memo(function ShipEntity({
             }
         });
         // hide ship if not active (not the whole group, just the ship)
-        interpolateEntityVisibility(ship, world, eid, 400);
+        interpolateEntityVisibility(ship, world, eid, 24);
         // lerp ship
         interpolateEntityPosition(
             group,

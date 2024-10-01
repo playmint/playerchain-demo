@@ -34,7 +34,7 @@ export interface SequencerConfig {
     metrics?: DefaultMetrics;
 }
 
-const MIN_SEQUENCE_RATE = 33;
+const MIN_SEQUENCE_RATE = 10;
 
 // the current input
 export class Sequencer {
@@ -240,7 +240,7 @@ export class Sequencer {
                 console.log('ALLOW FASTFORWARD', numCommits);
             } else {
                 const wait = this.fixedUpdateRate - timeSinceLastCommit;
-                if (wait > 5) {
+                if (wait > MIN_SEQUENCE_RATE) {
                     // console.log(
                     //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound} wait=${this.fixedUpdateRate - timeSinceLastCommit}`,
                     // );
