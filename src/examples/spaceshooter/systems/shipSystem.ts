@@ -211,12 +211,13 @@ function resetShip(
     >,
 ) {
     entity.active[eid] = 1;
-    // const randomPoint = getRandomPointOnCircle(SHIP_RESPAWN_RADIUS);
-    // position.x[eid] = randomPoint.x;
-    // position.y[eid] = randomPoint.y;
-    position.x[eid] = eid * 0.01;
-    position.y[eid] = 0;
-    rotation[eid] = 0;
+    const randomPoint = getRandomPointOnCircle(SHIP_RESPAWN_RADIUS);
+    position.x[eid] = randomPoint.x;
+    position.y[eid] = randomPoint.y;
+
+    // point the ship to the center
+    rotation.z[eid] = Math.atan2(-position.y[eid], -position.x[eid]);
+
     velocity.x[eid] = 0;
     velocity.y[eid] = 0;
     // LastUpdated[eid] = { lastUpdated: 0 };
@@ -228,11 +229,10 @@ function resetShip(
     entity.generation[eid]++;
 }
 
-// FIXME: needs determinisitic
-// function getRandomPointOnCircle(radius) {
-//     const angle = Math.fround(Math.random() * 2 * Math.PI); // Random angle between 0 and 2π
-//     const x = Math.fround(radius * Math.cos(angle)); // X-coordinate
-//     const y = Math.fround(radius * Math.sin(angle)); // Y-coordinate
+function getRandomPointOnCircle(radius) {
+    const angle = Math.fround(Math.random() * 2 * Math.PI); // Random angle between 0 and 2π
+    const x = Math.fround(radius * Math.cos(angle)); // X-coordinate
+    const y = Math.fround(radius * Math.sin(angle)); // Y-coordinate
 
-//     return { x: x, y: y };
-// }
+    return { x: x, y: y };
+}
