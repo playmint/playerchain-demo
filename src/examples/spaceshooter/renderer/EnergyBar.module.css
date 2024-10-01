@@ -16,15 +16,9 @@
 
 .energyFill {
     height: 100%;
-    background: linear-gradient(
-        90deg,
-        rgb(255, 64, 64),
-        yellow,
-        rgb(46, 194, 46)
-    );
-    background-size: 400px 100%;
+    background-size: 100% 100%;
     background-position: left;
-    transition: width 1s ease-in-out;
+    transition: width 0.1s cubic-bezier(0.4, 0, 1, 1), background-color 0.2s ease-in-out;
     position: relative;
     border-radius: 4px;
     overflow: hidden;
