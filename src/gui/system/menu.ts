@@ -5,7 +5,7 @@ import { hardReset } from '../../runtime/utils';
 
 const isMobile = /android|ios/.test(process.platform);
 export const isWindows = /win32/.test(process.platform);
-const isProduction = import.meta.env.MODE === 'production';
+const isProduction = false; //import.meta.env.MODE === 'production';
 
 interface MenuItem {
     name: string;
