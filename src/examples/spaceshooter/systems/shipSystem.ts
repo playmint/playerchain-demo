@@ -55,6 +55,8 @@ export default system<ShooterSchema>(
             // respawn ship if requested or if it's the first spawn generation
             if (
                 hasInput(player.input, Input.Respawn) ||
+                (stats.health[player.ship] === 0 &&
+                    stats.deathTimer[player.ship]) === 0 ||
                 entity.generation[player.ship] === 0
             ) {
                 console.log('respawning ship');
@@ -225,7 +227,6 @@ function resetShip(
     // stats.canShoot[eid] = 1;
     stats.health[eid] = 100;
     stats.hasRespawned[eid] = 1; // use generation instead?
-    // stats.initialSpawn[eid] = 0; // use generation instead
     entity.generation[eid]++;
 }
 
