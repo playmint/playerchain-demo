@@ -214,9 +214,10 @@ function resetShip(
     const randomPoint = getRandomPointOnCircle(SHIP_RESPAWN_RADIUS);
     position.x[eid] = randomPoint.x;
     position.y[eid] = randomPoint.y;
-    // position.x[eid] = eid * 0.01;
-    // position.y[eid] = 0;
-    rotation[eid] = 0;
+
+    // point the ship to the center
+    rotation.z[eid] = Math.atan2(-position.y[eid], -position.x[eid]);
+
     velocity.x[eid] = 0;
     velocity.y[eid] = 0;
     // LastUpdated[eid] = { lastUpdated: 0 };
