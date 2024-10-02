@@ -1,10 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 // import styles from './EndRoundLeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 import { WorldRef } from './ShooterRenderer';
 
-function Enemy({ x, y }: { x: number; y: number }) {
-    return <div style={{ position: 'absolute', left: x, bottom: y }}>👾</div>;
+function Enemy({ x, y, cssColor }: { x: number; y: number; cssColor: string }) {
+    const width = 10;
+    const height = 10;
+
+    return (
+        <div
+            style={{
+                position: 'absolute',
+                left: x - width / 2,
+                bottom: y - height / 2,
+                width: `${width}px`,
+                height: `${height}px`,
+                borderRadius: '50%',
+                backgroundColor: cssColor,
+            }}
+        ></div>
+    );
 }
 
 function getAngleRad(ax: number, ay: number, bx: number, by: number) {
@@ -73,7 +89,7 @@ export default function EnemyLocation({
 
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
-    const radius = 200; // Distance in px from the center
+    const radius = dimensions.height / 2;
 
     return (
         <div
@@ -82,10 +98,9 @@ export default function EnemyLocation({
                 position: 'absolute',
                 width: '100%',
                 height: '100%',
-                backgroundColor: 'rgba(255, 0, 0, 0.1)',
             }}
         >
-            {players.map((player) => {
+            {players.map((player, playerIdx) => {
                 if (player.id !== peerId) {
                     const enemyX =
                         worldRef.current.components.position.data.x[
@@ -102,21 +117,18 @@ export default function EnemyLocation({
                         radius,
                         angle,
                     );
+
                     return (
-                        <div key={player.id}>
-                            {player.id}
-                            <br />
-                            {`Angle: ${angle.toFixed(2)}°`}
-                            <Enemy x={x} y={y} />
-                        </div>
+                        <Enemy
+                            key={player.id}
+                            x={x}
+                            y={y}
+                            cssColor={getPlayerColorCSS(playerIdx)}
+                        />
                     );
+                } else {
+                    return null;
                 }
-                return (
-                    <div key={player.id}>
-                        {player.id} (you)
-                        <br />
-                    </div>
-                );
             })}
         </div>
     );
