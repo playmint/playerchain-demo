@@ -70,7 +70,7 @@ export default system<ShooterSchema>(
 
                         // handle ship kill
                         // start the death timer
-                        stats.deathTimer[target] = 200;
+                        stats.deathTimer[target] = 50;
                         // mark as exploded and stop
                         stats.hasExploded[target] = 1;
                         // audio.play[target] = AudioClip.Explosion;
