@@ -4,7 +4,13 @@ import _sodium from 'libsodium-wrappers';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:latica';
 import { Channel, ChannelInfo, EmitOpts } from './channels';
-import database, { DB, MessageConfirmationMatrix, StoredMessage } from './db';
+import database, {
+    DB,
+    MessageConfirmationMatrix,
+    StoredMessage,
+    fromStoredChainMessage,
+    toStoredChainMessage,
+} from './db';
 import {
     ChainMessage,
     CreateChannelMessage,
@@ -47,7 +53,7 @@ export class Client {
     syncInterval: number = 1000;
     seqNum: number | null = null;
     height: number | null = null;
-    parent: Uint8Array | null = null;
+    parent: string | null = null;
     committing: boolean = false;
     channels: Map<string, Channel> = new Map();
     threads: CancelFunction[] = [];
@@ -134,7 +140,10 @@ export class Client {
         if (this.height === null) {
             const latest = await this.db.messages
                 .where(['peer', 'height'])
-                .between([this.id, Dexie.minKey], [this.id, Dexie.maxKey])
+                .between(
+                    [this.peerId, Dexie.minKey],
+                    [this.peerId, Dexie.maxKey],
+                )
                 .last();
             if (!latest) {
                 this.height = 0;
@@ -144,7 +153,7 @@ export class Client {
                     throw new Error('latest-height-missing');
                 }
                 this.height = latest.height + 1;
-                this.parent = latest.id;
+                this.parent = Buffer.from(latest.id, 'base64');
             }
         }
         // build the msg to attest to
@@ -153,16 +162,16 @@ export class Client {
             peer: this.id,
             height: this.height,
             acks: msg.acks ?? [], // TODO: ask consensus system what to do
-            parent: this.parent ? this.parent : null,
+            parent: this.parent ? Buffer.from(this.parent, 'base64') : null,
         };
         const [signed, id] = await this.sign(attest);
-        const stored: StoredMessage = {
-            ...signed,
+        const stored = toStoredChainMessage(
+            signed,
             id,
-            updated: this.nextSequenceNumber(),
-            channel: channelId,
-            confirmations: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        };
+            this.nextSequenceNumber(),
+            channelId,
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        );
         await this.db.transaction(
             'rw',
             [this.db.messages, this.db.acks],
@@ -181,20 +190,20 @@ export class Client {
             ttl: 1000,
         });
         this.parent = id;
-        setTimeout(() => {
-            this.send(signed, {
-                ttl: 1000,
-            });
-        }, 15);
+        // setTimeout(() => {
+        //     this.send(signed, {
+        //         ttl: 1000,
+        //     });
+        // }, 15);
         return signed;
     }
 
     // returns the signed message and the id
-    async sign(msg: ChainMessage): Promise<[ChainMessage, Uint8Array]> {
+    async sign(msg: ChainMessage): Promise<[ChainMessage, string]> {
         await _sodium.ready;
         const sodium = _sodium;
         const hash = await this.hash(msg);
-        const id = hash.slice(0, 8);
+        const id = Buffer.from(hash.slice(0, 8)).toString('base64');
         const sig = sodium.crypto_sign_detached(
             Buffer.from(hash),
             Buffer.from(this.key),
@@ -217,9 +226,7 @@ export class Client {
     // verified the message and produce the message id
     // returns [true, id] if the message is verified
     // returns [false, null] if the message is not verified
-    async verify(
-        msg: ChainMessage,
-    ): Promise<[true, Uint8Array] | [false, null]> {
+    async verify(msg: ChainMessage): Promise<[true, string] | [false, null]> {
         await _sodium.ready;
         const sodium = _sodium;
         // return true;
@@ -244,7 +251,7 @@ export class Client {
             // as it is per peer set, so _some_ truncation here can be tollerated
             // but it is possible for collisions in the db, so we may need to
             // store the with a composite key of peer and id
-            const id = hash.slice(0, 8);
+            const id = Buffer.from(hash.slice(0, 8)).toString('base64');
             return [true, id];
         } catch (err) {
             console.error(`
@@ -260,11 +267,13 @@ export class Client {
         await _sodium.ready;
         const sodium = _sodium;
         const values = [
-            msg.peer,
-            msg.parent,
+            Buffer.from(msg.peer).toString('hex'),
+            msg.parent ? Buffer.from(msg.parent).toString('base64') : null,
             msg.height,
             msg.type,
-            msg.acks,
+            msg.acks
+                ? msg.acks.map((a) => Buffer.from(a).toString('base64'))
+                : [],
             (msg as any).data || 0,
             (msg as any).round || 0,
         ];
@@ -313,13 +322,15 @@ export class Client {
             // store it
             const existing = await this.db.messages.get(id);
             if (!existing) {
-                await this.db.messages.put({
-                    ...m,
-                    updated: this.nextSequenceNumber(),
-                    id,
-                    channel: channelId,
-                    confirmations: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                });
+                await this.db.messages.put(
+                    toStoredChainMessage(
+                        m,
+                        id,
+                        this.nextSequenceNumber(),
+                        channelId,
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    ),
+                );
             }
         }
         // process it
@@ -342,7 +353,7 @@ export class Client {
     async onInputMessage(
         msg: InputMessage,
         channelId: string,
-        id: Uint8Array,
+        id: string,
     ): Promise<void> {
         await this.db.transaction(
             'rw',
@@ -351,20 +362,24 @@ export class Client {
                 // store it
                 const existing = await this.db.messages.get(id);
                 if (!existing) {
-                    await this.db.messages.put({
-                        ...msg,
-                        updated: this.nextSequenceNumber(),
-                        id,
-                        channel: channelId,
-                        confirmations:
+                    await this.db.messages.put(
+                        toStoredChainMessage(
+                            msg,
+                            id,
+                            this.nextSequenceNumber(),
+                            channelId,
                             await this.calculateMessageConfirmations(id),
-                    });
+                        ),
+                    );
                 }
                 // do we have this message's parent?
                 if (msg.parent) {
                     const parent = await this.db.messages.get(msg.parent);
                     if (!parent) {
-                        this.requestMissingParent(msg).catch((err) =>
+                        const parentId = Buffer.from(msg.parent).toString(
+                            'base64',
+                        );
+                        this.requestMissingParent(parentId).catch((err) =>
                             console.error(
                                 'quick-req-missing-parent-error',
                                 err,
@@ -381,18 +396,23 @@ export class Client {
         );
     }
 
-    async updateAcks(msg: ChainMessage, id: Uint8Array) {
+    async updateAcks(msg: ChainMessage, id: string) {
         if (!msg.acks) {
             return;
         }
         // write the acks to db
         await this.db.acks.bulkPut(
-            msg.acks.map((ackId) => ({ from: id, to: ackId })),
+            msg.acks.map((ackId) => ({
+                from: id,
+                to: Buffer.from(ackId).toString('base64'),
+            })),
         );
         // recalculate the confirmations for each acked message
         await Promise.all(
             msg.acks.map(async (ackId) => {
-                const ackee = await this.updateMessageConfirmations(ackId);
+                const ackee = await this.updateMessageConfirmations(
+                    Buffer.from(ackId).toString('base64'),
+                );
                 if (!ackee) {
                     return Promise.resolve(null);
                 }
@@ -401,7 +421,9 @@ export class Client {
                     await Promise.all(
                         ackee.acks.map(
                             (ackAckId) =>
-                                this.updateMessageConfirmations(ackAckId),
+                                this.updateMessageConfirmations(
+                                    Buffer.from(ackAckId, 'base64'),
+                                ),
                             [] as Promise<StoredMessage>[],
                         ),
                     );
@@ -411,7 +433,7 @@ export class Client {
     }
 
     async updateMessageConfirmations(
-        id: Uint8Array,
+        id: string,
     ): Promise<StoredMessage | null> {
         const ackee = await this.db.messages.get(id);
         if (!ackee) {
@@ -431,7 +453,7 @@ export class Client {
     }
 
     async calculateMessageConfirmations(
-        id: Uint8Array,
+        id: string,
     ): Promise<MessageConfirmationMatrix> {
         // lookup who acked this message
         const ackedBy = await Promise.all(
@@ -496,23 +518,22 @@ export class Client {
         }
     }
 
-    async requestMissingParent(child: ChainMessage) {
-        if (!child.parent) {
+    async requestMissingParent(parentId: string) {
+        if (!parentId) {
             return;
         }
-        const exists = await this.db.messages.get(child.parent);
+        const exists = await this.db.messages.get(parentId);
         if (exists) {
             return;
         }
-        const parentId = Buffer.from(child.parent).toString('hex');
         this.debug(
             `req-missing asking=everyone missing=${parentId.slice(0, 8)}`,
         );
         await this.rpc({
-            name: 'requestMessagesBySig',
+            name: 'requestMessagesById',
             timestamp: Date.now(),
             args: {
-                id: child.parent,
+                id: parentId,
             },
         });
     }
@@ -548,10 +569,8 @@ export class Client {
     private async getHeads(): Promise<Message[]> {
         const heads: Message[] = [];
         // emit the head of each peer we know (including ourselves)
-        const peerIds = (await this.db.peers.toArray()).map((p) =>
-            Buffer.from(p.peerId, 'hex'),
-        );
-        peerIds.unshift(this.id);
+        const peerIds = (await this.db.peers.toArray()).map((p) => p.peerId);
+        peerIds.unshift(this.peerId);
         for (const peerId of peerIds) {
             const head = await this.db.messages
                 .where(['peer', 'height'])
@@ -560,7 +579,7 @@ export class Client {
             if (!head) {
                 continue;
             }
-            heads.push(head);
+            heads.push(fromStoredChainMessage(head));
         }
         return heads;
     }
@@ -576,11 +595,10 @@ export class Client {
     }
 
     private checkChain = async (peerId: string) => {
-        const pk = Buffer.from(peerId, 'hex');
         this.debug(`checking-chain peer=${peerId.slice(0, 8)}`);
         let child = await this.db.messages
             .where(['peer', 'height'])
-            .between([pk, Dexie.minKey], [pk, Dexie.maxKey])
+            .between([peerId, Dexie.minKey], [peerId, Dexie.maxKey])
             .last();
         if (!child) {
             this.debug(`no-chain-yet peer=${peerId.slice(0, 8)}`);
@@ -619,7 +637,7 @@ export class Client {
                 this.debug(
                     `chain-broken at=${child.height - 1} peer=${peerId.slice(0, 8)}`,
                 );
-                await this.requestMissingParent(child);
+                await this.requestMissingParent(child.parent);
                 return;
             }
             child = parent;
@@ -682,13 +700,10 @@ export class Client {
             const info = await this.db.channels.get(ch.id);
             if (info) {
                 if (info.peers.length === 0) {
-                    const channelSig = Uint8Array.from(atob(ch.id), (c) =>
-                        c.charCodeAt(0),
-                    );
                     // emit the channel genesis message if we have it
                     const genesis = await this.db.messages
                         .where('sig')
-                        .equals(channelSig)
+                        .equals(ch.id)
                         .first();
                     if (genesis) {
                         if (genesis.type === MessageType.CREATE_CHANNEL) {
@@ -696,18 +711,14 @@ export class Client {
                                 ch.name = genesis.name;
                                 await this.db.channels.update(ch.id, {
                                     name: genesis.name,
-                                    creator: Buffer.from(genesis.peer).toString(
-                                        'hex',
-                                    ),
+                                    creator: genesis.peer,
                                 });
                             }
                             this.debug(
                                 'emit-genesis',
-                                Buffer.from(genesis.sig)
-                                    .toString('hex')
-                                    .slice(0, 10),
+                                genesis.sig.slice(0, 10),
                             );
-                            ch.send(genesis, {
+                            ch.send(fromStoredChainMessage(genesis), {
                                 channels: [ch.id],
                                 ttl: 1000,
                             }).catch((err) => {
@@ -723,8 +734,13 @@ export class Client {
                             [ch.id, MessageType.SET_PEERS],
                         )
                         .last();
-                    if (setPeers && setPeers.type === MessageType.SET_PEERS) {
-                        await this.onSetPeers(setPeers, ch.id);
+                    if (setPeers) {
+                        const msg = fromStoredChainMessage(setPeers);
+                        if (msg.type === MessageType.SET_PEERS) {
+                            await this.onSetPeers(msg, ch.id);
+                        } else {
+                            this.debug('invalid-set-peers', ch.id);
+                        }
                     } else {
                         this.debug('no-set-peers', ch.id);
                     }
@@ -802,10 +818,15 @@ export class Client {
             name,
         };
         const commitment = await this.commit(msg, null);
+        if (commitment.type !== MessageType.CREATE_CHANNEL) {
+            throw new Error('commitment-type-mismatch');
+        }
         if (!commitment.sig) {
             throw new Error('commitment-sig-missing');
         }
         const channelId = Buffer.from(commitment.sig).toString('base64');
+        await this.joinChannel(channelId);
+        await this.onCreateChannel(commitment);
         await this.commit(
             {
                 type: MessageType.INPUT,
@@ -814,7 +835,6 @@ export class Client {
             },
             channelId,
         );
-        await this.joinChannel(channelId);
         return channelId;
     }
 
@@ -836,7 +856,10 @@ export class Client {
             (
                 await this.db.messages
                     .where(['peer', 'height'])
-                    .between([this.id, Dexie.minKey], [this.id, Dexie.maxKey])
+                    .between(
+                        [this.peerId, Dexie.minKey],
+                        [this.peerId, Dexie.maxKey],
+                    )
                     .last()
             )?.height || 0
         );
@@ -882,7 +905,7 @@ export class Client {
 
     private getRequestHandler = (name: SocketRPCRequest['name']) => {
         switch (name) {
-            case 'requestMessagesBySig':
+            case 'requestMessagesById':
                 return this.requestMessagesById;
             default:
                 return null;
@@ -892,13 +915,13 @@ export class Client {
     private requestMessagesById = async ({
         id,
     }: {
-        id: Uint8Array;
+        id: string;
     }): Promise<number> => {
         const msg = await this.db.messages.get(id);
         if (!msg) {
             return 0;
         }
-        this.send(msg, { ttl: 1000 });
+        this.send(fromStoredChainMessage(msg), { ttl: 1000 });
         return 1;
     };
 

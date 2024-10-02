@@ -13,7 +13,13 @@ export default memo(function ChannelLayout({
     metrics: DefaultMetrics;
 }) {
     const db = useDatabase();
-    const channels = useLiveQuery(async () => db.channels.toArray(), [], []);
+    const channels = useLiveQuery(
+        async () => {
+            return db.channels.toArray();
+        },
+        [],
+        [],
+    );
     const channel = channels[0];
 
     return channel ? (

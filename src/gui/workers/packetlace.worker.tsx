@@ -227,8 +227,8 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
         if (m.originalRound > 1 && m.originalRound === msgData.minRound) {
             return data;
         }
-        const msgId = Buffer.from(m.id).toString('hex');
-        const peerId = m.peer ? Buffer.from(m.peer).toString('hex') : '';
+        const msgId = m.id;
+        const peerId = m.peer ?? '';
 
         if (!peers.includes(peerId)) {
             peers.push(peerId);
@@ -271,10 +271,8 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
 
         const props: BlockProps = {
             key: msgId,
-            acks: m.acks
-                ? m.acks.map((ack) => Buffer.from(ack).toString('hex'))
-                : [],
-            parent: m.parent ? Buffer.from(m.parent).toString('hex') : null,
+            acks: m.acks ? m.acks : [],
+            parent: m.parent ? m.parent : null,
             position,
             peerId,
             originalRound: m.originalRound,
