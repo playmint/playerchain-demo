@@ -192,7 +192,7 @@ function addBullet(
     physics.drag[eid] = 0;
     physics.isTrigger[eid] = 1;
     physics.bounciness[eid] = 1;
-    stats.damage[eid] = 34;
+    stats.damage[eid] = 41;
     stats.health[eid] = 100;
     return eid;
 }
