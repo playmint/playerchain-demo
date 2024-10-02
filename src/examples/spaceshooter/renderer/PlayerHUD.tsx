@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { PlayerData } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import Countdown from './Countdown';
+import EnemyLocation from './EnemyLocation';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
 import { WorldRef } from './ShooterRenderer';
@@ -73,6 +74,11 @@ export default memo(function PlayerHUD({
                     <LeaderBoard players={players} peerId={peerId} />
                 </div>
             </div>
+            <EnemyLocation
+                players={players}
+                worldRef={worldRef}
+                peerId={peerId}
+            />
         </div>
     );
 });
