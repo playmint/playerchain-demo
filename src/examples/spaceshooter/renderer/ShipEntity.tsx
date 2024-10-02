@@ -30,6 +30,7 @@ import {
     updateEntityGeneration,
     useParticleEffect,
 } from '../utils/RenderUtils';
+import { addShake } from './ShakeManager';
 import { PlayersRef, WorldRef } from './ShooterRenderer';
 
 export default memo(function ShipEntity({
@@ -213,6 +214,14 @@ export default memo(function ShipEntity({
                 if (explosionRef.current) {
                     explosionRef.current.triggerExplosion(pos, shipRef.current);
                 }
+
+                addShake({
+                    intensity: 500, // Adjust as needed
+                    position: pos,
+                    decay: 2.0, // Rate at which the shake reduces
+                    duration: 1.0, // How long the shake lasts
+                });
+
                 // make noise too
                 if (!explosionSfxRef.current.isPlaying) {
                     explosionSfxRef.current.play();
