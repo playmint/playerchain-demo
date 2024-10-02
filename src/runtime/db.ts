@@ -13,7 +13,7 @@ export interface SerializedState {
     channel: ChannelInfo['id'];
     tag: StateTag;
     round: number;
-    arrived: number; // local timestamp of latest message in this state
+    updated: number; // local timestamp of latest message in this state
     state: State;
 }
 
@@ -72,15 +72,35 @@ export type PeerNames = {
     name: string;
 };
 
+export type MessageConfirmationMatrix = [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+];
+
 export type StoredMessage = ChainMessage & {
     id: Uint8Array;
-    arrived: number;
+    updated: number;
     channel: string | null;
+    confirmations: MessageConfirmationMatrix;
+};
+
+export type Ack = {
+    from: Uint8Array;
+    to: Uint8Array;
 };
 
 export type DB = Dexie & {
     channels: EntityTable<ChannelInfo, 'id'>;
     messages: EntityTable<StoredMessage, 'id'>;
+    acks: EntityTable<Ack, 'from'>;
     state: EntityTable<SerializedState>;
     peers: EntityTable<PeerInfo, 'peerId'>;
     network: EntityTable<NetworkInfo, 'id'>;
@@ -95,7 +115,8 @@ export function open(name: string): DB {
         channels: 'id',
         peers: 'peerId, connected',
         messages:
-            'id, &sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+arrived]',
+            'id, &sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+updated]',
+        acks: '[from+to], to',
         state: '[channel+tag+round]',
         network: 'id',
         settings: 'id',

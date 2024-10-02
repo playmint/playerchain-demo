@@ -85,7 +85,7 @@ export default memo(function PacketLace({
                 Comlink.transfer(offscreenCanvas, [offscreenCanvas]),
                 channelId,
                 48,
-                120,
+                1000,
                 peers,
             )
             .catch(console.error);

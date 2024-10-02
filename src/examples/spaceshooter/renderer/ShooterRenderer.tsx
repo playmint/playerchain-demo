@@ -5,14 +5,13 @@ import { EntityId, World } from '../../../runtime/ecs';
 import { RendererProps } from '../../../runtime/game';
 import { ModelType, ShooterSchema } from '../../spaceshooter';
 import backgroundMusic from '../assets/BGM.mp3?url';
+import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 import { assetPath } from '../utils/RenderUtils';
 import AudioControls from './AudioControls';
-import BulletEntity from './BulletEntity';
+import { FPSLimiter } from './FPSLimiter';
+import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
-import ShipEntity from './ShipEntity';
-import WallEntity from './WallEntity';
-import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 
 useGLTF.setDecoderPath('/libs/draco');
 
@@ -20,32 +19,6 @@ const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 
 export type WorldRef = { current: World<ShooterSchema> };
 export type PlayersRef = { current: PlayerInfo[] };
-
-const ModelEntity = memo(function ModelEntity({
-    worldRef,
-    eid,
-    playersRef,
-}: {
-    eid: number;
-    worldRef: WorldRef;
-    playersRef: PlayersRef;
-}) {
-    console.log('ModelEntity', eid);
-    switch (worldRef.current.components.model.data.type[eid]) {
-        case ModelType.Ship:
-            return (
-                <ShipEntity
-                    worldRef={worldRef}
-                    eid={eid}
-                    playersRef={playersRef}
-                />
-            );
-        case ModelType.Bullet:
-            return <BulletEntity worldRef={worldRef} eid={eid} />;
-        case ModelType.Wall:
-            return <WallEntity worldRef={worldRef} eid={eid} />;
-    }
-});
 
 export default memo(function ShooterCanvas({
     mod,
@@ -128,8 +101,9 @@ export default memo(function ShooterCanvas({
     }
     return (
         <>
-            <Canvas resize={CANVAS_RESIZE}>
+            <Canvas resize={CANVAS_RESIZE} frameloop="demand">
                 <StarFieldFX />
+                <FPSLimiter fps={60} />
                 {entities.map((eid) => (
                     <ModelEntity
                         key={eid}

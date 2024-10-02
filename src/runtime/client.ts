@@ -1,11 +1,10 @@
 import * as cbor from 'cbor-x';
 import Dexie from 'dexie';
 import _sodium from 'libsodium-wrappers';
-import { LRUCache } from 'lru-cache';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:latica';
 import { Channel, ChannelInfo, EmitOpts } from './channels';
-import database, { DB, StoredMessage } from './db';
+import database, { DB, MessageConfirmationMatrix, StoredMessage } from './db';
 import {
     ChainMessage,
     CreateChannelMessage,
@@ -21,7 +20,7 @@ import {
     createSocketCluster,
 } from './network';
 import { PeerConfig } from './network/Peer';
-import { CancelFunction, bufferedCall, setPeriodic } from './utils';
+import { CancelFunction, setPeriodic } from './utils';
 
 export interface ClientKeys {
     publicKey: Uint8Array;
@@ -52,10 +51,6 @@ export class Client {
     committing: boolean = false;
     channels: Map<string, Channel> = new Map();
     threads: CancelFunction[] = [];
-    recentlyAckedMessage = new LRUCache<string, boolean>({
-        max: 500,
-        ttl: 1000 * 60 * 5,
-    });
     verifiedHeight: Map<string, number> = new Map();
     _ready: null | Promise<void>;
     enableSync: boolean;
@@ -164,10 +159,20 @@ export class Client {
         const stored: StoredMessage = {
             ...signed,
             id,
-            arrived: await this.nextSequenceNumber(),
+            updated: this.nextSequenceNumber(),
             channel: channelId,
+            confirmations: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         };
-        await this.db.messages.add(stored);
+        await this.db.transaction(
+            'rw',
+            [this.db.messages, this.db.acks],
+            async () => {
+                await this.db.messages.add(stored);
+                if (attest.acks) {
+                    await this.updateAcks(attest, id);
+                }
+            },
+        );
         if (typeof signed.height !== 'number') {
             throw new Error('signed-invalid-height');
         }
@@ -304,20 +309,23 @@ export class Client {
             );
             return;
         }
-        // store it
-        const existing = await this.db.messages.get(id);
-        if (!existing) {
-            await this.db.messages.put({
-                ...m,
-                arrived: await this.nextSequenceNumber(),
-                id,
-                channel: channelId,
-            });
+        if (m.type !== MessageType.INPUT) {
+            // store it
+            const existing = await this.db.messages.get(id);
+            if (!existing) {
+                await this.db.messages.put({
+                    ...m,
+                    updated: this.nextSequenceNumber(),
+                    id,
+                    channel: channelId,
+                    confirmations: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                });
+            }
         }
         // process it
         switch (m.type) {
             case MessageType.INPUT:
-                await this.onInputMessage(m);
+                await this.onInputMessage(m, channelId, id);
                 return;
             case MessageType.CREATE_CHANNEL:
                 await this.onCreateChannel(m);
@@ -331,17 +339,141 @@ export class Client {
         }
     };
 
-    async onInputMessage(msg: InputMessage): Promise<void> {
-        // do we have this message's parent?
-        const parentId = msg.parent;
-        if (parentId) {
-            const parent = await this.db.messages.get(parentId);
-            if (!parent) {
-                this.requestMissingParent(msg).catch((err) =>
-                    console.error('quick-req-missing-parent-error', err),
-                );
-            }
+    async onInputMessage(
+        msg: InputMessage,
+        channelId: string,
+        id: Uint8Array,
+    ): Promise<void> {
+        await this.db.transaction(
+            'rw',
+            [this.db.messages, this.db.acks],
+            async () => {
+                // store it
+                const existing = await this.db.messages.get(id);
+                if (!existing) {
+                    await this.db.messages.put({
+                        ...msg,
+                        updated: this.nextSequenceNumber(),
+                        id,
+                        channel: channelId,
+                        confirmations:
+                            await this.calculateMessageConfirmations(id),
+                    });
+                }
+                // do we have this message's parent?
+                if (msg.parent) {
+                    const parent = await this.db.messages.get(msg.parent);
+                    if (!parent) {
+                        this.requestMissingParent(msg).catch((err) =>
+                            console.error(
+                                'quick-req-missing-parent-error',
+                                err,
+                            ),
+                        );
+                    }
+                }
+                // updated acks
+                // TODO: don't just blindly trust the acks are valid, ensure that each ack does not ack a message before a previous ack
+                if (msg.acks) {
+                    await this.updateAcks(msg, id);
+                }
+            },
+        );
+    }
+
+    async updateAcks(msg: ChainMessage, id: Uint8Array) {
+        if (!msg.acks) {
+            return;
         }
+        // write the acks to db
+        await this.db.acks.bulkPut(
+            msg.acks.map((ackId) => ({ from: id, to: ackId })),
+        );
+        // recalculate the confirmations for each acked message
+        await Promise.all(
+            msg.acks.map(async (ackId) => {
+                const ackee = await this.updateMessageConfirmations(ackId);
+                if (!ackee) {
+                    return Promise.resolve(null);
+                }
+                // if the ackee confirmaiton changed, update the ackee's acks too
+                if (ackee.acks) {
+                    await Promise.all(
+                        ackee.acks.map(
+                            (ackAckId) =>
+                                this.updateMessageConfirmations(ackAckId),
+                            [] as Promise<StoredMessage>[],
+                        ),
+                    );
+                }
+            }),
+        );
+    }
+
+    async updateMessageConfirmations(
+        id: Uint8Array,
+    ): Promise<StoredMessage | null> {
+        const ackee = await this.db.messages.get(id);
+        if (!ackee) {
+            return null;
+        }
+        const confirmations = await this.calculateMessageConfirmations(id);
+        if (ackee.confirmations.join(',') === confirmations.join(',')) {
+            return ackee;
+        }
+        const updated: StoredMessage = {
+            ...ackee,
+            updated: this.nextSequenceNumber(),
+            confirmations,
+        };
+        await this.db.messages.put(updated);
+        return updated;
+    }
+
+    async calculateMessageConfirmations(
+        id: Uint8Array,
+    ): Promise<MessageConfirmationMatrix> {
+        // lookup who acked this message
+        const ackedBy = await Promise.all(
+            (await this.db.acks.where('to').equals(id).toArray()).map(
+                async (ack) => ({
+                    from: ack.from,
+                    to: ack.to,
+                    acks: await this.db.acks
+                        .where('to')
+                        .equals(ack.from)
+                        .count(),
+                }),
+            ),
+        );
+        // TODO: we MUST check that the ack is for the correct interlace
+
+        // build a matrix of confirmation counts
+        // a "confirmation" is an ack that is acked by another ack
+        // ...but this is a weird structure isn't it...
+        // we do not know what the "right" number of confirmations is
+        // so instead we count a range of potential confirmations
+        // confirmations[1] is the number of acks that are acked at least once
+        // confirmation[2] is the number of acks that are acked at least twice
+        // etc
+        // this can be used later to decide if the message is accepted or rejected
+        // for a given required number of confirmations (up to a group of 10)
+        // everything caps out at 10 for other reasons so this is enough for now
+        return (ackedBy || []).reduce(
+            (c, ack) => {
+                c[1] += ack.acks > 0 ? 1 : 0;
+                c[2] += ack.acks > 1 ? 1 : 0;
+                c[3] += ack.acks > 2 ? 1 : 0;
+                c[4] += ack.acks > 3 ? 1 : 0;
+                c[5] += ack.acks > 4 ? 1 : 0;
+                c[6] += ack.acks > 5 ? 1 : 0;
+                c[7] += ack.acks > 6 ? 1 : 0;
+                c[8] += ack.acks > 7 ? 1 : 0;
+                c[9] += ack.acks > 8 ? 1 : 0;
+                return c;
+            },
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as MessageConfirmationMatrix,
+        );
     }
 
     async onSetPeers(msg: SetPeersMessage, channelId: string) {
@@ -388,7 +520,7 @@ export class Client {
     // this is used to tag the order messages are received in
     // only guarentee is that it is larger than the last one
     // there may be gaps
-    private async nextSequenceNumber(): Promise<number> {
+    private nextSequenceNumber(): number {
         if (!this.seqNum) {
             this.seqNum = Date.now();
         }
@@ -724,33 +856,29 @@ export class Client {
         }
     };
 
-    private onRPCRequest = bufferedCall(
-        async (b: Buffer) => {
-            const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
-            if (req.sender === this.peerId) {
-                // don't answer own requests!
-                return;
-            }
-            if (!req.name) {
-                return;
-            }
-            if (
-                !req.timestamp ||
-                typeof req.timestamp !== 'number' ||
-                req.timestamp < Date.now() - 2000
-            ) {
-                // ignore old requests
-                return;
-            }
-            const handler = this.getRequestHandler(req.name);
-            if (!handler) {
-                return;
-            }
-            await handler(req.args as any);
-        },
-        5,
-        'onRPCRequest',
-    );
+    private onRPCRequest = async (b: Buffer) => {
+        const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
+        if (req.sender === this.peerId) {
+            // don't answer own requests!
+            return;
+        }
+        if (!req.name) {
+            return;
+        }
+        if (
+            !req.timestamp ||
+            typeof req.timestamp !== 'number' ||
+            req.timestamp < Date.now() - 2000
+        ) {
+            // ignore old requests
+            return;
+        }
+        const handler = this.getRequestHandler(req.name);
+        if (!handler) {
+            return;
+        }
+        await handler(req.args as any);
+    };
 
     private getRequestHandler = (name: SocketRPCRequest['name']) => {
         switch (name) {

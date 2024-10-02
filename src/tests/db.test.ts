@@ -25,7 +25,8 @@ afterEach(async () => {
 
 test('DBQueryMessages', async () => {
     const msg: StoredMessage = {
-        arrived: 1,
+        id: new Uint8Array([1]),
+        updated: 1,
         type: MessageType.INPUT,
         round: 4,
         sig: new Uint8Array([33]),
@@ -47,10 +48,10 @@ test('DBWriteMessagesPerSecond', async () => {
     const totalmessages = simulatedMessagesPerSecond * simulatedParticipants;
 
     const messages: StoredMessage[] = [];
-    let prev: Message | null = null;
+    let prev: StoredMessage | null = null;
     for (let i = 0; i < totalmessages; i++) {
         const msg = {
-            arrived: i + 1,
+            updated: i + 1,
             sig: new Uint8Array(
                 BigInt(i)
                     .toString(16)
@@ -62,7 +63,7 @@ test('DBWriteMessagesPerSecond', async () => {
             type: MessageType.INPUT,
             data: Math.random().toString(36),
             acks: [],
-            parent: prev ? prev.sig : null,
+            parent: prev ? prev.id : null,
         };
         prev = msg;
         messages.push(msg);

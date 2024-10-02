@@ -1,10 +1,10 @@
 import * as Comlink from 'comlink';
 import dgram from 'socket:dgram';
+import { EmitOpts } from '../../runtime/channels';
 import { Client, ClientConfig } from '../../runtime/client';
 import { CLUSTER_ID } from '../../runtime/config';
-import { Message, UnsignedMessage } from '../../runtime/messages';
+import { ChainMessage, Message } from '../../runtime/messages';
 import { Encryption } from '../../runtime/network/Peer';
-import { Packet, TransportEmitOpts } from '../../runtime/transport';
 import type { ClientUserConfig } from '../hooks/use-client';
 
 // socket is broken
@@ -37,14 +37,14 @@ export async function init(userConfig: ClientUserConfig) {
 }
 
 export async function commit(
-    msg: UnsignedMessage,
-    ackIds?: Uint8Array[],
+    msg: ChainMessage,
+    channelId: string | null,
 ): Promise<Message> {
-    return client!.commit(msg, ackIds);
+    return client!.commit(msg, channelId);
 }
 
-export async function send(packet: Packet, opts?: TransportEmitOpts) {
-    return client!.send(packet, opts);
+export async function send(msg: Message, opts?: EmitOpts) {
+    return client!.send(msg, opts);
 }
 
 export async function createChannel(name: string) {
@@ -56,7 +56,6 @@ export async function joinChannel(id: string) {
 }
 
 export async function setPeers(id: string, peers: string[]) {
-    console.log('setPeers', id, peers);
     await client!.setPeers(id, peers);
 }
 

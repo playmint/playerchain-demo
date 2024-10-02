@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
-import { createDefaultMetrics } from '../../runtime/metrics';
+import { DefaultMetrics } from '../../runtime/metrics';
 import { getPlayerColorCSS } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -17,25 +17,25 @@ import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-const FIXED_UPDATE_RATE = 45;
-const INTERLACE = 3;
-const SIM_INPUT_DELAY = 2; // number of ticks to avoid
+const FIXED_UPDATE_RATE = 75;
+const INTERLACE = 4;
+const SIM_INPUT_DELAY = 1; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({
     channelId,
     details,
+    metrics,
 }: {
     channelId: string;
     details: boolean;
+    metrics: DefaultMetrics;
 }) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const { peerId } = useCredentials();
     const db = useDatabase();
     const client = useClient();
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
-
-    const metrics = useMemo(() => createDefaultMetrics(FIXED_UPDATE_RATE), []);
 
     const copyKeyToClipboard = () => {
         console.log('copying key to clipboard: ', channelId);
@@ -116,6 +116,11 @@ export default memo(function ChannelView({
 
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks
+    const required = channel
+        ? channel.peers.length > 2
+            ? channel.peers.length - 1
+            : channel.peers.length
+        : 0;
     const readyPeers = useMemo(() => {
         if (!channel) {
             return 0;
@@ -132,20 +137,19 @@ export default memo(function ChannelView({
             if (!alive) {
                 return acc;
             }
-            const seesChannelPeers = channel.peers.every(
+            const seesChannelPeers = channel.peers.filter(
                 (channelPeerId) =>
                     channelPeerId === pid ||
                     info.sees.includes(channelPeerId.slice(0, 8)),
             );
-            return seesChannelPeers ? acc + 1 : acc;
+            return seesChannelPeers.length >= required ? acc + 1 : acc;
         }, 0);
-    }, [channel, peerId, peers]);
+    }, [channel, peerId, peers, required]);
 
     if (!channel) {
         return <div>failed to load channel data</div>;
     }
 
-    const required = channel.peers.length; //channel.peers.length == 2 ? 2 : channel.peers.length / 2;
     const majorityReady = readyPeers >= required;
     const selfIsInTheClub = channel.peers.includes(peerId);
 
@@ -321,6 +325,7 @@ export default memo(function ChannelView({
                         peerId={peerId}
                         channelPeerIds={channelPeers}
                         inputDelay={SIM_INPUT_DELAY}
+                        interlace={INTERLACE}
                     >
                         <Renderer
                             key={channel.id}

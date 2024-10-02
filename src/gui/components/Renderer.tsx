@@ -1,11 +1,14 @@
+import * as Comlink from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FC, memo, useEffect, useMemo } from 'react';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
 import { RendererProps } from '../../runtime/game';
 import { DefaultMetrics } from '../../runtime/metrics';
-import { Sequencer, SequencerMode } from '../../runtime/sequencer';
+import { SequencerMode } from '../../runtime/sequencer';
+import type { Sequencer } from '../../runtime/sequencer';
 import { SimResult } from '../../runtime/simulation';
+import { useAsyncMemo } from '../hooks/use-async';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -23,8 +26,8 @@ export default memo(function Renderer({
     metrics: DefaultMetrics;
 }) {
     const db = useDatabase();
-    const { peerId } = useCredentials();
-    const { sim, rate, mod } = useSimulation();
+    const { peerId, dbname } = useCredentials();
+    const { sim, rate, mod, src } = useSimulation();
     const client = useClient();
     console.log('Renderer.tsx render', rate);
 
@@ -54,55 +57,82 @@ export default memo(function Renderer({
     );
 
     // start the channel sequencer
-    useEffect(() => {
-        if (!client) {
-            console.log('no client');
-            return;
-        }
-        if (!channelId) {
-            console.log('no channel id');
-            return;
-        }
-        if (!rate) {
-            console.log('no rate set');
-            return;
-        }
-        if (!mod) {
-            console.log('nomod');
-            return;
-        }
-        const seq = new Sequencer({
-            mod,
-            committer: {
-                commit: async (...args) => client.commit(...args),
-                send: async (...args) => client.send(...args),
-            },
+    const seq = useAsyncMemo<Comlink.Remote<Sequencer> | undefined>(
+        async (defer) => {
+            if (!client) {
+                console.log('no client');
+                return;
+            }
+            if (!channelId) {
+                console.log('no channel id');
+                return;
+            }
+            if (!rate) {
+                console.log('no rate set');
+                return;
+            }
+            if (!src) {
+                console.log('nomod');
+                return;
+            }
+            if (!dbname) {
+                console.log('no dbname');
+                return;
+            }
+            const w = new Worker(
+                new URL('../workers/sequencer.worker.ts', import.meta.url),
+                {
+                    type: 'module',
+                    /* @vite-ignore */
+                    name: `seq worker`,
+                },
+            );
+            defer(async () => {
+                w.terminate();
+                console.log(`seq worker terminated`);
+            });
+            const SequencerProxy = Comlink.wrap<typeof Sequencer>(w);
+            defer(async () => {
+                SequencerProxy[Comlink.releaseProxy]();
+            });
+            const cfg = {
+                src,
+                clientPort: await client[Comlink.createEndpoint](),
+                channelId,
+                rate,
+                mode: SequencerMode.CORDIAL,
+                interlace,
+                channelPeerIds,
+                peerId,
+                // metrics,
+                dbname,
+            };
+            console.log('starting sequencer----------1', cfg);
+            const seq = await new SequencerProxy(
+                Comlink.transfer(cfg, [cfg.clientPort]),
+            );
+            console.log('starting sequencer----------2');
+            seq.start().catch((err) => {
+                console.error('seq.start err:', err);
+            });
+            defer(async () => {
+                await seq.destroy();
+            });
+            console.log('started sequencer');
+            return seq;
+        },
+        [
+            client,
             channelId,
             rate,
-            mode: SequencerMode.CORDIAL,
-            interlace,
-            channelPeerIds,
+            src,
             peerId,
-            metrics,
             db,
-        });
-        seq.start();
-        console.log('started sequencer');
-        return () => {
-            seq.destroy();
-            console.log('stopping sequencer');
-        };
-    }, [
-        client,
-        channelId,
-        rate,
-        mod,
-        peerId,
-        db,
-        channelPeerIds,
-        interlace,
-        metrics,
-    ]);
+            channelPeerIds,
+            interlace,
+            metrics,
+        ],
+    );
 
     // configure event handlers
     useEffect(() => {
@@ -111,20 +141,27 @@ export default memo(function Renderer({
                 return;
             }
             event.preventDefault();
-            if (!mod) {
+            if (event.repeat) {
                 return;
             }
-            mod.onKeyDown(event.key);
+            if (!seq) {
+                return;
+            }
+            seq.onKeyDown(event.key).catch((err) => {
+                console.error('keydown-err:', err);
+            });
         };
         const up = (event: any) => {
             if (event.target.tagName === 'INPUT') {
                 return;
             }
             event.preventDefault();
-            if (!mod) {
+            if (!seq) {
                 return;
             }
-            mod.onKeyUp(event.key);
+            seq.onKeyUp(event.key).catch((err) => {
+                console.error('keyup-err:', err);
+            });
         };
         window.addEventListener('keydown', down);
         window.addEventListener('keyup', up);
@@ -132,7 +169,7 @@ export default memo(function Renderer({
             window.removeEventListener('keydown', down);
             window.removeEventListener('keyup', up);
         };
-    }, [mod]);
+    }, [seq]);
 
     useEffect(() => {
         if (!rate) {

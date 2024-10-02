@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
 import { memo, useEffect, useState } from 'react';
 import { NETWORK_ID } from '../../runtime/config';
+import { DefaultMetrics } from '../../runtime/metrics';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import theme from '../styles/default.module.css';
@@ -15,12 +16,17 @@ interface StatusInfo {
     natName?: string;
 }
 
-export default memo(function StatusBar() {
+export default memo(function StatusBar({
+    metrics,
+}: {
+    metrics: DefaultMetrics;
+}) {
     const { clientId, shortId } = useCredentials();
     const [info, setInfo] = useState<StatusInfo>();
     const db = useDatabase();
 
     useEffect(() => {
+        let prevHeight = 0;
         let updating = false;
         setInterval(() => {
             if (updating) {
@@ -51,7 +57,11 @@ export default memo(function StatusBar() {
                         .last();
                 })
                 .then((tx) => {
-                    setInfo((prev) => ({ ...prev, tx: tx?.height ?? 0 }));
+                    const newHeight = tx?.height ?? 0;
+                    const diff = newHeight - prevHeight;
+                    metrics.cps.add(diff);
+                    setInfo((prev) => ({ ...prev, tx: newHeight }));
+                    prevHeight = newHeight;
                 })
                 .catch((err) => {
                     console.error('statusbar-err', err);
@@ -60,7 +70,7 @@ export default memo(function StatusBar() {
                     updating = false;
                 });
         }, 2500);
-    }, [clientId, db]);
+    }, [clientId, db, metrics.cps]);
     return (
         <div
             style={{

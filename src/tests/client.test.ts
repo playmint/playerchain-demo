@@ -168,11 +168,11 @@ test('ClientSyncChannel', async () => {
         .where('peer')
         .equals(client.id)
         .toArray();
-    // note: ignore the arrived field, it is local
+    // note: ignore the updated field, it is local
     expect(
-        m1.map((m) => ({ ...m, arrived: 0 })),
+        m1.map((m) => ({ ...m, updated: 0 })),
         'both clients have same message data',
-    ).to.deep.equal(m2.map((m) => ({ ...m, arrived: 0 })));
+    ).to.deep.equal(m2.map((m) => ({ ...m, updated: 0 })));
 });
 
 test('ClientCommitPerSecond', async () => {

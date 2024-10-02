@@ -13,6 +13,7 @@ export function assetPath(s: string): string {
 
 export type EntityObject3D = Object3D & {
     __generation?: number;
+    __visible?: number;
 };
 
 export enum InterpolateMethod {
@@ -137,15 +138,21 @@ export function interpolateEntityVisibility(
     obj: EntityObject3D,
     world: World<ShooterSchema>,
     eid: EntityId,
-    _delay?: number,
+    delay: number, // frames
 ) {
     const isActive = world.components.entity.data.active[eid];
-    if (isActive) {
-        setTimeout(() => {
+    if (isActive && !obj.visible) {
+        if (typeof obj.__visible !== 'number') {
+            obj.__visible = -delay;
+        }
+        obj.__visible++;
+        if (obj.__visible >= 1) {
             obj.visible = true;
-        }, _delay);
-    } else {
+            obj.__visible = -delay;
+        }
+    } else if (!isActive && obj.visible) {
         obj.visible = false;
+        obj.__visible = -delay;
     }
 }
 
