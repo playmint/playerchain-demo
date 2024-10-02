@@ -5,8 +5,8 @@ on:
         types: [published]
 
 env:
-    SSC_REPO: 'socketsupply/socket'
-    SSC_BRANCH: 'rc'
+    SSC_REPO: 'playmint/socket'
+    SSC_BRANCH: 'playmint-next'
     APP_NAME: 'substream'
 
 permissions:
@@ -99,7 +99,7 @@ jobs:
               run: |
                   ssc --version
                   pnpm install
-                  pnpm run build:macos
+                  pnpm run release:macos
                   ls build/**/*
             - name: Upload Release Asset
               uses: actions/upload-release-asset@v1
@@ -179,7 +179,7 @@ jobs:
               run: |
                   ssc --version
                   pnpm install
-                  pnpm run build
+                  pnpm release:linux
                   ls build/**/*
             - name: Upload Release Asset
               uses: actions/upload-release-asset@v1
