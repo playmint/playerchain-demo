@@ -10,7 +10,7 @@ import {
 
 export const SHIP_THRUST_RATE = 100;
 export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.7);
-export const SHIP_RESPAWN_RADIUS = 400;
+export const SHIP_RESPAWN_RADIUS = 200;
 export const SHIP_MAX_VELOCITY = 80;
 
 export default system<ShooterSchema>(
