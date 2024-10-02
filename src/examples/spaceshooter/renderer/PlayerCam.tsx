@@ -1,7 +1,7 @@
 import { PerspectiveCamera } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { memo, useEffect } from 'react';
-import { Camera } from 'three';
+import { memo, useRef, useEffect } from 'react';
+import { Camera, Vector3 } from 'three';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import {
     EntityObject3D,
@@ -10,6 +10,7 @@ import {
     updateEntityGeneration,
 } from '../utils/RenderUtils';
 import { BackgroundGrid } from './Background';
+import { getShakeOffset } from './ShakeManager';
 import { WorldRef } from './ShooterRenderer';
 
 const CAM_INITIAL_ZOOM = 160;
@@ -94,6 +95,14 @@ export default memo(function PlayerCam({
             deltaTime,
             InterpolateSpeed.Slow,
         );
+
+        // Get accumulated shake from ShakeManager
+        const shakeOffset = getShakeOffset(camera.position, deltaTime);
+
+        cameraShake.current.copy(shakeOffset);
+
+        // Apply shake offset to the camera
+        camera.position.add(cameraShake.current);
 
         // mark generation
         updateEntityGeneration(camera, world, player.ship);
