@@ -34,6 +34,29 @@ export interface SequencerConfig {
     metrics?: DefaultMetrics;
 }
 
+export const requiredConfirmationsFor = (size: number): number => {
+    // supermarjority-ish
+    // this is only manual like this so I can play with the numbers
+    switch (size) {
+        case 2:
+            return 2;
+        case 3:
+            return 2;
+        case 4:
+            return 3;
+        case 5:
+            return 3;
+        case 6:
+            return 4;
+        case 7:
+            return 4;
+        case 8:
+            return 5;
+        default:
+            throw new Error(`unsupported size ${size}`);
+    }
+};
+
 const MIN_SEQUENCE_RATE = 10;
 
 // the current input
@@ -261,11 +284,9 @@ export class Sequencer {
             .filter((m) => m.peer && m.peer !== this.peerId)
             .map((m) => Buffer.from(m.id, 'base64'));
         // we can't write a block if we do not have enough acks the interlaced round
-        const requiredCount =
-            this.channelPeerIds.length > 2
-                ? this.channelPeerIds.length - 2 // FIXME: should be supermajority not hardcoded
-                : this.channelPeerIds.length - 1; // 2 player is a always lockstep
-        if (ackIds.length < requiredCount) {
+        const requiredAcks =
+            requiredConfirmationsFor(this.channelPeerIds.length) - 1;
+        if (ackIds.length < requiredAcks) {
             // console.log(
             //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
             // );

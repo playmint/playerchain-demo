@@ -3,7 +3,7 @@ import database, { DB, SerializedState, StateTag, StoredMessage } from './db';
 import { GameModule, PlayerData, load } from './game';
 import { IncrementalCache } from './lru';
 import { InputMessage, MessageType } from './messages';
-import { SequencerMode } from './sequencer';
+import { SequencerMode, requiredConfirmationsFor } from './sequencer';
 
 export type State = {
     t: number;
@@ -338,9 +338,7 @@ export class Simulation {
             // is well acked?
             // TODO: reduce this number to supermajority
             const requiredConfirmations =
-                this.channelPeerIds.length > 2
-                    ? this.channelPeerIds.length - 2
-                    : this.channelPeerIds.length - 1;
+                requiredConfirmationsFor(this.channelPeerIds.length) - 1;
             if (
                 needsFinalization &&
                 m.confirmations[requiredConfirmations] < requiredConfirmations
