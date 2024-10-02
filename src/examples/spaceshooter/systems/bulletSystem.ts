@@ -19,6 +19,8 @@ export default system<ShooterSchema>(
         velocity,
         position,
         deltaTime,
+        t,
+        timer,
     }) => {
         const bullets = query(Tags.IsBullet);
 
@@ -59,6 +61,11 @@ export default system<ShooterSchema>(
         for (const player of players) {
             // skip invalid
             if (!player.ship) {
+                return;
+            }
+
+            // No shooting if either round hasn't started (round == 0) or round has ended (t > round)
+            if (timer.round[player.ship] <= t) {
                 return;
             }
 
