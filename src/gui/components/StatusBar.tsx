@@ -21,7 +21,7 @@ export default memo(function StatusBar({
 }: {
     metrics: DefaultMetrics;
 }) {
-    const { clientId, shortId } = useCredentials();
+    const { peerId, shortId } = useCredentials();
     const [info, setInfo] = useState<StatusInfo>();
     const db = useDatabase();
 
@@ -50,10 +50,7 @@ export default memo(function StatusBar({
                     setInfo((prev) => ({ ...prev, rx }));
                     return db.messages
                         .where(['peer', 'height'])
-                        .between(
-                            [clientId, Dexie.minKey],
-                            [clientId, Dexie.maxKey],
-                        )
+                        .between([peerId, Dexie.minKey], [peerId, Dexie.maxKey])
                         .last();
                 })
                 .then((tx) => {
@@ -70,7 +67,7 @@ export default memo(function StatusBar({
                     updating = false;
                 });
         }, 2500);
-    }, [clientId, db, metrics.cps]);
+    }, [peerId, db, metrics.cps]);
     return (
         <div
             style={{
