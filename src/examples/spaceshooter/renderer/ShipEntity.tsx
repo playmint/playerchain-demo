@@ -7,6 +7,7 @@ import {
     Mesh,
     Object3DEventMap,
     PositionalAudio as PositionalAudioImpl,
+    Scene,
     Vector3,
 } from 'three';
 import { getPlayerColor } from '../../../gui/fixtures/player-colors';
@@ -32,15 +33,21 @@ import {
 } from '../utils/RenderUtils';
 import { addShake } from './ShakeManager';
 import { PlayersRef, WorldRef } from './ShooterRenderer';
+import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
+import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
+import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
+import { ShockwaveFX, ShockwaveFXHandle } from '../effects/FXShockwaveQuarks';
 
 export default memo(function ShipEntity({
     eid,
     worldRef,
     playersRef,
+    bufferScene,
 }: {
     eid: number;
     worldRef: WorldRef;
     playersRef: PlayersRef;
+    bufferScene: Scene;
 }) {
     const getShipOwner = () =>
         Array.from(worldRef.current.players.entries()).find(
@@ -50,6 +57,7 @@ export default memo(function ShipEntity({
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
     const explosionRef = useRef<ExplodeFXHandle>(null!);
+    const shockwaveRef = useRef<ShockwaveFXHandle>(null!);
     const explosionSfxRef = useRef<PositionalAudioImpl>(null!);
     const thrustSfxRef = useRef<PositionalAudioImpl>(null!);
     const respawnRef = useRef<SpawnFXHandle>(null!);
@@ -214,14 +222,13 @@ export default memo(function ShipEntity({
                 if (explosionRef.current) {
                     explosionRef.current.triggerExplosion(pos, shipRef.current);
                 }
-
-                addShake({
+                if(shockwaveRef.current){
+                    shockwaveRef.current.triggerExplosion(pos, shipRef.current);
                     intensity: 500, // Adjust as needed
                     position: pos,
                     decay: 2.0, // Rate at which the shake reduces
                     duration: 1.0, // How long the shake lasts
-                });
-
+                }
                 // make noise too
                 if (!explosionSfxRef.current.isPlaying) {
                     explosionSfxRef.current.play();
@@ -286,6 +293,7 @@ export default memo(function ShipEntity({
     return (
         <group ref={groupRef}>
             <ExplodeFX ref={explosionRef} />
+            <ShockwaveFX ref={shockwaveRef} scene={bufferScene} />
             <SpawnFX ref={respawnRef} />
             <SparksFX ref={sparksRef} />
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />

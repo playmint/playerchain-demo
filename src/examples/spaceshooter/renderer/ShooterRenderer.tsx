@@ -1,5 +1,5 @@
 import { PositionalAudio, useGLTF } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Camera } from 'three';
 import { EntityId, World } from '../../../runtime/ecs';
@@ -13,7 +13,13 @@ import { FPSLimiter } from './FPSLimiter';
 import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
+import ShipEntity from './ShipEntity';
 import WallModels from './WallModels';
+import { StarFieldFX } from '../effects/FXStarfieldQuarks';
+import { Color, LinearFilter, NearestFilter, Scene, WebGLRenderTarget } from 'three';
+import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
+import { WarpEffect } from './WarpEffect';
+import { ToneMappingMode } from 'postprocessing';
 
 useGLTF.setDecoderPath('/libs/draco');
 
@@ -21,6 +27,49 @@ const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 
 export type WorldRef = { current: World<ShooterSchema> };
 export type PlayersRef = { current: PlayerInfo[] };
+
+const ModelEntity = memo(function ModelEntity({
+    worldRef,
+    eid,
+    playersRef,
+    bufferScene,
+}: {
+    eid: number;
+    worldRef: WorldRef;
+    playersRef: PlayersRef;
+    bufferScene: Scene;
+}) {
+    console.log('ModelEntity', eid);
+    switch (worldRef.current.components.model.data.type[eid]) {
+        case ModelType.Ship:
+            return (
+                <ShipEntity
+                    worldRef={worldRef}
+                    eid={eid}
+                    playersRef={playersRef}
+                    bufferScene={bufferScene}
+                />
+            );
+        case ModelType.Bullet:
+            return <BulletEntity worldRef={worldRef} eid={eid} />;
+        case ModelType.Wall:
+            return <WallEntity worldRef={worldRef} eid={eid} />;
+    }
+});
+
+const BufferSceneRenderer = ({ bufferScene, bufferTarget }: { bufferScene: Scene; bufferTarget: WebGLRenderTarget }) => {
+    const { gl, camera } = useThree();
+    
+    useFrame(() => {
+        bufferScene.background = new Color(0x000000);
+      // Render bufferScene into the texture
+      gl.setRenderTarget(bufferTarget);
+      gl.render(bufferScene, camera);
+      gl.setRenderTarget(null); // Reset render target to default
+    });
+  
+    return null; // This component does not render anything itself
+  };
 
 export default memo(function ShooterCanvas({
     mod,
@@ -43,6 +92,14 @@ export default memo(function ShooterCanvas({
     const prevPlayers = useRef<PlayerInfo[]>([]);
     const [tick, setTick] = useState(0);
     const [camera, setCamera] = useState<Camera>();
+    const bufferScene = useRef(new Scene());
+    const bufferTarget = useMemo(() => {
+        const target = new WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+          minFilter: LinearFilter,
+          magFilter: NearestFilter,
+        });
+        return target;
+      }, []);
 
     // subscribe to updates
     useEffect(() => {
@@ -113,6 +170,7 @@ export default memo(function ShooterCanvas({
                         eid={eid}
                         worldRef={worldRef}
                         playersRef={playersRef}
+                        bufferScene={bufferScene.current}
                     />
                 ))}
                 <PlayerCam
@@ -129,6 +187,10 @@ export default memo(function ShooterCanvas({
                 />
                 <AudioControls />
                 <WallModels />
+                <EffectComposer>
+                <ToneMapping mode={ ToneMappingMode.ACES_FILMIC } />
+                    <WarpEffect strength={0.01} tBuffer={bufferTarget.texture}  />
+                </EffectComposer>
             </Canvas>
             <PlayerHUD
                 peerId={peerId}
