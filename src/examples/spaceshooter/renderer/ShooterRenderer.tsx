@@ -14,7 +14,6 @@ import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
 import ShipEntity from './ShipEntity';
 import WallEntity from './WallEntity';
-import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 import { Color, LinearFilter, NearestFilter, Scene, WebGLRenderTarget } from 'three';
 import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
 import { WarpEffect } from './WarpEffect';
@@ -26,35 +25,6 @@ const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 
 export type WorldRef = { current: World<ShooterSchema> };
 export type PlayersRef = { current: PlayerInfo[] };
-
-const ModelEntity = memo(function ModelEntity({
-    worldRef,
-    eid,
-    playersRef,
-    bufferScene,
-}: {
-    eid: number;
-    worldRef: WorldRef;
-    playersRef: PlayersRef;
-    bufferScene: Scene;
-}) {
-    console.log('ModelEntity', eid);
-    switch (worldRef.current.components.model.data.type[eid]) {
-        case ModelType.Ship:
-            return (
-                <ShipEntity
-                    worldRef={worldRef}
-                    eid={eid}
-                    playersRef={playersRef}
-                    bufferScene={bufferScene}
-                />
-            );
-        case ModelType.Bullet:
-            return <BulletEntity worldRef={worldRef} eid={eid} />;
-        case ModelType.Wall:
-            return <WallEntity worldRef={worldRef} eid={eid} />;
-    }
-});
 
 const BufferSceneRenderer = ({ bufferScene, bufferTarget }: { bufferScene: Scene; bufferTarget: WebGLRenderTarget }) => {
     const { gl, camera } = useThree();

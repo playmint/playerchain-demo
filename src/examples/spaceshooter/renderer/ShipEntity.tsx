@@ -15,10 +15,7 @@ import { Input, Tags, hasInput } from '../../spaceshooter';
 import sfxDestroy from '../assets/Destroy.mp3?url';
 import sfxThrust from '../assets/Thrust_Loop.mp3?url';
 import shipGLTF from '../assets/ship.glb?url';
-import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
-import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
 import fxShootData from '../effects/FXShoot';
-import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
 import fxThrusterData from '../effects/FXThruster';
 import {
     EntityObject3D,
