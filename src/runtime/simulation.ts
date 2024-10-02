@@ -102,12 +102,11 @@ export class Simulation {
     }
 
     private async getCurrentRoundLimitFromMessages(): Promise<number> {
-        const ourPeerId = Buffer.from(this.peerId, 'hex');
         const ourLatest = (await this.db.messages
             .where(['channel', 'peer', 'round'])
             .between(
-                [this.channelId, ourPeerId, Dexie.minKey],
-                [this.channelId, ourPeerId, Dexie.maxKey],
+                [this.channelId, this.peerId, Dexie.minKey],
+                [this.channelId, this.peerId, Dexie.maxKey],
             )
             .last()) as InputMessage | undefined;
         if (!ourLatest) {
@@ -177,12 +176,7 @@ export class Simulation {
                 if (m.type !== MessageType.INPUT) {
                     return;
                 }
-                if (
-                    m.peer &&
-                    !this.channelPeerIds.includes(
-                        Buffer.from(m.peer).toString('hex'),
-                    )
-                ) {
+                if (m.peer && !this.channelPeerIds.includes(m.peer)) {
                     // ignore messages from peers not accepted in the set
                     return;
                 }
@@ -272,10 +266,7 @@ export class Simulation {
                         .filter((m) => m.type === MessageType.INPUT)
                         .filter(
                             (m) =>
-                                m.peer &&
-                                this.channelPeerIds.includes(
-                                    Buffer.from(m.peer).toString('hex'),
-                                ),
+                                m.peer && this.channelPeerIds.includes(m.peer),
                         )
                         .sort((a, b) => {
                             return a.round - b.round;
@@ -334,8 +325,7 @@ export class Simulation {
             if (!m.peer) {
                 throw new Error('input-message-missing-peer');
             }
-            const peerId = Buffer.from(m.peer).toString('hex');
-            const inp = round.inputs.find((inp) => inp.id === peerId);
+            const inp = round.inputs.find((inp) => inp.id === m.peer);
             if (!inp) {
                 throw new Error('input-message-peer-not-in-channel');
             }
@@ -373,7 +363,7 @@ export class Simulation {
             // we should not attempt to fill the gap and should abort
             if (round.round > 1 && round.delta > 0) {
                 console.log(
-                    `GAP
+                    `ARGG GAP! THIS IS UNEXPECTED AND LIKELY A BUG!
                         delta=${round.delta}
                         round=${round.round}
                     `,

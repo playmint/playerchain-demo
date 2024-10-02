@@ -41,20 +41,24 @@ export default memo(function Renderer({
         }
     }, [mod]);
 
+    // track the peer names
     const peerNames = useMemo(() => {
         const names: Record<string, string> = {};
         return names;
     }, []);
-
-    // track the peer names
-    const peers = useLiveQuery(() => db.peerNames.toArray(), [], []);
-    useEffect(
-        () =>
-            peers.forEach((peer) => {
-                peerNames[peer.peerId] = peer.name;
-            }),
-        [peerNames, peers],
+    const peers = useLiveQuery(
+        () => {
+            return db.peerNames.toArray();
+        },
+        [],
+        [],
     );
+    useEffect(() => {
+        console.log('UPDATED PEER NAMES');
+        return peers.forEach((peer) => {
+            peerNames[peer.peerId] = peer.name;
+        });
+    }, [peerNames, peers]);
 
     // start the channel sequencer
     const seq = useAsyncMemo<Comlink.Remote<Sequencer> | undefined>(

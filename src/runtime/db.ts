@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { ChannelInfo } from './channels';
-import { ChainMessage } from './messages';
+import { ChainMessage, MessageType } from './messages';
 import type { State } from './simulation';
 
 export enum StateTag {
@@ -85,16 +85,126 @@ export type MessageConfirmationMatrix = [
     number,
 ];
 
-export type StoredMessage = ChainMessage & {
-    id: Uint8Array;
+export type StoredChainMessageProps = {
+    peer: string;
+    parent: string | null;
+    acks: string[];
+    height: number;
+    sig: string;
+};
+export type StoredInputMessage = StoredChainMessageProps & {
+    type: MessageType.INPUT;
+    round: number;
+    data: number;
+};
+
+export type StoredSetPeersMessage = StoredChainMessageProps & {
+    type: MessageType.SET_PEERS;
+    peers: string[];
+};
+
+export type StoredCreateChannelMessage = StoredChainMessageProps & {
+    type: MessageType.CREATE_CHANNEL;
+    name: string;
+};
+export type StoredChainMessage =
+    | StoredInputMessage
+    | StoredSetPeersMessage
+    | StoredCreateChannelMessage;
+
+export type StoredMessage = StoredChainMessage & {
+    id: string;
     updated: number;
     channel: string | null;
     confirmations: MessageConfirmationMatrix;
 };
 
+export function fromStoredChainMessage(m: StoredMessage): ChainMessage {
+    const shared = {
+        peer: Buffer.from(m.peer, 'hex'),
+        parent: m.parent ? Buffer.from(m.parent, 'base64') : null,
+        acks: m.acks.map((a) => Buffer.from(a, 'base64')),
+        height: m.height,
+        sig: Buffer.from(m.sig, 'base64'),
+    };
+    switch (m.type) {
+        case MessageType.INPUT:
+            return {
+                type: MessageType.INPUT,
+                ...shared,
+                round: m.round,
+                data: m.data,
+            };
+        case MessageType.CREATE_CHANNEL:
+            return {
+                type: MessageType.CREATE_CHANNEL,
+                ...shared,
+                name: m.name,
+            };
+        case MessageType.SET_PEERS:
+            return {
+                type: MessageType.SET_PEERS,
+                ...shared,
+                peers: m.peers.map((p) => Buffer.from(p, 'base64')),
+            };
+    }
+}
+
+export function toStoredChainMessage(
+    m: ChainMessage,
+    id: string,
+    updated: number,
+    channel: string | null,
+    confirmations: MessageConfirmationMatrix,
+): StoredMessage {
+    if (!m.peer) {
+        throw new Error('peer field is required');
+    }
+    if (!m.sig) {
+        throw new Error('sig field is required');
+    }
+    if (typeof m.height !== 'number') {
+        throw new Error('height field is required');
+    }
+    const shared = {
+        id,
+        peer: Buffer.from(m.peer).toString('hex'),
+        parent: m.parent ? Buffer.from(m.parent).toString('base64') : null,
+        acks: m.acks
+            ? m.acks.map((a) => Buffer.from(a).toString('base64'))
+            : [],
+        height: m.height,
+        sig: Buffer.from(m.sig).toString('base64'),
+        updated,
+        channel,
+        confirmations,
+    };
+    switch (m.type) {
+        case MessageType.INPUT:
+            return {
+                type: MessageType.INPUT,
+                ...shared,
+                round: m.round,
+                data: m.data,
+            };
+        case MessageType.CREATE_CHANNEL:
+            return {
+                type: MessageType.CREATE_CHANNEL,
+                ...shared,
+                name: m.name,
+            };
+        case MessageType.SET_PEERS:
+            return {
+                type: MessageType.SET_PEERS,
+                ...shared,
+                peers: m.peers.map((p) => Buffer.from(p).toString('base64')),
+            };
+    }
+}
+
 export type Ack = {
-    from: Uint8Array;
-    to: Uint8Array;
+    from: string;
+    to: string;
 };
 
 export type DB = Dexie & {

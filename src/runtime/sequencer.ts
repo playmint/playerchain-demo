@@ -103,7 +103,7 @@ export class Sequencer {
                 this.metrics.cps.add(commits);
             }
         } catch (err) {
-            console.error(`seq-loop-err: ${err}`);
+            console.error(`seq-loop-err`, err);
         }
     };
 
@@ -140,7 +140,6 @@ export class Sequencer {
             return 0;
         }
         for (let i = 0; i < numCommits; i++) {
-            // console.log('writing-input-block', round, input);
             this.prev = await this.committer.commit(
                 {
                     type: MessageType.INPUT,
@@ -176,17 +175,18 @@ export class Sequencer {
 
     private async getNextRound(): Promise<number> {
         // find our latest round
-        const ourPeerId = Buffer.from(this.peerId, 'hex');
         let ourLatestRound = 0;
         const ourLatest = (await this.db.messages
             .where(['channel', 'peer', 'round'])
             .between(
-                [this.channelId, ourPeerId, Dexie.minKey],
-                [this.channelId, ourPeerId, Dexie.maxKey],
+                [this.channelId, this.peerId, Dexie.minKey],
+                [this.channelId, this.peerId, Dexie.maxKey],
             )
             .last()) as InputMessage | undefined;
         if (ourLatest) {
             ourLatestRound = ourLatest.round;
+        } else {
+            console.log('no latest round');
         }
         return ourLatestRound + 1;
     }
@@ -258,12 +258,8 @@ export class Sequencer {
                 )
                 .toArray()
         )
-            .filter(
-                (m) =>
-                    m.peer &&
-                    Buffer.from(m.peer).toString('hex') !== this.peerId,
-            )
-            .map((m) => m.id);
+            .filter((m) => m.peer && m.peer !== this.peerId)
+            .map((m) => Buffer.from(m.id, 'base64'));
         // we can't write a block if we do not have enough acks the interlaced round
         const requiredCount =
             this.channelPeerIds.length > 2
@@ -297,7 +293,7 @@ export class Sequencer {
         //     .filter(
         //         (m) =>
         //             m.peer &&
-        //             Buffer.from(m.peer).toString('hex') !== this.peerId,
+        //             m.peer !== this.peerId,
         //     )
         //     .map((m) => m.id);
         // // we can't write a block if we do not have enough acks on the interlaced*N round

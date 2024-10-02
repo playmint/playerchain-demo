@@ -38,7 +38,6 @@ export default memo(function ChannelView({
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
 
     const copyKeyToClipboard = () => {
-        console.log('copying key to clipboard: ', channelId);
         navigator.clipboard.writeText(channelId).catch((err) => {
             console.error('clipboard write failed:', err);
         });
@@ -68,11 +67,11 @@ export default memo(function ChannelView({
 
     // get channel data
 
-    const channel = useLiveQuery(
-        async (): Promise<ChannelInfo | null | undefined> =>
-            db.channels.get(channelId),
-        [channelId],
-    );
+    const channel = useLiveQuery(async (): Promise<
+        ChannelInfo | null | undefined
+    > => {
+        return db.channels.get(channelId);
+    }, [channelId]);
     const channelPeers = useMemo(
         () => channel?.peers || [],
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,16 +80,20 @@ export default memo(function ChannelView({
 
     // peer info
 
-    const allPeers = useLiveQuery(() => db.peers.toArray(), [], []);
-    const peers = useMemo(
-        () =>
-            allPeers.filter(
-                (p) =>
-                    p.channels.includes(channelId) &&
-                    p.sees.includes(peerId.slice(0, 8)),
-            ),
-        [allPeers, channelId, peerId],
+    const allPeers = useLiveQuery(
+        () => {
+            return db.peers.toArray();
+        },
+        [],
+        [],
     );
+    const peers = useMemo(() => {
+        return allPeers.filter(
+            (p) =>
+                p.channels.includes(channelId) &&
+                p.sees.includes(peerId.slice(0, 8)),
+        );
+    }, [allPeers, channelId, peerId]);
 
     const potentialPeers = useMemo(
         () => [...peers.map((p) => p.peerId), peerId].sort(),
@@ -101,13 +104,18 @@ export default memo(function ChannelView({
         if (!client.setPeers) {
             return;
         }
-        console.log('acceptPeers', channelId, potentialPeers);
         client.setPeers(channelId, potentialPeers).catch((err) => {
             console.error('acceptPeers', err);
         });
     }, [client, channelId, potentialPeers]);
 
-    const peerNames = useLiveQuery(() => db.peerNames.toArray(), [], []);
+    const peerNames = useLiveQuery(
+        () => {
+            return db.peerNames.toArray();
+        },
+        [],
+        [],
+    );
 
     // const largestDiff = peers.reduce(
     //     (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),

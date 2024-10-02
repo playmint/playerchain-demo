@@ -211,11 +211,11 @@ export interface SocketEmitOpts {
 }
 
 export type SocketRPCGetMessagesByHeight = {
-    name: 'requestMessagesBySig';
+    name: 'requestMessagesById';
     timestamp: number;
     sender: string;
     args: {
-        id: Uint8Array;
+        id: string;
     };
 };
 
