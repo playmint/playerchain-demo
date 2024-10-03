@@ -52,6 +52,7 @@ export default function EnemyLocation({
 }) {
     const componentRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [hypotenuse, setHypotenuse] = useState(0);
 
     useEffect(() => {
         // Function to update dimensions
@@ -61,6 +62,12 @@ export default function EnemyLocation({
                     width: componentRef.current.offsetWidth,
                     height: componentRef.current.offsetHeight,
                 });
+                setHypotenuse(
+                    Math.sqrt(
+                        componentRef.current.offsetWidth ** 2 +
+                            componentRef.current.offsetHeight ** 2,
+                    ),
+                );
             }
         };
 
@@ -89,7 +96,7 @@ export default function EnemyLocation({
 
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
-    const radius = dimensions.height / 2;
+    const radius = hypotenuse / 2;
 
     return (
         <div
@@ -121,8 +128,8 @@ export default function EnemyLocation({
                     return (
                         <Enemy
                             key={player.id}
-                            x={x}
-                            y={y}
+                            x={Math.min(dimensions.width, Math.max(x, 0))}
+                            y={Math.min(dimensions.height, Math.max(y, 0))}
                             cssColor={getPlayerColorCSS(playerIdx)}
                         />
                     );
