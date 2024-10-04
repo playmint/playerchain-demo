@@ -7,49 +7,6 @@ import { WorldRef } from './ShooterRenderer';
 const INDICTOR_WIDTH = 20;
 const INDICTOR_HEIGHT = 20;
 
-function Enemy({
-    x,
-    y,
-    angle,
-    cssColor,
-}: {
-    x: number;
-    y: number;
-    angle: number;
-    cssColor: string;
-}) {
-    const adjustedAngle = angle - Math.PI / 2; // SVG points up
-    const angleDeg = adjustedAngle * (180 / Math.PI);
-
-    return (
-        <div
-            style={{
-                position: 'absolute',
-                display: 'relative',
-                left: x,
-                bottom: y,
-                width: `${INDICTOR_WIDTH}px`,
-                height: `${INDICTOR_HEIGHT}px`,
-            }}
-        >
-            <svg
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    top: 0,
-                    left: 0,
-                    position: 'absolute',
-                    transform: `rotate(${-angleDeg}deg)`,
-                }}
-                viewBox="0 0 700 700"
-                preserveAspectRatio="none"
-            >
-                <path d="M350,0 700,700 350,550 0,700" fill={cssColor} />
-            </svg>
-        </div>
-    );
-}
-
 function getAngleRad(ax: number, ay: number, bx: number, by: number) {
     const dx = bx - ax;
     const dy = by - ay;
@@ -81,8 +38,11 @@ export default function EnemyLocation({
 }) {
     const componentRef = useRef<HTMLDivElement>(null);
     const currentRef = componentRef.current;
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-    const [hypotenuse, setHypotenuse] = useState(0);
+    const [viewDimensions, setViewDimensions] = useState({
+        width: 0,
+        height: 0,
+    });
+    const [viewDiagonal, setViewDiagonal] = useState(0);
 
     useEffect(() => {
         if (!currentRef) {
@@ -91,11 +51,11 @@ export default function EnemyLocation({
         // Function to update dimensions
         const updateDimensions = () => {
             if (componentRef.current) {
-                setDimensions({
+                setViewDimensions({
                     width: componentRef.current.offsetWidth,
                     height: componentRef.current.offsetHeight,
                 });
-                setHypotenuse(
+                setViewDiagonal(
                     Math.sqrt(
                         componentRef.current.offsetWidth ** 2 +
                             componentRef.current.offsetHeight ** 2,
@@ -119,9 +79,6 @@ export default function EnemyLocation({
         return null;
     }
 
-    // Memoize this?
-    // const playerShip = players.find((player) => player.id === peerId)?.ship;
-
     const playerShip = players.find((player) => player.id === peerId)?.ship;
     const playerX = playerShip
         ? worldRef.current.components.position.data.x[playerShip]
@@ -130,9 +87,9 @@ export default function EnemyLocation({
         ? worldRef.current.components.position.data.y[playerShip]
         : 0;
 
-    const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;
-    const radius = hypotenuse / 2;
+    const centerX = viewDimensions.width / 2;
+    const centerY = viewDimensions.height / 2;
+    const radius = viewDiagonal / 2;
 
     return (
         <div
@@ -182,11 +139,11 @@ export default function EnemyLocation({
                         <Enemy
                             key={player.id}
                             x={Math.min(
-                                dimensions.width - INDICTOR_WIDTH,
+                                viewDimensions.width - INDICTOR_WIDTH,
                                 Math.max(x, 0),
                             )}
                             y={Math.min(
-                                dimensions.height - INDICTOR_HEIGHT,
+                                viewDimensions.height - INDICTOR_HEIGHT,
                                 Math.max(y, 0),
                             )}
                             angle={angle}
@@ -197,6 +154,49 @@ export default function EnemyLocation({
                     return null;
                 }
             })}
+        </div>
+    );
+}
+
+function Enemy({
+    x,
+    y,
+    angle,
+    cssColor,
+}: {
+    x: number;
+    y: number;
+    angle: number;
+    cssColor: string;
+}) {
+    const adjustedAngle = angle - Math.PI / 2; // SVG points up
+    const angleDeg = adjustedAngle * (180 / Math.PI);
+
+    return (
+        <div
+            style={{
+                position: 'absolute',
+                display: 'relative',
+                left: x,
+                bottom: y,
+                width: `${INDICTOR_WIDTH}px`,
+                height: `${INDICTOR_HEIGHT}px`,
+            }}
+        >
+            <svg
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    top: 0,
+                    left: 0,
+                    position: 'absolute',
+                    transform: `rotate(${-angleDeg}deg)`,
+                }}
+                viewBox="0 0 700 700"
+                preserveAspectRatio="none"
+            >
+                <path d="M350,0 700,700 350,550 0,700" fill={cssColor} />
+            </svg>
         </div>
     );
 }
