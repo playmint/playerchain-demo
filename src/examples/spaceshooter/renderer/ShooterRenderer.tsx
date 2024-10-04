@@ -1,6 +1,15 @@
 import { PositionalAudio, useGLTF } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
+import { ToneMappingMode } from 'postprocessing';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Color,
+    LinearFilter,
+    NearestFilter,
+    Scene,
+    WebGLRenderTarget,
+} from 'three';
 import { EntityId, World } from '../../../runtime/ecs';
 import { RendererProps } from '../../../runtime/game';
 import { ModelType, ShooterSchema } from '../../spaceshooter';
@@ -8,16 +17,12 @@ import backgroundMusic from '../assets/BGM.mp3?url';
 import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 import { assetPath } from '../utils/RenderUtils';
 import AudioControls from './AudioControls';
+import { BufferSceneRenderer } from './BufferSceneRenderer';
 import { FPSLimiter } from './FPSLimiter';
 import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
-import ShipEntity from './ShipEntity';
-import WallEntity from './WallEntity';
-import { Color, LinearFilter, NearestFilter, Scene, WebGLRenderTarget } from 'three';
-import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
 import { WarpEffect } from './WarpEffect';
-import { ToneMappingMode } from 'postprocessing';
 
 useGLTF.setDecoderPath('/libs/draco');
 
@@ -25,20 +30,6 @@ const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 
 export type WorldRef = { current: World<ShooterSchema> };
 export type PlayersRef = { current: PlayerInfo[] };
-
-const BufferSceneRenderer = ({ bufferScene, bufferTarget }: { bufferScene: Scene; bufferTarget: WebGLRenderTarget }) => {
-    const { gl, camera } = useThree();
-    
-    useFrame(() => {
-        bufferScene.background = new Color(0x000000);
-      // Render bufferScene into the texture
-      gl.setRenderTarget(bufferTarget);
-      gl.render(bufferScene, camera);
-      gl.setRenderTarget(null); // Reset render target to default
-    });
-  
-    return null; // This component does not render anything itself
-  };
 
 export default memo(function ShooterCanvas({
     mod,
@@ -61,14 +52,18 @@ export default memo(function ShooterCanvas({
     const prevPlayers = useRef<PlayerInfo[]>([]);
     const [tick, setTick] = useState(0);
 
-    const bufferScene = useRef(new Scene());
+    const bufferScene = useMemo(() => new Scene(), []);
     const bufferTarget = useMemo(() => {
-        const target = new WebGLRenderTarget(window.innerWidth, window.innerHeight, {
-          minFilter: LinearFilter,
-          magFilter: NearestFilter,
-        });
+        const target = new WebGLRenderTarget(
+            window.innerWidth,
+            window.innerHeight,
+            {
+                minFilter: LinearFilter,
+                magFilter: NearestFilter,
+            },
+        );
         return target;
-      }, []);
+    }, []);
 
     // subscribe to updates
     useEffect(() => {
@@ -139,7 +134,7 @@ export default memo(function ShooterCanvas({
                         eid={eid}
                         worldRef={worldRef}
                         playersRef={playersRef}
-                        bufferScene={bufferScene.current}
+                        bufferScene={bufferScene}
                     />
                 ))}
                 <PlayerCam
@@ -154,10 +149,16 @@ export default memo(function ShooterCanvas({
                     loop={true}
                 />
                 <AudioControls />
-                <BufferSceneRenderer bufferScene={bufferScene.current} bufferTarget={bufferTarget} />
+                <BufferSceneRenderer
+                    bufferScene={bufferScene}
+                    bufferTarget={bufferTarget}
+                />
                 <EffectComposer>
-                <ToneMapping mode={ ToneMappingMode.ACES_FILMIC } />
-                    <WarpEffect strength={0.01} tBuffer={bufferTarget.texture}  />
+                    <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+                    <WarpEffect
+                        strength={0.01}
+                        tBuffer={bufferTarget.texture}
+                    />
                 </EffectComposer>
             </Canvas>
             <PlayerHUD
