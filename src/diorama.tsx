@@ -2,9 +2,21 @@ import '@fontsource-variable/recursive/mono.css';
 import '@fontsource/material-symbols-outlined';
 import { Clone, PerspectiveCamera, useGLTF } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
+import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
+import { ToneMappingMode } from 'postprocessing';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { Color, Group, Mesh, Object3DEventMap, Vector3 } from 'three';
+import {
+    Color,
+    Group,
+    LinearFilter,
+    Mesh,
+    NearestFilter,
+    Object3DEventMap,
+    Scene,
+    Vector3,
+    WebGLRenderTarget,
+} from 'three';
 import shipGLTF from './examples/spaceshooter/assets/ship.glb?url';
 import {
     ExplodeFX,
@@ -19,12 +31,18 @@ import {
     ShipImpactFXHandle,
 } from './examples/spaceshooter/effects/FXShipImpactQuarks';
 import {
+    ShockwaveFX,
+    ShockwaveFXHandle,
+} from './examples/spaceshooter/effects/FXShockwaveQuarks';
+import {
     SparksFX,
     SparksFXHandle,
 } from './examples/spaceshooter/effects/FXSparksQuarks';
 import { StarFieldFX } from './examples/spaceshooter/effects/FXStarfieldQuarks';
 import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
 import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
+import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
+import { WarpEffect } from './examples/spaceshooter/renderer/WarpEffect';
 import {
     EntityObject3D,
     assetPath,
@@ -123,9 +141,10 @@ function Ship() {
     );
 }
 
-function Particles() {
+function Particles(props: { bufferScene: Scene }) {
     const { scene } = useThree();
     const explosionRef = useRef<ExplodeFXHandle>(null!);
+    const shockwaveRef = useRef<ShockwaveFXHandle>(null!);
     const respawnRef = useRef<SpawnFXHandle>(null!);
     const sparksRef = useRef<SparksFXHandle>(null!);
     const shipImpactRef = useRef<ShipImpactFXHandle>(null!);
@@ -135,6 +154,7 @@ function Particles() {
         const keyCode = event.which;
         if (keyCode == 49) {
             explosionRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
+            shockwaveRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
         }
         if (keyCode == 50) {
             respawnRef.current.triggerSpawn(new Vector3(0, 0, 0), scene);
@@ -159,9 +179,69 @@ function Particles() {
     return (
         <>
             <ExplodeFX ref={explosionRef} />
+            <ShockwaveFX ref={shockwaveRef} scene={props.bufferScene} />
             <SpawnFX ref={respawnRef} />
             <SparksFX ref={sparksRef} />
             <ShipImpactFX ref={shipImpactRef} />
+        </>
+    );
+}
+
+function Diorama() {
+    const bufferScene = useMemo(() => new Scene(), []);
+    const bufferTarget = useMemo(() => {
+        const target = new WebGLRenderTarget(
+            window.innerWidth,
+            window.innerHeight,
+            {
+                minFilter: LinearFilter,
+                magFilter: NearestFilter,
+            },
+        );
+        return target;
+    }, []);
+
+    return (
+        <>
+            <Canvas resize={CANVAS_RESIZE}>
+                <StarFieldFX />
+                <PerspectiveCamera
+                    makeDefault
+                    position={[0, 0, CAM_INITIAL_ZOOM]}
+                    fov={40}
+                    near={1}
+                    far={1000}
+                />
+                <color attach="background" args={[0x060d37]} />
+                <ambientLight color={0x404040} />
+                <directionalLight
+                    position={[1, -1, 1]}
+                    intensity={8}
+                    color={0xffaf7b}
+                />
+                <directionalLight
+                    position={[-1, 1, 1]}
+                    intensity={12}
+                    color={0xffffff}
+                />
+
+                <fog attach="fog" args={[0x444466, 100, 1]} />
+                <BackgroundGrid />
+                <Particles bufferScene={bufferScene} />
+                <Ship />
+                <BufferSceneRenderer
+                    bufferScene={bufferScene}
+                    bufferTarget={bufferTarget}
+                />
+
+                <EffectComposer>
+                    <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+                    <WarpEffect
+                        strength={0.01}
+                        tBuffer={bufferTarget.texture}
+                    />
+                </EffectComposer>
+            </Canvas>
         </>
     );
 }
@@ -176,32 +256,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             height: '100vh',
         }}
     >
-        <Canvas resize={CANVAS_RESIZE}>
-            <StarFieldFX />
-            <PerspectiveCamera
-                makeDefault
-                position={[0, 0, CAM_INITIAL_ZOOM]}
-                fov={40}
-                near={1}
-                far={1000}
-            />
-            <color attach="background" args={[0x060d37]} />
-            <ambientLight color={0x404040} />
-            <directionalLight
-                position={[1, -1, 1]}
-                intensity={8}
-                color={0xffaf7b}
-            />
-            <directionalLight
-                position={[-1, 1, 1]}
-                intensity={12}
-                color={0xffffff}
-            />
-
-            <fog attach="fog" args={[0x444466, 100, 1]} />
-            <BackgroundGrid />
-            <Particles />
-            <Ship />
-        </Canvas>
+        <Diorama />
     </div>,
 );
