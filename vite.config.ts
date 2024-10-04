@@ -23,6 +23,7 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'index.html'),
                 test: resolve(__dirname, 'src/tests/tests.html'),
+                diorama: resolve(__dirname, 'src/diorama.html'),
             },
         },
         emptyOutDir: false,
