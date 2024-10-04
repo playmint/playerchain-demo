@@ -1,11 +1,11 @@
 import { system } from '../../../runtime/ecs';
 import { Input, ShooterSchema, Tags, hasInput } from '../../spaceshooter';
 
-export const BULLET_SPEED = 150;
+export const BULLET_SPEED = 125;
 export const BULLET_LIFETIME = 55;
-export const BULLET_MAX_VELOCITY = 150;
-export const SHIP_SHOOT_COOLOFF = 7;
-export const BULLET_HEALTH_COST = 24;
+export const BULLET_MAX_VELOCITY = 125;
+export const SHIP_SHOOT_COOLOFF = 6;
+export const BULLET_HEALTH_COST = 10;
 
 export default system<ShooterSchema>(
     ({
@@ -83,7 +83,7 @@ export default system<ShooterSchema>(
                 entity.active[player.ship] &&
                 hasInput(player.input, Input.Fire) &&
                 stats.shootTimer[player.ship] === 0 &&
-                stats.health[player.ship] >= 25
+                stats.health[player.ship] > BULLET_HEALTH_COST
             ) {
                 // find an available bullet
                 const bullet = bullets.find(
