@@ -1,26 +1,52 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, Vector3 } from 'three';
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
-// import styles from './EndRoundLeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 import { WorldRef } from './ShooterRenderer';
 
-function Enemy({ x, y, cssColor }: { x: number; y: number; cssColor: string }) {
-    const width = 10;
-    const height = 10;
+const INDICTOR_WIDTH = 20;
+const INDICTOR_HEIGHT = 20;
+
+function Enemy({
+    x,
+    y,
+    angle,
+    cssColor,
+}: {
+    x: number;
+    y: number;
+    angle: number;
+    cssColor: string;
+}) {
+    const adjustedAngle = angle - Math.PI / 2; // SVG points up
+    const angleDeg = adjustedAngle * (180 / Math.PI);
 
     return (
         <div
             style={{
                 position: 'absolute',
-                left: x - width / 2,
-                bottom: y - height / 2,
-                width: `${width}px`,
-                height: `${height}px`,
-                borderRadius: '50%',
-                backgroundColor: cssColor,
+                display: 'relative',
+                left: x,
+                bottom: y,
+                width: `${INDICTOR_WIDTH}px`,
+                height: `${INDICTOR_HEIGHT}px`,
             }}
-        ></div>
+        >
+            <svg
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    top: 0,
+                    left: 0,
+                    position: 'absolute',
+                    transform: `rotate(${-angleDeg}deg)`,
+                }}
+                viewBox="0 0 700 700"
+                preserveAspectRatio="none"
+            >
+                <path d="M350,0 700,700 350,550 0,700" fill={cssColor} />
+            </svg>
+        </div>
     );
 }
 
@@ -133,7 +159,8 @@ export default function EnemyLocation({
                     const projectedPos = new Vector3(enemyX, enemyY, 0).project(
                         camera,
                     );
-                    // if in view
+
+                    // If in view don't show indicator
                     if (
                         projectedPos.x > -1 &&
                         projectedPos.x < 1 &&
@@ -154,8 +181,15 @@ export default function EnemyLocation({
                     return (
                         <Enemy
                             key={player.id}
-                            x={Math.min(dimensions.width, Math.max(x, 0))}
-                            y={Math.min(dimensions.height, Math.max(y, 0))}
+                            x={Math.min(
+                                dimensions.width - INDICTOR_WIDTH,
+                                Math.max(x, 0),
+                            )}
+                            y={Math.min(
+                                dimensions.height - INDICTOR_HEIGHT,
+                                Math.max(y, 0),
+                            )}
+                            angle={angle}
                             cssColor={getPlayerColorCSS(playerIdx)}
                         />
                     );
