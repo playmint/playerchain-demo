@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, Vector3 } from 'three';
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 // import styles from './EndRoundLeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
@@ -45,16 +46,22 @@ export default function EnemyLocation({
     worldRef,
     players,
     peerId,
+    camera,
 }: {
     worldRef: WorldRef;
     players: PlayerInfo[];
     peerId: string;
+    camera?: Camera;
 }) {
     const componentRef = useRef<HTMLDivElement>(null);
+    const currentRef = componentRef.current;
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [hypotenuse, setHypotenuse] = useState(0);
 
     useEffect(() => {
+        if (!currentRef) {
+            return;
+        }
         // Function to update dimensions
         const updateDimensions = () => {
             if (componentRef.current) {
@@ -77,9 +84,12 @@ export default function EnemyLocation({
         window.addEventListener('resize', updateDimensions);
 
         return () => window.removeEventListener('resize', updateDimensions);
-    }, []); // Empty dependency array means this effect runs once on mount
+    }, [currentRef]);
 
     if (!worldRef.current) {
+        return null;
+    }
+    if (!camera) {
         return null;
     }
 
@@ -117,6 +127,22 @@ export default function EnemyLocation({
                         worldRef.current.components.position.data.y[
                             player.ship
                         ];
+
+                    // If the enemy is in the frustum, don't render indicator
+                    camera.updateMatrixWorld();
+                    const projectedPos = new Vector3(enemyX, enemyY, 0).project(
+                        camera,
+                    );
+                    // if in view
+                    if (
+                        projectedPos.x > -1 &&
+                        projectedPos.x < 1 &&
+                        projectedPos.y > -1 &&
+                        projectedPos.y < 1
+                    ) {
+                        return null;
+                    }
+
                     const angle = getAngleRad(playerX, playerY, enemyX, enemyY);
                     const { x, y } = polarToCartesian(
                         centerX,
