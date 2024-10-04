@@ -6,6 +6,7 @@ import { WorldRef } from './ShooterRenderer';
 
 const INDICTOR_WIDTH = 20;
 const INDICTOR_HEIGHT = 20;
+const MAX_TWEEN_PX = 100;
 
 function getAngleRad(ax: number, ay: number, bx: number, by: number) {
     const dx = bx - ax;
@@ -138,11 +139,11 @@ export default function EnemyLocation({
                     return (
                         <Enemy
                             key={player.id}
-                            x={Math.min(
+                            targetX={Math.min(
                                 viewDimensions.width - INDICTOR_WIDTH,
                                 Math.max(x, 0),
                             )}
-                            y={Math.min(
+                            targetY={Math.min(
                                 viewDimensions.height - INDICTOR_HEIGHT,
                                 Math.max(y, 0),
                             )}
@@ -159,26 +160,54 @@ export default function EnemyLocation({
 }
 
 function Enemy({
-    x,
-    y,
+    targetX,
+    targetY,
     angle,
     cssColor,
 }: {
-    x: number;
-    y: number;
+    targetX: number;
+    targetY: number;
     angle: number;
     cssColor: string;
 }) {
+    const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 });
     const adjustedAngle = angle - Math.PI / 2; // SVG points up
     const angleDeg = adjustedAngle * (180 / Math.PI);
+
+    // tween the position on animation frame
+    useEffect(() => {
+        let raf: number;
+        const step = () => {
+            setCurrentPos((pos) => {
+                // Don't tween if the distance is too far
+                if (
+                    Math.abs(targetX - pos.x) >= MAX_TWEEN_PX ||
+                    Math.abs(targetY - pos.y) >= MAX_TWEEN_PX
+                ) {
+                    return {
+                        x: targetX,
+                        y: targetY,
+                    };
+                }
+
+                return {
+                    x: pos.x + (targetX - pos.x) * 0.1,
+                    y: pos.y + (targetY - pos.y) * 0.1,
+                };
+            });
+            raf = requestAnimationFrame(step);
+        };
+        step();
+        return () => cancelAnimationFrame(raf);
+    }, [targetX, targetY]);
 
     return (
         <div
             style={{
                 position: 'absolute',
                 display: 'relative',
-                left: x,
-                bottom: y,
+                left: currentPos.x,
+                bottom: currentPos.y,
                 width: `${INDICTOR_WIDTH}px`,
                 height: `${INDICTOR_HEIGHT}px`,
             }}
