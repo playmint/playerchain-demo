@@ -42,6 +42,10 @@ import { StarFieldFX } from './examples/spaceshooter/effects/FXStarfieldQuarks';
 import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
 import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
+import {
+    addShake,
+    getShakeOffset,
+} from './examples/spaceshooter/renderer/ShakeManager';
 import { WarpEffect } from './examples/spaceshooter/renderer/WarpEffect';
 import {
     EntityObject3D,
@@ -74,6 +78,7 @@ function Ship() {
         }
         if (keyCode == 49) {
             shipRef.current.visible = false;
+            setThrusting(false);
         }
         if (keyCode == 50) {
             setRespawnTimer(0);
@@ -155,6 +160,12 @@ function Particles(props: { bufferScene: Scene }) {
         if (keyCode == 49) {
             explosionRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
             shockwaveRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
+            addShake({
+                intensity: 150, // Adjust as needed
+                position: new Vector3(0, 0, 0),
+                decay: 200, // Rate at which the shake reduces
+                duration: 1, // How long the shake lasts
+            });
         }
         if (keyCode == 50) {
             respawnRef.current.triggerSpawn(new Vector3(0, 0, 0), scene);
@@ -201,47 +212,51 @@ function Diorama() {
         return target;
     }, []);
 
+    useFrame(({ camera }, deltaTime) => {
+        const shakeOffset = getShakeOffset(camera.position, deltaTime);
+
+        camera.position.set(0, 0, CAM_INITIAL_ZOOM);
+
+        // Apply shake offset to the camera
+        camera.position.add(shakeOffset);
+    });
+
     return (
         <>
-            <Canvas resize={CANVAS_RESIZE}>
-                <StarFieldFX />
-                <PerspectiveCamera
-                    makeDefault
-                    position={[0, 0, CAM_INITIAL_ZOOM]}
-                    fov={40}
-                    near={1}
-                    far={1000}
-                />
-                <color attach="background" args={[0x060d37]} />
-                <ambientLight color={0x404040} />
-                <directionalLight
-                    position={[1, -1, 1]}
-                    intensity={8}
-                    color={0xffaf7b}
-                />
-                <directionalLight
-                    position={[-1, 1, 1]}
-                    intensity={12}
-                    color={0xffffff}
-                />
+            <StarFieldFX />
+            <PerspectiveCamera
+                makeDefault
+                position={[0, 0, CAM_INITIAL_ZOOM]}
+                fov={40}
+                near={1}
+                far={1000}
+            />
+            <color attach="background" args={[0x060d37]} />
+            <ambientLight color={0x404040} />
+            <directionalLight
+                position={[1, -1, 1]}
+                intensity={8}
+                color={0xffaf7b}
+            />
+            <directionalLight
+                position={[-1, 1, 1]}
+                intensity={12}
+                color={0xffffff}
+            />
 
-                <fog attach="fog" args={[0x444466, 100, 1]} />
-                <BackgroundGrid />
-                <Particles bufferScene={bufferScene} />
-                <Ship />
-                <BufferSceneRenderer
-                    bufferScene={bufferScene}
-                    bufferTarget={bufferTarget}
-                />
+            <fog attach="fog" args={[0x444466, 100, 1]} />
+            <BackgroundGrid />
+            <Particles bufferScene={bufferScene} />
+            <Ship />
+            <BufferSceneRenderer
+                bufferScene={bufferScene}
+                bufferTarget={bufferTarget}
+            />
 
-                <EffectComposer>
-                    <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-                    <WarpEffect
-                        strength={0.01}
-                        tBuffer={bufferTarget.texture}
-                    />
-                </EffectComposer>
-            </Canvas>
+            <EffectComposer>
+                <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+                <WarpEffect strength={0.01} tBuffer={bufferTarget.texture} />
+            </EffectComposer>
         </>
     );
 }
@@ -256,6 +271,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             height: '100vh',
         }}
     >
-        <Diorama />
+        <Canvas resize={CANVAS_RESIZE}>
+            <Diorama />
+        </Canvas>
     </div>,
 );

@@ -15,7 +15,11 @@ import { Input, Tags, hasInput } from '../../spaceshooter';
 import sfxDestroy from '../assets/Destroy.mp3?url';
 import sfxThrust from '../assets/Thrust_Loop.mp3?url';
 import shipGLTF from '../assets/ship.glb?url';
+import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
+import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
+import { ShockwaveFX, ShockwaveFXHandle } from '../effects/FXShockwaveQuarks';
 import fxShootData from '../effects/FXShoot';
+import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
 import fxThrusterData from '../effects/FXThruster';
 import {
     EntityObject3D,
@@ -30,10 +34,6 @@ import {
 } from '../utils/RenderUtils';
 import { addShake } from './ShakeManager';
 import { PlayersRef, WorldRef } from './ShooterRenderer';
-import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
-import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
-import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
-import { ShockwaveFX, ShockwaveFXHandle } from '../effects/FXShockwaveQuarks';
 
 export default memo(function ShipEntity({
     eid,
@@ -219,12 +219,15 @@ export default memo(function ShipEntity({
                 if (explosionRef.current) {
                     explosionRef.current.triggerExplosion(pos, shipRef.current);
                 }
-                if(shockwaveRef.current){
+                if (shockwaveRef.current) {
                     shockwaveRef.current.triggerExplosion(pos, shipRef.current);
-                    intensity: 500, // Adjust as needed
-                    position: pos,
-                    decay: 2.0, // Rate at which the shake reduces
-                    duration: 1.0, // How long the shake lasts
+
+                    addShake({
+                        intensity: 150, // Adjust as needed
+                        position: new Vector3(0, 0, 0),
+                        decay: 200, // Rate at which the shake reduces
+                        duration: 1, // How long the shake lasts
+                    });
                 }
                 // make noise too
                 if (!explosionSfxRef.current.isPlaying) {
