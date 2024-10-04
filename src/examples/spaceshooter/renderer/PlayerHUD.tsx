@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { Camera } from 'three';
 import { PlayerData } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
 import Countdown from './Countdown';
@@ -18,11 +19,13 @@ export default memo(function PlayerHUD({
     players,
     tick,
     worldRef,
+    camera,
 }: {
     players: PlayerInfo[];
     peerId: string;
     tick: number;
     worldRef: WorldRef;
+    camera?: Camera;
 }) {
     const player = players.find((p) => p.id === peerId);
     if (!player) {
@@ -78,6 +81,7 @@ export default memo(function PlayerHUD({
                 players={players}
                 worldRef={worldRef}
                 peerId={peerId}
+                camera={camera}
             />
         </div>
     );
