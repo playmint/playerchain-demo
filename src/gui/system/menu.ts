@@ -65,10 +65,10 @@ export const devMenu: Menu = {
 
 const sysMenu: Menu[] = [
     {
-        name: 'Substream',
+        name: 'PlayerchainDemo',
         items: [
             {
-                name: 'About Substream',
+                name: 'About PlayerchainDemo',
                 shortcut: '_',
             },
             {

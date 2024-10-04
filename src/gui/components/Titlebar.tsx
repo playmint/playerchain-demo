@@ -37,7 +37,7 @@ export function Titlebar({
                     flexGrow: 1,
                 }}
             >
-                <strong>Substream (devnet)</strong>
+                <strong>Playerchain Demo</strong>
             </div>
             <div
                 style={{

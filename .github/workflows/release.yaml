@@ -7,7 +7,7 @@ on:
 env:
     SSC_REPO: 'playmint/socket'
     SSC_BRANCH: 'playmint-next'
-    APP_NAME: 'substream'
+    APP_NAME: 'playerchaindemo'
 
 permissions:
     contents: write

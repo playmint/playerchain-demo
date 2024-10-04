@@ -1,6 +1,12 @@
-# substream-client
+# playerchain demo
 
-substream playerchain client node
+proof of concept playerchain demonstration
+
+[download](https://github.com/playmint/playerchain-demo/releases/latest)
+
+### contributors
+
+To build and run from source...
 
 build `ssc` from the `playmint-next` branch of playmint/socket
 

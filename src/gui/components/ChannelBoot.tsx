@@ -21,7 +21,7 @@ const terminalFlow = ({ db, peerId, client }: TerminalFlowArgs) => [
         text: (
             <>
                 <div className={termstyles.boldTextColor}>
-                    Initializing substream playerchain runtime{' '}
+                    Initializing playerchain runtime{' '}
                 </div>
                 <br />
             </>
