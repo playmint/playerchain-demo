@@ -184,6 +184,8 @@ export class Simulation {
                     startFromRound = m.round - 1;
                 }
             });
+        // always fetch enough to recalculate the wave
+        startFromRound = Math.max(startFromRound - this.interlace * 4, 1); // THINK: can we reduce num of fetched wave msgs
         // find the closest state to satisfy startFromRound
         // if we're already at the round we need, return it
         if (latestState.round === startFromRound) {
@@ -333,7 +335,7 @@ export class Simulation {
             // we need to check if the message is accepted or rejected
             const offsetFromFinalization = latestRound - m.round;
             const needsFinalization =
-                offsetFromFinalization > this.interlace * 3 + 2;
+                offsetFromFinalization > this.interlace * 3;
             let accepted = true;
             // is well acked?
             // TODO: reduce this number to supermajority
