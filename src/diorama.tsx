@@ -47,9 +47,12 @@ import {
     getShakeOffset,
 } from './examples/spaceshooter/renderer/ShakeManager';
 import { WarpEffect } from './examples/spaceshooter/renderer/WarpEffect';
+import { SHIP_MAX_VELOCITY } from './examples/spaceshooter/systems/shipSystem';
 import {
     EntityObject3D,
+    InterpolateSpeed,
     assetPath,
+    interpolate,
     useParticleEffect,
 } from './examples/spaceshooter/utils/RenderUtils';
 import { getPlayerColor } from './gui/fixtures/player-colors';
@@ -57,6 +60,7 @@ import './gui/styles/reset.css';
 
 const CANVAS_RESIZE = { scroll: true, debounce: { scroll: 50, resize: 0 } };
 const CAM_INITIAL_ZOOM = 160;
+const RENDER_BUFFER_SCENE = false; // Set to true to show hidden particles for warp effect!
 
 function Ship() {
     const [shipColor, setShipColor] = useState(0);
@@ -199,6 +203,8 @@ function Particles(props: { bufferScene: Scene }) {
 }
 
 function Diorama() {
+    const [velocity, setVelocity] = useState(0);
+    const { scene } = useThree();
     const bufferScene = useMemo(() => new Scene(), []);
     const bufferTarget = useMemo(() => {
         const target = new WebGLRenderTarget(
@@ -212,10 +218,26 @@ function Diorama() {
         return target;
     }, []);
 
+    document.addEventListener('keyup', onDocumentKeyUp, false);
+    function onDocumentKeyUp(event) {
+        const keyCode = event.which;
+        if (keyCode == 90) {
+            setVelocity(velocity > 0 ? 0 : Math.sqrt(SHIP_MAX_VELOCITY * 10));
+        }
+    }
+
     useFrame(({ camera }, deltaTime) => {
         const shakeOffset = getShakeOffset(camera.position, deltaTime);
-
         camera.position.set(0, 0, CAM_INITIAL_ZOOM);
+        // zoom out based on velocity
+        const vmag = velocity;
+        const zoom = CAM_INITIAL_ZOOM + vmag * 2;
+        camera.position.z = interpolate(
+            camera.position.z,
+            zoom,
+            deltaTime,
+            InterpolateSpeed.Snap,
+        );
 
         // Apply shake offset to the camera
         camera.position.add(shakeOffset);
@@ -246,7 +268,9 @@ function Diorama() {
 
             <fog attach="fog" args={[0x444466, 100, 1]} />
             <BackgroundGrid />
-            <Particles bufferScene={bufferScene} />
+            <Particles
+                bufferScene={RENDER_BUFFER_SCENE ? scene : bufferScene}
+            />
             <Ship />
             <BufferSceneRenderer
                 bufferScene={bufferScene}
