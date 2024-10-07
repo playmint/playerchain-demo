@@ -8,10 +8,11 @@ import {
     hasInput,
 } from '../../spaceshooter';
 
-export const SHIP_THRUST_RATE = 25;
+export const SHIP_THRUST_RATE = 90;
 export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.7);
 export const SHIP_RESPAWN_RADIUS = 200;
-export const SHIP_MAX_VELOCITY = 45;
+export const SHIP_MAX_VELOCITY = 72
+export const BULLET_DAMAGE = 35;
 
 export default system<ShooterSchema>(
     ({
@@ -194,7 +195,7 @@ function addBullet(
     physics.drag[eid] = 0;
     physics.isTrigger[eid] = 1;
     physics.bounciness[eid] = 1;
-    stats.damage[eid] = 100;
+    stats.damage[eid] = BULLET_DAMAGE;
     stats.health[eid] = 100;
     return eid;
 }
