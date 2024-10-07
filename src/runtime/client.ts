@@ -421,9 +421,7 @@ export class Client {
                     await Promise.all(
                         ackee.acks.map(
                             (ackAckId) =>
-                                this.updateMessageConfirmations(
-                                    Buffer.from(ackAckId, 'base64'),
-                                ),
+                                this.updateMessageConfirmations(ackAckId),
                             [] as Promise<StoredMessage>[],
                         ),
                     );
@@ -440,9 +438,6 @@ export class Client {
             return null;
         }
         const confirmations = await this.calculateMessageConfirmations(id);
-        if (ackee.confirmations.join(',') === confirmations.join(',')) {
-            return ackee;
-        }
         const updated: StoredMessage = {
             ...ackee,
             updated: this.nextSequenceNumber(),
