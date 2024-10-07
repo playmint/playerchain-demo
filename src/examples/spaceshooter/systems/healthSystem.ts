@@ -5,8 +5,8 @@ const SCORE_HIT = 0;
 const SCORE_KILL = 100;
 const TOP_PLAYER_KILL_BONUS = 50;
 const MAX_MULTIPLIER = 5;
-const HEALTH_REGEN_PERC = 2;
-const HEALTH_REGEN_TIME = 1; // To slow down the regen, increase this number
+const HEALTH_REGEN_PERC = 1;
+const HEALTH_REGEN_TIME = 3; // To slow down the regen, increase this number
 
 export default system<ShooterSchema>(
     ({ query, players, entity, collider, stats, velocity, deltaTime }) => {
