@@ -5,7 +5,7 @@ export const BULLET_SPEED = 80;
 export const BULLET_MAX_VELOCITY = 80;
 export const BULLET_LIFETIME = 18;
 export const SHIP_SHOOT_COOLOFF = 2;
-export const BULLET_HEALTH_COST = 0;
+export const BULLET_HEALTH_COST = 15;
 
 export default system<ShooterSchema>(
     ({
