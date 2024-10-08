@@ -2,8 +2,6 @@ import '@fontsource-variable/recursive/mono.css';
 import '@fontsource/material-symbols-outlined';
 import { Clone, PerspectiveCamera, useGLTF } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
-import { ToneMappingMode } from 'postprocessing';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import {
@@ -13,6 +11,7 @@ import {
     Mesh,
     NearestFilter,
     Object3DEventMap,
+    SRGBColorSpace,
     Scene,
     Vector3,
     WebGLRenderTarget,
@@ -214,6 +213,7 @@ function Diorama() {
             {
                 minFilter: LinearFilter,
                 magFilter: NearestFilter,
+                colorSpace: SRGBColorSpace,
             },
         );
         return target;
@@ -277,11 +277,6 @@ function Diorama() {
                 bufferScene={bufferScene}
                 bufferTarget={bufferTarget}
             />
-
-            <EffectComposer>
-                <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-                <WarpEffect strength={0.01} tBuffer={bufferTarget.texture} />
-            </EffectComposer>
         </>
     );
 }
