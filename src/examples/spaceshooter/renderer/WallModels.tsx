@@ -5,13 +5,16 @@ import wall_cornerMediumGLTF from '../assets/wall_cornerMedium2.glb?url';
 import wall_largeGLTF from '../assets/wall_large2.glb?url';
 import wall_mediumGLTF from '../assets/wall_medium2.glb?url';
 import levelData from '../levels/level_1';
+import { assetPath } from '../utils/RenderUtils';
 
 export default memo(function WallModels() {
     const { models } = levelData;
 
-    const { scene: wallMedium } = useGLTF(wall_mediumGLTF);
-    const { scene: wallLarge } = useGLTF(wall_largeGLTF);
-    const { scene: wallCornerMedium } = useGLTF(wall_cornerMediumGLTF);
+    const { scene: wallMedium } = useGLTF(assetPath(wall_mediumGLTF));
+    const { scene: wallLarge } = useGLTF(assetPath(wall_largeGLTF));
+    const { scene: wallCornerMedium } = useGLTF(
+        assetPath(wall_cornerMediumGLTF),
+    );
 
     const groupRef = useRef<THREE.Group>(null);
 
