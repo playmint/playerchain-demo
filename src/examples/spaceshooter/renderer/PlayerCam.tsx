@@ -114,7 +114,7 @@ export default memo(function PlayerCam({
                 position={[0, 0, CAM_INITIAL_ZOOM]}
                 fov={40}
                 near={1}
-                far={1000}
+                far={2000}
             />
             <color attach="background" args={[0x060d37]} />
             <ambientLight color={0x404040} />
@@ -130,7 +130,7 @@ export default memo(function PlayerCam({
             />
 
             <fog attach="fog" args={[0x444466, 100, 1]} />
-            <BackgroundGrid />
+            {/* <BackgroundGrid /> */}
         </>
     );
 });

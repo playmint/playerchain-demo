@@ -17,7 +17,7 @@ import backgroundMusic from '../assets/BGM.mp3?url';
 import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 import { assetPath } from '../utils/RenderUtils';
 import AudioControls from './AudioControls';
-import { BufferSceneRenderer } from './BufferSceneRenderer';
+import { BackgroundModels } from './BackgroundModels';
 import { FPSLimiter } from './FPSLimiter';
 import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
@@ -131,6 +131,7 @@ export default memo(function ShooterCanvas({
     return (
         <>
             <Canvas resize={CANVAS_RESIZE} frameloop="demand">
+                <BackgroundModels rotation={[1.5708, 0, 0]} />
                 <StarFieldFX />
                 <FPSLimiter fps={60} />
                 {entities.map((eid) => (

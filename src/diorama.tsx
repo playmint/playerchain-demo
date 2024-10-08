@@ -40,6 +40,7 @@ import {
 import { StarFieldFX } from './examples/spaceshooter/effects/FXStarfieldQuarks';
 import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
 import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
+import { BackgroundModels } from './examples/spaceshooter/renderer/BackgroundModels';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
 import {
     addShake,
@@ -246,6 +247,7 @@ function Diorama() {
 
     return (
         <>
+            <BackgroundModels rotation={[1.5708, 0, 0]} />
             <StarFieldFX />
             <PerspectiveCamera
                 makeDefault
