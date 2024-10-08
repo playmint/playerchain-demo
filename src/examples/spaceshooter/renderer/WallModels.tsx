@@ -1,6 +1,6 @@
 import { Clone, useGLTF } from '@react-three/drei';
 import { memo } from 'react';
-import * as THREE from 'three';
+import { Vector3 } from 'three';
 import wall_cornerMediumGLTF from '../assets/wall_cornerMedium2.glb?url';
 import wall_largeGLTF from '../assets/wall_large2.glb?url';
 import wall_mediumGLTF from '../assets/wall_medium2.glb?url';
@@ -11,7 +11,7 @@ const WallLarge = ({
     position,
     rotation,
 }: {
-    position: THREE.Vector3;
+    position: Vector3;
     rotation: number;
 }) => {
     const { scene: wallLarge } = useGLTF(assetPath(wall_largeGLTF));
@@ -30,7 +30,7 @@ const WallMedium = ({
     position,
     rotation,
 }: {
-    position: THREE.Vector3;
+    position: Vector3;
     rotation: number;
 }) => {
     const { scene: wallMedium } = useGLTF(assetPath(wall_mediumGLTF));
@@ -49,7 +49,7 @@ const WallCornerMedium = ({
     position,
     rotation,
 }: {
-    position: THREE.Vector3;
+    position: Vector3;
     rotation: number;
 }) => {
     const { scene: wallCornerMedium } = useGLTF(
@@ -72,7 +72,7 @@ export default memo(function WallModels() {
     return (
         <group>
             {models.map((model, index) => {
-                const position = new THREE.Vector3(
+                const position = new Vector3(
                     model.position.x,
                     model.position.y,
                     0,
