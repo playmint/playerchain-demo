@@ -42,7 +42,6 @@ export default system<ShooterSchema>(
 interface Wall {
     position: { x: number; y: number };
     width: number;
-    height: number;
     rotation: number;
 }
 
@@ -78,14 +77,14 @@ function addWall(
 
     model.type[eid] = ModelType.Wall;
     model.width[eid] = wall.width;
-    model.height[eid] = wall.height;
+    model.height[eid] = level.wallColliderWidth;
     model.depth[eid] = 5;
 
     const rect = convertToRectangle(
         wall.position.x,
         wall.position.y,
         wall.width,
-        wall.height,
+        level.wallColliderWidth,
         wall.rotation,
     );
 

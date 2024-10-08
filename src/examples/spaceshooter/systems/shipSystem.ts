@@ -7,10 +7,11 @@ import {
     Tags,
     hasInput,
 } from '../../spaceshooter';
+import level from '../levels/level_1';
 
 export const SHIP_THRUST_RATE = 90;
 export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.7);
-export const SHIP_RESPAWN_RADIUS = 200;
+export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
 export const SHIP_MAX_VELOCITY = 72
 export const BULLET_DAMAGE = 100;
 
