@@ -163,9 +163,10 @@ function Particles(props: { bufferScene: Scene }) {
         const keyCode = event.which;
         if (keyCode == 49) {
             explosionRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
-            shockwaveRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
+            // shockwaveRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
             addShake({
-                intensity: 150, // Adjust as needed
+                intensity: 100, // Adjust as needed
+                frequency: 40,
                 position: new Vector3(0, 0, 0),
                 decay: 200, // Rate at which the shake reduces
                 duration: 1, // How long the shake lasts
