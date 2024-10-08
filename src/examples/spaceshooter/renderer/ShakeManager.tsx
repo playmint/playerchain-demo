@@ -2,6 +2,7 @@ import { Vector3 } from 'three';
 
 interface ShakeEvent {
     intensity: number;
+    frequency: number;
     position: Vector3;
     decay: number;
     duration: number;
@@ -24,8 +25,11 @@ export function getShakeOffset(
         const attenuation = 1 / (distance + 1);
 
         const shakeIntensity = shake.intensity * attenuation;
-        shakeOffset.x += (Math.random() - 0.5) * shakeIntensity;
-        shakeOffset.y += (Math.random() - 0.5) * shakeIntensity;
+        shakeOffset.x +=
+            Math.sin(shake.duration * shake.frequency) * shakeIntensity;
+        shakeOffset.y +=
+            Math.sin(shake.duration * shake.frequency - shake.frequency / 5) *
+            shakeIntensity;
 
         shake.intensity -= shake.decay * deltaTime;
         shake.duration -= deltaTime;
