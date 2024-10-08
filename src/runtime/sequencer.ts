@@ -43,7 +43,7 @@ export const requiredConfirmationsFor = (size: number): number => {
         case 3:
             return 2;
         case 4:
-            return 3;
+            return 2;
         case 5:
             return 3;
         case 6:
@@ -57,7 +57,7 @@ export const requiredConfirmationsFor = (size: number): number => {
     }
 };
 
-const MIN_SEQUENCE_RATE = 10;
+const MIN_SEQUENCE_RATE = 50;
 
 // the current input
 export class Sequencer {
@@ -260,7 +260,6 @@ export class Sequencer {
             const weAreLagging = round < latestKnownRound - 1;
             if (weAreLagging) {
                 numCommits = latestKnownRound - round;
-                console.log('ALLOW FASTFORWARD', numCommits);
             } else {
                 const wait = this.fixedUpdateRate - timeSinceLastCommit;
                 if (wait > MIN_SEQUENCE_RATE) {

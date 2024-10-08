@@ -185,7 +185,7 @@ export class Simulation {
                 }
             });
         // always fetch enough to recalculate the wave
-        startFromRound = Math.max(startFromRound - this.interlace * 4, 1); // THINK: can we reduce num of fetched wave msgs
+        startFromRound = Math.max(startFromRound - this.interlace * 0, 1); // THINK: can we reduce num of fetched wave msgs
         // find the closest state to satisfy startFromRound
         // if we're already at the round we need, return it
         if (latestState.round === startFromRound) {
@@ -345,9 +345,9 @@ export class Simulation {
                 needsFinalization &&
                 m.confirmations[requiredConfirmations] < requiredConfirmations
             ) {
-                console.log(
-                    `DROP INPUT needed=${requiredConfirmations} got=${m.confirmations[requiredConfirmations]} all=${m.confirmations}`,
-                );
+                // console.log(
+                //     `DROP INPUT needed=${requiredConfirmations} got=${m.confirmations[requiredConfirmations]} all=${m.confirmations}`,
+                // );
                 accepted = false;
             }
             inp.input = accepted && m.type == MessageType.INPUT ? m.data : 0;

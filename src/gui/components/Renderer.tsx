@@ -226,7 +226,7 @@ export default memo(function Renderer({
                 cueing = false;
                 metrics.sps.add(0);
             }
-        }, rate);
+        }, 100);
         return () => {
             cueing = false;
             if (timer) {

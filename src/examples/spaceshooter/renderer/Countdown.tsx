@@ -4,18 +4,23 @@ import EndRoundLeaderBoard from './EndRoundLeaderboard';
 import { PlayerInfo } from './PlayerHUD';
 import { WorldRef } from './ShooterRenderer';
 
-export default function Countdown(props: {
-    currentTick: number;
+export default function Countdown({
+    player,
+    worldRef,
+    players,
+    peerId,
+}: {
     player: PlayerInfo;
     worldRef: WorldRef;
     players: PlayerInfo[];
     peerId: string;
 }) {
+    const currentTick = 1000;
     const [startTime, setStartTime] = useState(0);
     const [roundTime, setRoundTime] = useState(0);
     const timer = useMemo(() => {
         const date = new Date(0);
-        if (props.currentTick < startTime) {
+        if (currentTick < startTime) {
             return (
                 <div
                     style={{
@@ -25,17 +30,15 @@ export default function Countdown(props: {
                     }}
                 >
                     <span className={styles.countdownText}>
-                        {Math.ceil(((startTime - props.currentTick) / 60) * 3)}
+                        {Math.ceil(((startTime - currentTick) / 60) * 3)}
                     </span>
                     <span className={styles.countdownText2}>
-                        {Math.ceil(((startTime - props.currentTick) / 60) * 3)}
+                        {Math.ceil(((startTime - currentTick) / 60) * 3)}
                     </span>
                 </div>
             );
-        } else if (props.currentTick < roundTime) {
-            date.setSeconds(
-                Math.ceil(((roundTime - props.currentTick) / 60) * 180),
-            );
+        } else if (currentTick < roundTime) {
+            date.setSeconds(Math.ceil(((roundTime - currentTick) / 60) * 180));
             const timeString = date.toISOString().substring(11, 19);
             return (
                 <div
@@ -49,36 +52,31 @@ export default function Countdown(props: {
                 </div>
             );
         } else {
-            if (
-                props.worldRef.current.components.timer.data.start[
-                    props.player.ship
-                ] > 0
-            ) {
+            if (worldRef.current.components.timer.data.start[player.ship] > 0) {
                 if (startTime == 0) {
                     setStartTime(
-                        props.worldRef.current.components.timer.data.start[
-                            props.player.ship
+                        worldRef.current.components.timer.data.start[
+                            player.ship
                         ],
                     );
                     console.log('start time set');
                 } else if (
-                    props.worldRef.current.components.timer.data.round[
-                        props.player.ship
-                    ] > 0 &&
+                    worldRef.current.components.timer.data.round[player.ship] >
+                        0 &&
                     roundTime == 0
                 ) {
                     setRoundTime(
-                        props.worldRef.current.components.timer.data.round[
-                            props.player.ship
+                        worldRef.current.components.timer.data.round[
+                            player.ship
                         ],
                     );
                     console.log('round time set');
                 } else if (startTime > 0 && roundTime > 0) {
                     return (
                         <EndRoundLeaderBoard
-                            players={props.players}
-                            peerId={props.peerId}
-                            player={props.player}
+                            players={players}
+                            peerId={peerId}
+                            player={player}
                         />
                     );
                 }
@@ -86,14 +84,6 @@ export default function Countdown(props: {
                 return '';
             }
         }
-    }, [
-        props.currentTick,
-        props.peerId,
-        props.player,
-        props.players,
-        props.worldRef,
-        roundTime,
-        startTime,
-    ]);
+    }, [peerId, player, players, roundTime, startTime, worldRef]);
     return timer;
 }

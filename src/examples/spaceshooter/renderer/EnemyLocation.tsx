@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, Vector3 } from 'three';
+import { useEffect, useRef, useState } from 'react';
+import { Vector3 } from 'three';
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 import { PlayerInfo } from './PlayerHUD';
 import { WorldRef } from './ShooterRenderer';
@@ -30,12 +30,10 @@ export default function EnemyLocation({
     worldRef,
     players,
     peerId,
-    camera,
 }: {
     worldRef: WorldRef;
     players: PlayerInfo[];
     peerId: string;
-    camera?: Camera;
 }) {
     const componentRef = useRef<HTMLDivElement>(null);
     const currentRef = componentRef.current;
@@ -76,7 +74,8 @@ export default function EnemyLocation({
     if (!worldRef.current) {
         return null;
     }
-    if (!camera) {
+    if (true) {
+        //!camera) {
         return null;
     }
 

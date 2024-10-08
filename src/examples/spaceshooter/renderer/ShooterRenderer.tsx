@@ -1,12 +1,10 @@
 import { PositionalAudio, useGLTF } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Camera } from 'three';
 import { EntityId, World } from '../../../runtime/ecs';
 import { RendererProps } from '../../../runtime/game';
 import { ModelType, ShooterSchema } from '../../spaceshooter';
 import backgroundMusic from '../assets/BGM.mp3?url';
-import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 import { assetPath } from '../utils/RenderUtils';
 import AudioControls from './AudioControls';
 import { FPSLimiter } from './FPSLimiter';
@@ -40,8 +38,6 @@ export default memo(function ShooterCanvas({
     // stuff we send to the hud
     const [nextPlayers, setNextPlayers] = useState<PlayerInfo[]>([]);
     const prevPlayers = useRef<PlayerInfo[]>([]);
-    const [tick, setTick] = useState(0);
-    const [camera, setCamera] = useState<Camera>();
 
     // subscribe to updates
     useEffect(() => {
@@ -49,7 +45,6 @@ export default memo(function ShooterCanvas({
             // try to only update the entities list if it has changed
             // to reduce unnecessary re-renders
             worldRef.current = w;
-            setTick(w.t);
             const a = prevEntities.current ?? [];
             const b = w.entities;
             const isChanged =
@@ -104,7 +99,7 @@ export default memo(function ShooterCanvas({
     return (
         <>
             <Canvas resize={CANVAS_RESIZE} frameloop="demand">
-                <StarFieldFX />
+                {/* <StarFieldFX /> */}
                 <FPSLimiter fps={60} />
                 {entities.map((eid) => (
                     <ModelEntity
@@ -118,7 +113,6 @@ export default memo(function ShooterCanvas({
                     peerId={peerId}
                     worldRef={worldRef}
                     metrics={metrics}
-                    setCamera={setCamera}
                 />
                 <PositionalAudio
                     autoplay={true}
@@ -131,9 +125,7 @@ export default memo(function ShooterCanvas({
             <PlayerHUD
                 peerId={peerId}
                 players={nextPlayers}
-                tick={tick}
                 worldRef={worldRef}
-                camera={camera}
             />
         </>
     );

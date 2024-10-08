@@ -1,7 +1,6 @@
 import { PerspectiveCamera } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
-import { memo, useEffect } from 'react';
-import { Camera } from 'three';
+import { useFrame } from '@react-three/fiber';
+import { memo } from 'react';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import {
     EntityObject3D,
@@ -19,19 +18,11 @@ export default memo(function PlayerCam({
     worldRef,
     peerId,
     metrics,
-    setCamera,
 }: {
     worldRef: WorldRef;
     peerId: string;
     metrics?: DefaultMetrics;
-    setCamera: (camera: Camera) => void;
 }) {
-    const { camera } = useThree();
-
-    useEffect(() => {
-        setCamera(camera);
-    }, [camera, setCamera]);
-
     useFrame(({ camera }, deltaTime) => {
         // fps counter
         if (metrics) {

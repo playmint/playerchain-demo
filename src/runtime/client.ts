@@ -361,6 +361,9 @@ export class Client {
             async () => {
                 // store it
                 const existing = await this.db.messages.get(id);
+                if (existing) {
+                    return;
+                }
                 if (!existing) {
                     await this.db.messages.put(
                         toStoredChainMessage(

@@ -18,7 +18,7 @@ import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
 const FIXED_UPDATE_RATE = 75;
-const INTERLACE = 4;
+const INTERLACE = 3;
 const SIM_INPUT_DELAY = 1; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
