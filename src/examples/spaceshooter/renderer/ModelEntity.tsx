@@ -3,7 +3,6 @@ import { ModelType } from '../../spaceshooter';
 import BulletEntity from './BulletEntity';
 import ShipEntity from './ShipEntity';
 import type { PlayersRef, WorldRef } from './ShooterRenderer';
-import WallEntity from './WallEntity';
 
 export const ModelEntity = memo(function ModelEntity({
     worldRef,
@@ -26,7 +25,5 @@ export const ModelEntity = memo(function ModelEntity({
             );
         case ModelType.Bullet:
             return <BulletEntity worldRef={worldRef} eid={eid} />;
-        case ModelType.Wall:
-            return <WallEntity worldRef={worldRef} eid={eid} />;
     }
 });

@@ -13,6 +13,7 @@ import { FPSLimiter } from './FPSLimiter';
 import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
+import WallModels from './WallModels';
 
 useGLTF.setDecoderPath('/libs/draco');
 
@@ -127,6 +128,7 @@ export default memo(function ShooterCanvas({
                     loop={true}
                 />
                 <AudioControls />
+                <WallModels />
             </Canvas>
             <PlayerHUD
                 peerId={peerId}
