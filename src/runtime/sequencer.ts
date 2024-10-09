@@ -57,7 +57,7 @@ export const requiredConfirmationsFor = (size: number): number => {
     }
 };
 
-const MIN_SEQUENCE_RATE = 10;
+const MIN_SEQUENCE_RATE = 25;
 
 // the current input
 export class Sequencer {
@@ -100,14 +100,6 @@ export class Sequencer {
         this.channelId = channelId;
         this.channelPeerIds = channelPeerIds;
         this.fixedUpdateRate = rate;
-        if (
-            this.mode === SequencerMode.CORDIAL &&
-            this.fixedUpdateRate < MIN_SEQUENCE_RATE
-        ) {
-            throw new Error(
-                `fixedUpdatedRate must be greater than ${MIN_SEQUENCE_RATE}`,
-            );
-        }
         this.loopInterval =
             this.mode === SequencerMode.WALLCLOCK
                 ? this.fixedUpdateRate
@@ -163,17 +155,23 @@ export class Sequencer {
             return 0;
         }
         for (let i = 0; i < numCommits; i++) {
+            const isMainCommit = i === numCommits - 1;
             this.prev = await this.committer.commit(
                 {
                     type: MessageType.INPUT,
                     round: round,
                     data: input,
-                    acks: i === numCommits - 1 ? ackIds || [] : [], // only ack the lastest block
+                    acks: isMainCommit ? ackIds || [] : [], // only ack the lastest block
                 },
                 this.channelId,
             );
             this.lastCommitted = Date.now();
             round++;
+            if (!isMainCommit) {
+                // wait a bit before sending the next block
+                // or we might drown out the keep alives
+                await new Promise((resolve) => setTimeout(resolve, 1));
+            }
         }
         // we commited, count it
         return numCommits;
@@ -254,14 +252,14 @@ export class Sequencer {
         // must not write another block immediately after the last one
         // unless we are lagging behind
         let numCommits = 1;
-        const timeSinceLastCommit = Date.now() - this.lastCommitted;
-        if (timeSinceLastCommit < this.fixedUpdateRate) {
-            const latestKnownRound = await this.getLatestKnownRound();
-            const weAreLagging = round < latestKnownRound - 1;
-            if (weAreLagging) {
-                numCommits = latestKnownRound - round;
-                console.log('ALLOW FASTFORWARD', numCommits);
-            } else {
+        const latestKnownRound = await this.getLatestKnownRound();
+        const weAreLagging = round < latestKnownRound - 2;
+        if (weAreLagging) {
+            numCommits = latestKnownRound - round;
+            console.log('ALLOW FASTFORWARD', numCommits);
+        } else {
+            const timeSinceLastCommit = Date.now() - this.lastCommitted;
+            if (timeSinceLastCommit < this.fixedUpdateRate) {
                 const wait = this.fixedUpdateRate - timeSinceLastCommit;
                 if (wait > MIN_SEQUENCE_RATE) {
                     // console.log(
