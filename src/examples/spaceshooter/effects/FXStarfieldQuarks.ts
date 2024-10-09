@@ -7,10 +7,10 @@ import { Object3D } from "three";
 // Define the type for the methods you will expose via ref
 
   export const StarFieldFX =(() => {
-    const [batchRenderer] = useState(new BatchedRenderer());
     const { scene } = useThree();
   
-    useEffect(() => {
+      useEffect(() => {
+        const batchRenderer = new BatchedRenderer();
       const loader = new QuarksLoader();
       loader.setCrossOrigin('');
       loader.parse([explodeJson][0], (obj) => {
@@ -24,7 +24,7 @@ import { Object3D } from "three";
       return () => {
         scene.remove(batchRenderer);
       };
-    }, [batchRenderer, scene]);
+    }, [scene]);
   
     return null;
   });
