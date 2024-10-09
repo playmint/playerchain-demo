@@ -263,12 +263,12 @@ export default memo(function ShipEntity({
             labelRef.current.style.display = 'none';
         }
         if (labelRef.current) {
-            labelRef.current.innerHTML =
-                `${isTopPlayerRef.current ? '👑' : ''}` +
-                (players[playerIdx].scoreMul > 1
-                    ? `&nbsp;x${players[playerIdx].scoreMul}<br/>`
-                    : '') +
-                (players[playerIdx]?.name || peerId.slice(0, 8));
+            // labelRef.current.innerHTML =
+            //     `${isTopPlayerRef.current ? '👑' : ''}` +
+            //     (players[playerIdx].scoreMul > 1
+            //         ? `&nbsp;x${players[playerIdx].scoreMul}<br/>`
+            //         : '') +
+            //     (players[playerIdx]?.name || peerId.slice(0, 8));
         }
         // mark prev states
         updateEntityGeneration(group, world, eid);
