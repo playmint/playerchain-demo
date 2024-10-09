@@ -8,7 +8,7 @@
 :chains: Start a Playerchain with your friends. :chains:
 
 **Download the Demo** <br>
-[Stable](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33) <br>
+[Stable](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33) &nbsp;
 [Latest](https://github.com/playmint/playerchain-demo/releases/latest)
 
 > [!TIP]  
