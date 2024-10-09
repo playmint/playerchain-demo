@@ -186,53 +186,42 @@ export default memo(function Renderer({
             return;
         }
         let prevRound: number | null = null;
-        let cueing = false;
-        let timer: any;
-        timer = setInterval(() => {
-            if (cueing) {
-                console.log('skip cue - should be rare, are we cpu bound?');
+        let playing = true;
+        const loop = () => {
+            if (!playing) {
                 return;
             }
-            cueing = true;
-            try {
-                sim.getCurrentRoundLimit()
-                    .then((round) => {
-                        if (prevRound !== null && round === prevRound) {
-                            cueing = false;
-                            metrics.sps.add(0);
-                            return null;
-                        }
-                        prevRound = round;
-                        return sim.cue(round);
-                    })
-                    .then((result: SimResult | null) => {
-                        if (!result) {
-                            return;
-                        }
-                        metrics.sps.add(result.runs);
-                        mod.load(result.state.data);
-                        mod.notify();
-                    })
-                    .catch((err) => {
-                        cueing = false;
-                        console.error('cue-to-err:', err);
+            sim.getCurrentRoundLimit()
+                .then((round) => {
+                    if (!playing) {
+                        return null;
+                    }
+                    if (prevRound !== null && round === prevRound) {
                         metrics.sps.add(0);
-                    })
-                    .finally(() => {
-                        cueing = false;
-                    });
-            } catch (err) {
-                console.error('cue-err:', err);
-                cueing = false;
-                metrics.sps.add(0);
-            }
-        }, rate);
+                        return null;
+                    }
+                    prevRound = round;
+                    return sim.cue(round);
+                })
+                .then((result: SimResult | null) => {
+                    if (!result) {
+                        return;
+                    }
+                    metrics.sps.add(result.runs);
+                    mod.load(result.state.data);
+                    mod.notify();
+                })
+                .catch((err) => {
+                    console.error('cue-to-err:', err);
+                    metrics.sps.add(0);
+                })
+                .finally(() => {
+                    loop();
+                });
+        };
+        loop();
         return () => {
-            cueing = false;
-            if (timer) {
-                clearInterval(timer);
-                timer = null;
-            }
+            playing = false;
         };
     }, [sim, rate, mod, metrics.sps]);
 
