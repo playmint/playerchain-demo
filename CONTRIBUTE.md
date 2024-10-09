@@ -9,6 +9,16 @@ proof of concept playerchain demonstration
 To build and run from source...
 
 build `ssc` from the `playmint-next` branch of playmint/socket
+```
+macos:
+
+rm -rf build; ./bin/clean.sh && NO_IOS=1 NO_ANDROID=1 VERBOSE=1 ./bin/install.sh
+
+
+windows:
+
+rm -force .\build\ ; .\bin\install.ps1 -verbose
+```
 
 then ...
 
