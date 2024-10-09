@@ -60,6 +60,7 @@ export class Client {
     verifiedHeight: Map<string, number> = new Map();
     _ready: null | Promise<void>;
     enableSync: boolean;
+    missingGate: Map<string, number> = new Map();
 
     constructor(config: ClientConfig) {
         this.id = config.keys.publicKey;
@@ -106,7 +107,7 @@ export class Client {
             this.debug('starting-ch-sync');
             this.threads.push(
                 setPeriodic(async () => {
-                    await this.syncChannels();
+                    await this.sync();
                 }, 2000),
             );
         }
@@ -153,7 +154,7 @@ export class Client {
                     throw new Error('latest-height-missing');
                 }
                 this.height = latest.height + 1;
-                this.parent = Buffer.from(latest.id, 'base64');
+                this.parent = latest.id;
             }
         }
         // build the msg to attest to
@@ -162,7 +163,9 @@ export class Client {
             peer: this.id,
             height: this.height,
             acks: msg.acks ?? [], // TODO: ask consensus system what to do
-            parent: this.parent ? Buffer.from(this.parent, 'base64') : null,
+            parent: this.parent
+                ? (Buffer.from(this.parent, 'base64') as unknown as Uint8Array)
+                : null,
         };
         const [signed, id] = await this.sign(attest);
         const stored = toStoredChainMessage(
@@ -205,8 +208,8 @@ export class Client {
         const hash = await this.hash(msg);
         const id = Buffer.from(hash.slice(0, 8)).toString('base64');
         const sig = sodium.crypto_sign_detached(
-            Buffer.from(hash),
-            Buffer.from(this.key),
+            Buffer.from(hash) as unknown as Uint8Array,
+            Buffer.from(this.key) as unknown as Uint8Array,
         );
         // const sig = Buffer.from(`${this.shortId}-${msg.height}`);
         // console.log('-----SIGN>', {
@@ -361,24 +364,23 @@ export class Client {
             async () => {
                 // store it
                 const existing = await this.db.messages.get(id);
-                if (!existing) {
-                    await this.db.messages.put(
-                        toStoredChainMessage(
-                            msg,
-                            id,
-                            this.nextSequenceNumber(),
-                            channelId,
-                            await this.calculateMessageConfirmations(id),
-                        ),
-                    );
+                if (existing) {
+                    return;
                 }
+                await this.db.messages.put(
+                    toStoredChainMessage(
+                        msg,
+                        id,
+                        this.nextSequenceNumber(),
+                        channelId,
+                        await this.calculateMessageConfirmations(id),
+                    ),
+                );
                 // do we have this message's parent?
                 if (msg.parent) {
-                    const parent = await this.db.messages.get(msg.parent);
+                    const parentId = Buffer.from(msg.parent).toString('base64');
+                    const parent = await this.db.messages.get(parentId);
                     if (!parent) {
-                        const parentId = Buffer.from(msg.parent).toString(
-                            'base64',
-                        );
                         this.requestMissingParent(parentId).catch((err) =>
                             console.error(
                                 'quick-req-missing-parent-error',
@@ -517,6 +519,12 @@ export class Client {
         if (!parentId) {
             return;
         }
+        // don't spam missing requests, gate them
+        const gate = this.missingGate.get(parentId);
+        if (gate) {
+            return;
+        }
+        this.missingGate.set(parentId, 2);
         const exists = await this.db.messages.get(parentId);
         if (exists) {
             return;
@@ -639,7 +647,17 @@ export class Client {
         }
     };
 
-    private async syncChannels() {
+    private async sync() {
+        // decement the gates
+        for (const [k, v] of this.missingGate) {
+            const gate = v - 1;
+            if (gate <= 0) {
+                this.missingGate.delete(k);
+            } else {
+                this.missingGate.set(k, gate);
+            }
+        }
+        // update channels
         for (const [_, ch] of this.channels) {
             if (typeof ch.id !== 'string') {
                 console.warn('ignoring invalid channel id', ch);
@@ -656,8 +674,12 @@ export class Client {
                     type: MessageType.KEEP_ALIVE,
                     peer: this.id,
                     timestamp: Date.now(),
-                    sees: subclusterPeers.map((p) =>
-                        Buffer.from(p.peerId.slice(0, 8), 'hex'),
+                    sees: subclusterPeers.map(
+                        (p) =>
+                            Buffer.from(
+                                p.peerId.slice(0, 8),
+                                'hex',
+                            ) as unknown as Uint8Array,
                     ),
                     name: peerName?.name || '',
                 },
@@ -836,7 +858,9 @@ export class Client {
     async setPeers(channelId: string, peers: string[]) {
         const msg: SetPeersMessage = {
             type: MessageType.SET_PEERS,
-            peers: peers.sort().map((p) => Buffer.from(p, 'hex')),
+            peers: peers
+                .sort()
+                .map((p) => Buffer.from(p, 'hex') as unknown as Uint8Array),
         };
         await this.commit(msg, channelId);
         await this.onSetPeers(msg, channelId);
@@ -868,14 +892,20 @@ export class Client {
             sender: this.peerId,
         };
         for (const [_, ch] of this.channels) {
-            await ch.emit(`rpc`, Buffer.from(cbor.encode(r)), {
-                ttl: 100,
-            });
+            await ch.emit(
+                `rpc`,
+                Buffer.from(cbor.encode(r)) as unknown as Uint8Array,
+                {
+                    ttl: 100,
+                },
+            );
         }
     };
 
     private onRPCRequest = async (b: Buffer) => {
-        const req = cbor.decode(Buffer.from(b)) as SocketRPCRequest;
+        const req = cbor.decode(
+            Buffer.from(b) as unknown as Uint8Array,
+        ) as SocketRPCRequest;
         if (req.sender === this.peerId) {
             // don't answer own requests!
             return;
