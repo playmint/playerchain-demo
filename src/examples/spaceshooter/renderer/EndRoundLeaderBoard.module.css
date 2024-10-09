@@ -1,11 +1,76 @@
 .leaderboard {
-    zoom: 0.8; /* just temp hack remove me */
-    position: relative;
+    margin: 0 auto;
+    width: 60%;
     text-align: center;
-    margin-bottom: 30px;
-    margin-right: 30px;
-    overflow: hidden;
+    padding: 20px;
+    background-color: #121212;
+    border-radius: 20px;
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
+
+.leaderboardHeader,
+.leaderboardRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    font-weight: bold;
+    border-bottom: 2px solid #444;
+    margin-bottom: 10px;
+}
+
+.leaderboardHeader {
+    color: #ccc;
+    text-transform: uppercase;
+}
+
+.leaderboardCategory, 
+.leaderboardStat, 
+.rankCircleWrapper {
+    flex: 1;
+    text-align: center;
+}
+
+.leaderboardCategory {
+    text-align: left;
+    color: #ccc;
+}
+
+.leaderboardUser {
+    flex: 2;
+    text-align: left;
+    font-weight: bold;
+    color: white;
+}
+
+.leaderboardStat {
+    color: #aaa;
+}
+
+.rankCircleWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.rankCircle {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ffcc00;
+    color: black;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2em;
+}
+
+
 
 .leaderboardEntryRow {
     display: flex;
@@ -44,15 +109,6 @@
 .leaderboardGap svg {
     margin-bottom: 3px;
     margin-right: 6px;
-}
-
-.leaderboardUser {
-    margin-right: 12px;
-    color: rgb(240, 240, 240);
-    font-weight: bold;
-    text-shadow: 0px 2px 0px rgba(0, 0, 0, 0.75);
-    flex: auto;
-    text-align: left;
 }
 
 .leaderboardUserCategory {
