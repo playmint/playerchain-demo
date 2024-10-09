@@ -16,8 +16,7 @@ export default system<ShooterSchema>(({ t, players, timer, deltaTime }) => {
             ) {
                 // start round timer:
                 players.forEach((player) => {
-                    //timer.round[player.ship] = t + 180 / deltaTime;
-                    timer.round[player.ship] = t + 10 / deltaTime;
+                    timer.round[player.ship] = t + 180 / deltaTime;
                 });
             }
         });
