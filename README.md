@@ -6,8 +6,8 @@ We’ve built a Playerchain demo game for you to play.
 
 Start a Playerchain with your friends.
 
-*Download the Demo*
-[Stable](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
+**Download the Demo** <br>
+[Stable](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33) <br>
 [Latest](https://github.com/playmint/playerchain-demo/releases/latest)
 
 By playing our Space Shooter game, you become a node on your own Playerchain along with the other players in the session.
