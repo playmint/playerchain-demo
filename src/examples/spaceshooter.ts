@@ -140,31 +140,38 @@ export class SpaceShooter implements GameModule {
         switch (key) {
             case 'w':
             case 'W':
+            case 'ArrowUp':
                 this.input |= Input.Forward;
                 break;
             case 'a':
             case 'A':
+            case 'ArrowLeft':
                 this.input |= Input.Left;
                 break;
             case 's':
             case 'S':
+            case 'ArrowDown':
                 this.input |= Input.Back;
                 break;
             case 'd':
             case 'D':
+            case 'ArrowRight':
                 this.input |= Input.Right;
                 break;
             case ' ':
+            case 'Shift':
                 this.input |= Input.Fire;
                 break;
+                /*
             case 'e':
             case 'E':
                 this.input |= Input.Respawn;
                 break;
-            case 't':
-            case 'T':
-                this.input |= Input.StartTimer;
-                break;
+                case 't':
+                    case 'T':
+                        this.input |= Input.StartTimer;
+                        break;
+                */
         }
     };
 
@@ -172,23 +179,29 @@ export class SpaceShooter implements GameModule {
         switch (key) {
             case 'w':
             case 'W':
+            case 'ArrowUp':
                 this.input &= ~Input.Forward;
                 break;
             case 'a':
             case 'A':
+            case 'ArrowLeft':
                 this.input &= ~Input.Left;
                 break;
             case 's':
             case 'S':
+            case 'ArrowDown':
                 this.input &= ~Input.Back;
                 break;
             case 'd':
             case 'D':
+            case 'ArrowRight':
                 this.input &= ~Input.Right;
                 break;
             case ' ':
+            case 'Shift':
                 this.input &= ~Input.Fire;
                 break;
+            /*
             case 'e':
             case 'E':
                 this.input &= ~Input.Respawn;
@@ -197,6 +210,7 @@ export class SpaceShooter implements GameModule {
             case 'T':
                 this.input &= ~Input.StartTimer;
                 break;
+            */
         }
     };
 
