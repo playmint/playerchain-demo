@@ -1,4 +1,4 @@
-# Playerchain Demo
+If # Playerchain Demo
 
 Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**.
 
@@ -41,3 +41,7 @@ Under the hood, each player essentially maintains their own sovereign blockchain
 We built fully onchain, UGC platform, **Downstream** as an Autonomous World. It’s exploring the boundaries of whats possible in a game world that, because it’s not owned by anyone, gives freedom and control to the in-game creators. 
 
 Playerchains will be used to unlock free, responsive gaming and more creator autonomy in a future version of Downstream.
+
+## Contribute
+
+[Check out our contributors page](CONTRIBUTE.md)
