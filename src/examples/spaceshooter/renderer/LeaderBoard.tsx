@@ -1,5 +1,4 @@
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
-import React from 'react';
 import styles from './LeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 
