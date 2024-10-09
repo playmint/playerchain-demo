@@ -6,14 +6,9 @@ import { Object3D } from "three";
 
 // Define the type for the methods you will expose via ref
 
-  export const StarFieldFX =((props, ref) => {
+  export const StarFieldFX =(() => {
     const [batchRenderer] = useState(new BatchedRenderer());
-    const [effect, setEffect] = useState(new Object3D());
     const { scene } = useThree();
-  
-    useFrame((state, delta) => {
-      batchRenderer.update(delta);
-    });
   
     useEffect(() => {
       const loader = new QuarksLoader();
@@ -21,8 +16,8 @@ import { Object3D } from "three";
       loader.parse([explodeJson][0], (obj) => {
         QuarksUtil.addToBatchRenderer(obj, batchRenderer);
         obj.position.set(0, 0, -130);
-        setEffect(obj);
-        scene.add(obj);
+          batchRenderer.update(2000);
+          scene.add(obj);
       });
       scene.add(batchRenderer);
   
