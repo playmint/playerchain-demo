@@ -6,8 +6,9 @@ We’ve built a Playerchain demo game for you to play.
 
 Start a Playerchain with your friends.
 
-[Download Demo](https://github.com/playmint/playerchain-demo/releases/latest)
-
+*Download the Demo*
+[Stable](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
+[Latest](https://github.com/playmint/playerchain-demo/releases/latest)
 
 By playing our Space Shooter game, you become a node on your own Playerchain along with the other players in the session.
 
@@ -35,11 +36,6 @@ Each input is cryptographically signed so whole game sessions can be verified an
 
 Under the hood, each player essentially maintains their own sovereign blockchain containing an immutable history of their actions. The individual chains combine to form a blocklace. The nature of a global lace with different partial views opens up possibilities for new ways to persist and connect worlds that we are still exploring.
 
-## What Playmint are using Playerchains for?
-
-We built fully onchain, UGC platform, **Downstream** as an Autonomous World. It’s exploring the boundaries of whats possible in a game world that, because it’s not owned by anyone, gives freedom and control to the in-game creators. 
-
-Playerchains will be used to unlock free, responsive gaming and more creator autonomy in a future version of Downstream.
 
 ## Contribute
 
