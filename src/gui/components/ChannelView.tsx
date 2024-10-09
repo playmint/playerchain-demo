@@ -17,17 +17,17 @@ import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-const FIXED_UPDATE_RATE = 75;
+const FIXED_UPDATE_RATE = 50;
 const INTERLACE = 4;
 const SIM_INPUT_DELAY = 1; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({
-    channelId,
+    channel,
     details,
     metrics,
 }: {
-    channelId: string;
+    channel: ChannelInfo;
     details: boolean;
     metrics: DefaultMetrics;
 }) {
@@ -38,7 +38,7 @@ export default memo(function ChannelView({
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
 
     const copyKeyToClipboard = () => {
-        navigator.clipboard.writeText(channelId).catch((err) => {
+        navigator.clipboard.writeText(channel.id).catch((err) => {
             console.error('clipboard write failed:', err);
         });
     };
@@ -66,12 +66,6 @@ export default memo(function ChannelView({
     }, [db, muted]);
 
     // get channel data
-
-    const channel = useLiveQuery(async (): Promise<
-        ChannelInfo | null | undefined
-    > => {
-        return db.channels.get(channelId);
-    }, [channelId]);
     const channelPeers = useMemo(
         () => channel?.peers || [],
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,10 +84,10 @@ export default memo(function ChannelView({
     const peers = useMemo(() => {
         return allPeers.filter(
             (p) =>
-                p.channels.includes(channelId) &&
+                p.channels.includes(channel.id) &&
                 p.sees.includes(peerId.slice(0, 8)),
         );
-    }, [allPeers, channelId, peerId]);
+    }, [allPeers, channel.id, peerId]);
 
     const potentialPeers = useMemo(
         () => [...peers.map((p) => p.peerId), peerId].sort(),
@@ -104,10 +98,10 @@ export default memo(function ChannelView({
         if (!client.setPeers) {
             return;
         }
-        client.setPeers(channelId, potentialPeers).catch((err) => {
+        client.setPeers(channel.id, potentialPeers).catch((err) => {
             console.error('acceptPeers', err);
         });
-    }, [client, channelId, potentialPeers]);
+    }, [client, channel.id, potentialPeers]);
 
     const peerNames = useLiveQuery(
         () => {
@@ -185,7 +179,7 @@ export default memo(function ChannelView({
                             cursor: 'pointer',
                         }}
                     >
-                        {channelId}{' '}
+                        {channel.id}{' '}
                         <span
                             className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                             style={{ padding: '0 4px', cursor: 'pointer' }}
@@ -420,14 +414,12 @@ export default memo(function ChannelView({
                         ))}
                     </div>
 
-                    {channelId && (
-                        <div style={{ flexGrow: 1, overflow: 'hidden' }}>
-                            <PacketLace
-                                channelId={channelId}
-                                peers={channel.peers}
-                            />
-                        </div>
-                    )}
+                    <div style={{ flexGrow: 1, overflow: 'hidden' }}>
+                        <PacketLace
+                            channelId={channel.id}
+                            peers={channel.peers}
+                        />
+                    </div>
 
                     <div style={{ height: '20rem' }}>
                         <Stat metric={metrics.fps} />

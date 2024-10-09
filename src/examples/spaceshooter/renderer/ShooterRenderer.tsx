@@ -41,7 +41,7 @@ export default memo(function ShooterCanvas({
     // stuff we send to the hud
     const [nextPlayers, setNextPlayers] = useState<PlayerInfo[]>([]);
     const prevPlayers = useRef<PlayerInfo[]>([]);
-    const [tick, setTick] = useState(0);
+    const [tick, setTick] = useState(500);
     const [camera, setCamera] = useState<Camera>();
 
     // subscribe to updates
@@ -50,7 +50,7 @@ export default memo(function ShooterCanvas({
             // try to only update the entities list if it has changed
             // to reduce unnecessary re-renders
             worldRef.current = w;
-            setTick(w.t);
+            // setTick(w.t);
             const a = prevEntities.current ?? [];
             const b = w.entities;
             const isChanged =
@@ -105,7 +105,7 @@ export default memo(function ShooterCanvas({
     return (
         <>
             <Canvas resize={CANVAS_RESIZE} frameloop="demand">
-                <StarFieldFX />
+                {/* <StarFieldFX /> */}
                 <FPSLimiter fps={60} />
                 {entities.map((eid) => (
                     <ModelEntity
