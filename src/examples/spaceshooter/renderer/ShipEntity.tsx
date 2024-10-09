@@ -39,12 +39,10 @@ export default memo(function ShipEntity({
     eid,
     worldRef,
     playersRef,
-    bufferScene,
 }: {
     eid: number;
     worldRef: WorldRef;
     playersRef: PlayersRef;
-    bufferScene: Scene;
 }) {
     const getShipOwner = () =>
         Array.from(worldRef.current.players.entries()).find(
@@ -54,7 +52,6 @@ export default memo(function ShipEntity({
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
     const explosionRef = useRef<ExplodeFXHandle>(null!);
-    const shockwaveRef = useRef<ShockwaveFXHandle>(null!);
     const explosionSfxRef = useRef<PositionalAudioImpl>(null!);
     const thrustSfxRef = useRef<PositionalAudioImpl>(null!);
     const respawnRef = useRef<SpawnFXHandle>(null!);
@@ -226,16 +223,6 @@ export default memo(function ShipEntity({
                         duration: 1, // How long the shake lasts
                     });
                 }
-                if (shockwaveRef.current) {
-                    shockwaveRef.current.triggerExplosion(pos, shipRef.current);
-
-                    addShake({
-                        intensity: 150, // Adjust as needed
-                        position: new Vector3(0, 0, 0),
-                        decay: 200, // Rate at which the shake reduces
-                        duration: 1, // How long the shake lasts
-                    });
-                }
                 // make noise too
                 if (!explosionSfxRef.current.isPlaying) {
                     explosionSfxRef.current.play();
@@ -300,7 +287,6 @@ export default memo(function ShipEntity({
     return (
         <group ref={groupRef}>
             <ExplodeFX ref={explosionRef} />
-            <ShockwaveFX ref={shockwaveRef} scene={bufferScene} />
             <SpawnFX ref={respawnRef} />
             <SparksFX ref={sparksRef} />
             <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
