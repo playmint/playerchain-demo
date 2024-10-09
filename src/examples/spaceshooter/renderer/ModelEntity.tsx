@@ -3,18 +3,15 @@ import { ModelType } from '../../spaceshooter';
 import BulletEntity from './BulletEntity';
 import ShipEntity from './ShipEntity';
 import type { PlayersRef, WorldRef } from './ShooterRenderer';
-import { Scene } from 'three';
 
 export const ModelEntity = memo(function ModelEntity({
     worldRef,
     eid,
     playersRef,
-    bufferScene,
 }: {
     eid: number;
     worldRef: WorldRef;
     playersRef: PlayersRef;
-    bufferScene: Scene;
 }) {
     console.log('ModelEntity', eid);
     switch (worldRef.current.components.model.data.type[eid]) {
@@ -24,7 +21,6 @@ export const ModelEntity = memo(function ModelEntity({
                     worldRef={worldRef}
                     eid={eid}
                     playersRef={playersRef}
-                    bufferScene={bufferScene}
                 />
             );
         case ModelType.Bullet:

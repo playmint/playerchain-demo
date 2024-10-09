@@ -47,7 +47,6 @@ import {
     addShake,
     getShakeOffset,
 } from './examples/spaceshooter/renderer/ShakeManager';
-import { WarpEffect } from './examples/spaceshooter/renderer/WarpEffect';
 import { SHIP_MAX_VELOCITY } from './examples/spaceshooter/systems/shipSystem';
 import {
     EntityObject3D,
@@ -103,7 +102,6 @@ function Ship() {
 
     useFrame((_state, deltaTime) => {
         const color = new Color(getPlayerColor(shipColor));
-        const group = groupRef.current;
         const ship = shipRef.current as EntityObject3D;
 
         // color the ship

@@ -1,14 +1,6 @@
 import { PositionalAudio, useGLTF } from '@react-three/drei';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
-import { ToneMappingMode } from 'postprocessing';
+import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import {
-    Color,
-    LinearFilter,
-    NearestFilter,
-    Scene,
-    WebGLRenderTarget,
 import { Camera } from 'three';
 import { EntityId, World } from '../../../runtime/ecs';
 import { RendererProps } from '../../../runtime/game';
@@ -22,12 +14,7 @@ import { FPSLimiter } from './FPSLimiter';
 import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
-import ShipEntity from './ShipEntity';
-import { StarFieldFX } from '../effects/FXStarfieldQuarks';
-import { Color, LinearFilter, NearestFilter, Scene, WebGLRenderTarget } from 'three';
-import { EffectComposer, ToneMapping } from '@react-three/postprocessing';
-import { WarpEffect } from './WarpEffect';
-import { ToneMappingMode } from 'postprocessing';
+import WallModels from './WallModels';
 
 useGLTF.setDecoderPath('/libs/draco');
 
@@ -57,18 +44,6 @@ export default memo(function ShooterCanvas({
     const prevPlayers = useRef<PlayerInfo[]>([]);
     const [tick, setTick] = useState(0);
     const [camera, setCamera] = useState<Camera>();
-    const bufferScene = useMemo(() => new Scene(), []);
-    const bufferTarget = useMemo(() => {
-        const target = new WebGLRenderTarget(
-            window.innerWidth,
-            window.innerHeight,
-            {
-                minFilter: LinearFilter,
-                magFilter: NearestFilter,
-            },
-        );
-        return target;
-    }, []);
 
     // subscribe to updates
     useEffect(() => {
@@ -140,7 +115,6 @@ export default memo(function ShooterCanvas({
                         eid={eid}
                         worldRef={worldRef}
                         playersRef={playersRef}
-                        bufferScene={bufferScene}
                     />
                 ))}
                 <PlayerCam
@@ -157,13 +131,6 @@ export default memo(function ShooterCanvas({
                 />
                 <AudioControls />
                 <WallModels />
-                <EffectComposer>
-                    <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-                    <WarpEffect
-                        strength={0.01}
-                        tBuffer={bufferTarget.texture}
-                    />
-                </EffectComposer>
             </Canvas>
             <PlayerHUD
                 peerId={peerId}

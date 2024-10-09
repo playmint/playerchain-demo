@@ -1,6 +1,6 @@
-import React, { forwardRef, useMemo } from 'react'
-import { Texture, Uniform } from 'three'
-import { Effect } from 'postprocessing'
+import { Effect } from 'postprocessing';
+import React, { forwardRef, useMemo } from 'react';
+import { Texture, Uniform } from 'three';
 
 let _ustrength;
 
@@ -18,40 +18,44 @@ const HorizontalBlurShader = {
             vec4 b = texture2D(inputBuffer, warpUv - vec2(mask.r*0.005, 0));
             vec4 texel1 = vec4(r.r, g.g, b.b, 1.0);
             outputColor = texel1;
-          }`
-  }
+          }`,
+};
 
 // Effect implementation
 class WarpEffectImpl extends Effect {
     // Accept strength and tBuffer in the constructor
-    constructor({ strength = 0.1, tBuffer = new Texture() }: { strength?: number; tBuffer?: Texture } = {}) {
-      super('WarpEffect', HorizontalBlurShader.fragmentShader, {
-        uniforms: new Map([
-          ['strength', new Uniform(strength)],
-          ['tBuffer', new Uniform(tBuffer)],
-        ]),
-      });
-  
-      // Save the properties as instance variables
-      this.strength = strength;
-      this.tBuffer = tBuffer;
-      _ustrength = strength;
+    constructor({
+        strength = 0.1,
+        tBuffer = new Texture(),
+    }: { strength?: number; tBuffer?: Texture } = {}) {
+        super('WarpEffect', HorizontalBlurShader.fragmentShader, {
+            uniforms: new Map([
+                ['strength', new Uniform(strength)],
+                ['tBuffer', new Uniform(tBuffer)],
+            ]),
+        });
+
+        // Save the properties as instance variables
+        this.strength = strength;
+        this.tBuffer = tBuffer;
+        _ustrength = strength;
     }
-  
+
     strength: number;
     tBuffer: Texture;
-  
+
     update(_renderer, _inputBuffer, _deltaTime) {
-      // Update uniforms directly from instance variables
-      this.uniforms.get('strength').value = _ustrength;
-      this.uniforms.get('tBuffer').value = this.tBuffer;
+        // Update uniforms directly from instance variables
+        this.uniforms.get('strength').value = _ustrength;
+        this.uniforms.get('tBuffer').value = this.tBuffer;
     }
-  }
+}
 
 // Effect component
-export const WarpEffect = forwardRef((props: { strength: number; tBuffer: Texture }, ref) => {
-    const effect = useMemo(() => new WarpEffectImpl(props), [props]);
-    return <primitive ref={ref} object={effect} dispose={null} />;
-  });
-  WarpEffect.displayName = 'WarpEffect';
-  
+export const WarpEffect = forwardRef(
+    (props: { strength: number; tBuffer: Texture }, ref) => {
+        const effect = useMemo(() => new WarpEffectImpl(props), [props]);
+        return <primitive ref={ref} object={effect} dispose={null} />;
+    },
+);
+WarpEffect.displayName = 'WarpEffect';
