@@ -1,27 +1,31 @@
 # Playerchains
 
-Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**.
+> [!NOTE]  
+> Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**.
 
-We’ve built a Playerchain demo game for you to play.
+:video_game: We’ve built a Playerchain demo game for you to play!
 
-Start a Playerchain with your friends.
+:chains: Start a Playerchain with your friends. :chains:
 
 **Download the Demo** <br>
 [Stable](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33) <br>
 [Latest](https://github.com/playmint/playerchain-demo/releases/latest)
 
-By playing our Space Shooter game, you become a node on your own Playerchain along with the other players in the session.
+> [!TIP]  
+> By playing our Space Shooter game, you become a node on your own Playerchain along with the other players in the session.
 
 
 ## Why Playerchains
 
 ***Playerchains are a way for players to have full control of their own responsive, multiplayer games without relying on anyone or anything beyond their own gaming machine.***
 
-We’re interested in moving control of your games away from corporations back to you. For multiplayer games, that means removing the reliance on servers.
+:balance_scale: We’re interested in moving control of your games away from corporations back to you.
 
-One way to do that is run games on a public blockchain because these run on a decentralised set of nodes. We’ve tried this and its a step in the right direction but they’re not capable of running responsive games and games rely on blockchain nodes.
+:desktop_computer: For multiplayer games, that means removing the reliance on servers.
 
-Playerchains remove any reliance on anyone outside your game’s group.
+:atom_symbol: Public decentralised blockchains are a step in the right direction, but you still rely on the blockchain nodes, and they're not capable of running responsive games.
+
+:white_check_mark: Playerchains remove any reliance on anyone outside your game’s group.
 
 
 ## How do Playerchains work?
