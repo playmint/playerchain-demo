@@ -440,6 +440,9 @@ export class Client {
             return null;
         }
         const confirmations = await this.calculateMessageConfirmations(id);
+        if (confirmations.join(',') === ackee.confirmations.join(',')) {
+            return ackee;
+        }
         const updated: StoredMessage = {
             ...ackee,
             updated: this.nextSequenceNumber(),
