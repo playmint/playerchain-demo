@@ -96,13 +96,9 @@ export default memo(function PlayerCam({
             InterpolateSpeed.Slow,
         );
 
-        // Get accumulated shake from ShakeManager
         const shakeOffset = getShakeOffset(camera.position, deltaTime);
-
-        cameraShake.current.copy(shakeOffset);
-
         // Apply shake offset to the camera
-        camera.position.add(cameraShake.current);
+        camera.position.add(shakeOffset);
 
         // mark generation
         updateEntityGeneration(camera, world, player.ship);

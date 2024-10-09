@@ -42,6 +42,7 @@ import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
 import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
 import { BackgroundModels } from './examples/spaceshooter/renderer/BackgroundModels';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
+import { FPSLimiter } from './examples/spaceshooter/renderer/FPSLimiter';
 import {
     addShake,
     getShakeOffset,
@@ -248,6 +249,7 @@ function Diorama() {
     return (
         <>
             <BackgroundModels rotation={[1.5708, 0, 0]} />
+            <FPSLimiter fps={60} />
             <StarFieldFX />
             <PerspectiveCamera
                 makeDefault
