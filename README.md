@@ -3,13 +3,12 @@
 > [!NOTE]  
 > _Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**._
 
-### We’ve built a Playerchain demo game you can play!
-
+### We’ve built a demo game you can play!
 <p align="left">
-<img src="https://github.com/user-attachments/assets/2ba2e026-c9ec-47b9-ade4-84f8aca77d40" width="500" />
+<img src="https://github.com/user-attachments/assets/2ba2e026-c9ec-47b9-ade4-84f8aca77d40" width="400" />
 </p>
 
-**Download and start a Playerchain with your friends** <br>
+### Download and start a Playerchain with your friends
 - [**Latest stable release**](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
 - [_Latest experimental_](https://github.com/playmint/playerchain-demo/releases/latest)
 
@@ -64,7 +63,7 @@
 
 <br />
 
-# References & Inspiration
+## References & Inspiration
 
 - :memo: &nbsp; [Blocklace paper](https://arxiv.org/abs/2402.08068)
 - :memo: &nbsp; [Cordial Miners paper](https://arxiv.org/abs/2205.09174)
