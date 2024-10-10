@@ -43,7 +43,7 @@
 
 :crystal_ball: &nbsp; Game logic runs in deterministic lockstep with prediction and rollback; an established netcode pattern.
 
-:lock_with_ink_pen: &nbsp; Inputs are cryptographically signed, so gameplay and results are provable and allow player attestations.
+:lock_with_ink_pen: &nbsp; Inputs are cryptographically signed, so gameplay and results are provable and allow for player attestations.
 
 :chains: &nbsp; This unlocks interop with blockchains, leaderboard servers, community tools, or other Playerchain games.
 
@@ -51,7 +51,7 @@
 
 :atom_symbol: &nbsp; The individual chains combine to form an emergent blocklace.
 
-:earth_africa: &nbsp; This global lace with a plurality of partial views opens up new possibilities for connecting worlds.
+:earth_africa: &nbsp; This global lacttice, with a plurality of partial views, opens up new possibilities for connecting worlds.
 
 :speech_balloon: &nbsp; If you have comments or feedback, we'd love to hear from you! Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
 
