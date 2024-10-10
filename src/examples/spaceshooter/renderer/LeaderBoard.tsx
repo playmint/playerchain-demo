@@ -97,38 +97,11 @@ export default function LeaderBoard({
     );
 }
 
-export function LeaderboardGap({ count }: { count: number | undefined }) {
-    const defaultCount = 0;
-    return (
-        <div className={styles.leaderboardGap}>
-            {Array.from({ length: count || defaultCount }, (_, i) => (
-                <svg
-                    key={i}
-                    width="10"
-                    height="10"
-                    viewBox="0 0 10 10"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <circle
-                        cx="5"
-                        cy="5"
-                        r="4"
-                        fill="#00000080"
-                        stroke="rgb(92, 144, 255)"
-                        strokeWidth={1}
-                    />
-                </svg>
-            ))}
-        </div>
-    );
-}
-
 function LdrEntry(props: {
     userScore: Score;
     position: number;
     scoresBetween?: number;
 }) {
-    const shadowColor = shadeColor(props.userScore.color, -25);
     let entryClass =
         props.position === 1
             ? `${styles.leaderboardEntry} ${styles.leaderboardEntryLeader}`
@@ -140,24 +113,16 @@ function LdrEntry(props: {
 
     return (
         <>
-            <LeaderboardGap count={props.scoresBetween} />
             <div className={classN}>
                 <div className={entryClass}>
-                    <span className={styles.leaderboardUser}>
+                    <span
+                        className={styles.leaderboardUser}
+                        style={{ color: props.userScore.color }}
+                    >
                         {props.userScore.user}
                     </span>
                     <span className={styles.leaderboardScore}>
                         {props.userScore.score}
-                    </span>
-                    <span
-                        className={`${styles.scoreCircle} ${styles.shadowCircle}`}
-                        style={{ backgroundColor: shadowColor }}
-                    />
-                    <span
-                        className={styles.scoreCircle}
-                        style={{ backgroundColor: props.userScore.color }}
-                    >
-                        {props.position}
                     </span>
                 </div>
             </div>

@@ -74,13 +74,7 @@ export default function Countdown(props: {
                     );
                     console.log('round time set');
                 } else if (startTime > 0 && roundTime > 0) {
-                    return (
-                        <EndRoundLeaderBoard
-                            players={props.players}
-                            peerId={props.peerId}
-                            player={props.player}
-                        />
-                    );
+                    return <EndRoundLeaderBoard players={props.players} />;
                 }
             } else {
                 return '';
@@ -88,7 +82,6 @@ export default function Countdown(props: {
         }
     }, [
         props.currentTick,
-        props.peerId,
         props.player,
         props.players,
         props.worldRef,
