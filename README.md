@@ -26,9 +26,9 @@
 
 :balance_scale: &nbsp; We’re interested in moving control of your games away from corporations back to you.
 
-:desktop_computer: &nbsp; For multiplayer games, that means removing the reliance on servers.
+:desktop_computer: &nbsp; For multiplayer games, that means removing the reliance on central servers.
 
-:atom_symbol: &nbsp; Public decentralised blockchains are a step in the right direction, but you still rely on the blockchain nodes, and they're not capable of running responsive games.
+:atom_symbol: &nbsp; Public blockchains are decentralised, but you still rely on external compute, which is expensive and constrains performance.
 
 :white_check_mark: &nbsp; Playerchains remove any reliance on anyone outside your game’s group.
 
@@ -36,19 +36,25 @@
 
 ## How do Playerchains work?
 
-Game code built on Playerchain netcode allows each player’s machine to connect and share their inputs with each other in realtime. 
+:handshake: &nbsp; Games built on Playerchain netcode allow player’s machines to connect and share their inputs with each other in realtime.
 
-Cutting edge distributed systems protocols ensure everyone agrees on everyone else’s inputs with fast finality. Each player maintains their own history of actions and connected players combine this into a DAG structure.
+:stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on everyone else’s inputs with fast finality.
 
-Deterministic game logic runs in lockstep with prediction and rollback; an established pattern for multiplayer game netcode.
+:ledger: &nbsp; Each player maintains their own history of actions and connected players combine this into a DAG structure.
 
-Each input is cryptographically signed so whole game sessions can be verified and results attributed to the players. This could be on a blockchain, a leaderboard server, or even someone else’s Playerchain game.
+:crystal_ball: &nbsp; Deterministic game logic runs in lockstep with prediction and rollback; an established pattern for multiplayer game netcode.
 
-Under the hood, each player maintains their own sovereign blockchain with an immutable history of their actions. The individual chains combine to form a blocklace.
+✍:lock_with_ink_pen: &nbsp; Designed to be provable, each input is cryptographically signed. Whole game sessions can be verified and results attributed to the players.
 
-The nature of a global lace with different partial views opens up possibilities for new ways to persist and connect worlds that we are still exploring.
+:chains: &nbsp; This allows for interop with blockchains, leaderboard servers, or even someone else’s Playerchain game.
 
-If you have any comments or feedback, we'd love to hear from you! Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
+:crown: &nbsp; Under the hood, each player maintains their own sovereign blockchain with an immutable history of their actions.
+
+:atom_symbol: &nbsp; The individual chains combine to form a blocklace.
+
+:earth_africa: &nbsp; The nature of a global lace with different partial views opens up possibilities for new ways to persist and connect worlds that we are still exploring.
+
+:speech_balloon: &nbsp; If you have any comments or feedback, we'd love to hear from you! Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
 
 <br />
 
