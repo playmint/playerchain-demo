@@ -35,17 +35,17 @@
 
 ## How do Playerchains work?
 
-:handshake: &nbsp; Games built on Playerchain netcode allow the player's machines to connect and share inputs with each other in realtime.
+:handshake: &nbsp; Games built on Playerchain netcode allow the player's machines to connect and share inputs in realtime.
 
 :ledger: &nbsp; Each player maintains their own history of actions and connected players combine this into a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 
-:stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on these inputs with fast finality.
+:stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on the inputs with fast finality.
 
 :crystal_ball: &nbsp; Game logic runs in deterministic lockstep with prediction and rollback; an established netcode pattern.
 
-:lock_with_ink_pen: &nbsp; Designed to be provable, each input is cryptographically signed. Game sessions can be verified and results attributed to the players.
+:lock_with_ink_pen: &nbsp; Each input is cryptographically signed, meaning game sessions and results are provable and can be attributed to players.
 
-:chains: &nbsp; This allows for interop with independent blockchains, leaderboard servers, community tools, or other Playerchain games.
+:chains: &nbsp; This unlocks interop with blockchains, leaderboard servers, community tools, or other Playerchain games.
 
 :crown: &nbsp; Each player maintains their own sovereign blockchain with an immutable history of their actions.
 
