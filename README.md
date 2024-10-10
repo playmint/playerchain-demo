@@ -9,7 +9,8 @@
 </p>
 
 ### Download and start a Playerchain with your friends
-[![Download button](https://custom-icon-badges.demolab.com/badge/Download-green.svg?logo=download&logoColor=fff)](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
+
+[![Download button](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download zip")](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
 
 [_Latest experimental_](https://github.com/playmint/playerchain-demo/releases/latest)
 
