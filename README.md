@@ -38,9 +38,9 @@
 
 :handshake: &nbsp; Games built on Playerchain netcode allow the player's machines to connect and share inputs with each other in realtime.
 
-:stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on these inputs with fast finality.
-
 :ledger: &nbsp; Each player maintains their own history of actions and connected players combine this into a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
+
+:stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on these inputs with fast finality.
 
 :crystal_ball: &nbsp; Deterministic game logic runs in lockstep with prediction and rollback; an established pattern for multiplayer game netcode.
 
@@ -61,3 +61,11 @@
 ## Contribute
 
 [Check out our contributors page](CONTRIBUTE.md)
+
+<br />
+
+# References & Inspiration
+
+- :memo: &nbsp; [Blocklace paper](https://arxiv.org/abs/2402.08068)
+- :memo: &nbsp; [Cordial Miners paper](https://arxiv.org/abs/2205.09174)
+- :memo: &nbsp; [Latica p2p protocol](https://socketsupply.qa/guides#Network%20Protocol)
