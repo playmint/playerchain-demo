@@ -9,7 +9,7 @@
 </p>
 
 ### Download and start a Playerchain with your friends
-- #### [Latest stable release](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
+- [Latest stable release](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
 - [_Latest experimental_](https://github.com/playmint/playerchain-demo/releases/latest)
 
 <br />
@@ -59,7 +59,7 @@ _Playerchains are a way for players to have full control of their own responsive
 
 ## Contributors
 
-### Todo:
+### Todo
 - [x] Instructions to build and run from source
 - [ ] Licensing info
 - [ ] Guidance for contributors
