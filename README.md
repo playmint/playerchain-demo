@@ -43,7 +43,7 @@
 
 :crystal_ball: &nbsp; Game logic runs in deterministic lockstep with prediction and rollback; an established netcode pattern.
 
-:lock_with_ink_pen: &nbsp; Each input is cryptographically signed, meaning game sessions and results are provable and can be attributed to players.
+:lock_with_ink_pen: &nbsp; Inputs are cryptographically signed, so gameplay and results are provable and allow player attestations.
 
 :chains: &nbsp; This unlocks interop with blockchains, leaderboard servers, community tools, or other Playerchain games.
 
