@@ -69,6 +69,8 @@ export default system<ShooterSchema>(
                         }
 
                         // handle ship kill
+                        shooter.kills++;
+                        player.deaths++;
                         // start the death timer
                         stats.deathTimer[target] = 50;
                         // mark as exploded and stop
