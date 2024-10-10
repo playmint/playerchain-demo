@@ -9,7 +9,7 @@
 </p>
 
 ### Download and start a Playerchain with your friends
-- [**Latest stable release**](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
+- ### [Latest stable release](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
 - [_Latest experimental_](https://github.com/playmint/playerchain-demo/releases/latest)
 
 <br />
