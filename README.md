@@ -3,6 +3,8 @@
 > [!NOTE]  
 > _Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**._
 
+<br />
+
 ### We’ve built a Playerchain demo game for you to play!
 
 <p align="left">
@@ -19,7 +21,6 @@
 > _By playing our Space Shooter game, you become a node on your own Playerchain along with the other players in the session._
 
 <br />
-<br />
 
 ## Why Playerchains?
 
@@ -33,7 +34,6 @@
 
 :white_check_mark: Playerchains remove any reliance on anyone outside your game’s group.
 
-<br />
 <br />
 
 ## How do Playerchains work?
@@ -50,10 +50,9 @@ Under the hood, each player maintains their own sovereign blockchain with an imm
 
 The nature of a global lace with different partial views opens up possibilities for new ways to persist and connect worlds that we are still exploring.
 
-If you have any comments or feedback, we'd love to hear from you!
+If you have any comments or feedback, we'd love to hear from you! Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
 
-Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
-
+<br />
 
 ## Contribute
 
