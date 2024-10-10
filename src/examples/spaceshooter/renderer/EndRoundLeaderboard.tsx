@@ -66,13 +66,62 @@ function PlayerRow({ userScore, rank }: { userScore: Stat; rank: number }) {
                 {userScore.score.toLocaleString()}
             </span>
             <span className={styles.rankCircleWrapper}>
-                <span
-                    className={styles.rankCircle}
-                    style={{ backgroundColor: userScore.color }}
-                >
-                    {rank}
-                </span>
+                <RankCircle rank={rank} color={userScore.color} />
             </span>
         </div>
     );
+}
+
+function RankCircle({ rank, color }: { rank: number; color: string }) {
+    const shadowColor = darkenColor(color, 0.6);
+    return (
+        <svg
+            width="30"
+            height="30"
+            viewBox="0 0 60 60"
+            style={{ position: 'relative' }}
+        >
+            <circle
+                cx="30"
+                cy="30"
+                r="25"
+                fill={shadowColor}
+                style={{ transform: 'translate(0px, 3px)' }}
+            />
+            <circle
+                cx="30"
+                cy="30"
+                r="25"
+                fill={color}
+                style={{ transform: 'translate(0px, -3px)' }}
+            />
+            <text
+                x="50%"
+                y="50%"
+                dominantBaseline="middle"
+                textAnchor="middle"
+                fontSize="32px"
+                fill="#1d1d1d"
+                fontWeight="900"
+            >
+                {rank}
+            </text>
+        </svg>
+    );
+}
+
+function darkenColor(color: string, percent: number): string {
+    let R = parseInt(color.substring(1, 3), 16);
+    let G = parseInt(color.substring(3, 5), 16);
+    let B = parseInt(color.substring(5, 7), 16);
+
+    R = Math.floor(R * (1 - percent));
+    G = Math.floor(G * (1 - percent));
+    B = Math.floor(B * (1 - percent));
+
+    const RR = R.toString(16).padStart(2, '0');
+    const GG = G.toString(16).padStart(2, '0');
+    const BB = B.toString(16).padStart(2, '0');
+
+    return '#' + RR + GG + BB;
 }
