@@ -127,6 +127,8 @@
     left: 50%;
     transform: translateX(-50%);
     top: -80px;
+    width: 100%;
+    text-align: center;
 }
 
 .vector {
@@ -152,11 +154,6 @@
     font-style: normal;
     font-weight: 900;
     font-size: 80.6445px;
-    font-variation-settings:
-        'slnt' 0,
-        'CASL' 1,
-        'CRSV' 0.5,
-        'MONO' 0;
     line-height: 97px;
     /* identical to box height */
     text-align: center;
@@ -175,11 +172,6 @@
     font-style: normal;
     font-weight: 900;
     font-size: 80.6445px;
-    font-variation-settings:
-        'slnt' 0,
-        'CASL' 1,
-        'CRSV' 0.5,
-        'MONO' 0;
     line-height: 97px;
     /* identical to box height */
     text-align: center;
@@ -200,11 +192,6 @@
     font-style: normal;
     font-weight: 900;
     font-size: 200px;
-    font-variation-settings:
-        'slnt' 0,
-        'CASL' 1,
-        'CRSV' 0.5,
-        'MONO' 0;
     line-height: 97px;
     /* identical to box height */
     text-align: center;
@@ -222,11 +209,6 @@
     font-style: normal;
     font-weight: 900;
     font-size: 200px;
-    font-variation-settings:
-        'slnt' 0,
-        'CASL' 1,
-        'CRSV' 0.5,
-        'MONO' 0;
     line-height: 97px;
     /* identical to box height */
     text-align: center;
