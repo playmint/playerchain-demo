@@ -5,6 +5,10 @@
 
 :video_game: We’ve built a Playerchain demo game for you to play!
 
+<p align="center">
+<img src="./readmeImages/spaceshooterpreview.gif" />
+</p>
+
 :chains: Start a Playerchain with your friends. :chains:
 
 **Download the Demo** <br>
