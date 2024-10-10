@@ -24,13 +24,13 @@
 
 ***Playerchains are a way for players to have full control of their own responsive, multiplayer games without relying on anyone or anything beyond their own gaming machine.***
 
-:balance_scale: &nbsp We’re interested in moving control of your games away from corporations back to you.
+:balance_scale: &nbsp; We’re interested in moving control of your games away from corporations back to you.
 
-:desktop_computer: &nbsp For multiplayer games, that means removing the reliance on servers.
+:desktop_computer: &nbsp; For multiplayer games, that means removing the reliance on servers.
 
-:atom_symbol: &nbsp Public decentralised blockchains are a step in the right direction, but you still rely on the blockchain nodes, and they're not capable of running responsive games.
+:atom_symbol: &nbsp; Public decentralised blockchains are a step in the right direction, but you still rely on the blockchain nodes, and they're not capable of running responsive games.
 
-:white_check_mark: &nbsp Playerchains remove any reliance on anyone outside your game’s group.
+:white_check_mark: &nbsp; Playerchains remove any reliance on anyone outside your game’s group.
 
 <br />
 
