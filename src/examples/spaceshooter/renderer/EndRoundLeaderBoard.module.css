@@ -144,44 +144,31 @@
         0px 0px 80.3072px #060b22;
 }
 
-.titleText {
+.titleText, .titleText2 {
     position: absolute;
-    left: calc(50% - 455px / 2 - 0.5px);
-    top: -45.98px;
-    width: -webkit-max-content;
-
+    left: 50%;
+    transform: translateX(-50%);
     font-family: 'Recursive Variable', sans-serif;
     font-style: normal;
     font-weight: 900;
-    font-size: 80.6445px;
+    font-size: 80px;
     line-height: 97px;
-    /* identical to box height */
     text-align: center;
     letter-spacing: 0.03em;
+}
+
+.titleText {
+    top: -46px;
     color: #7c8ecd;
     text-shadow: #1b8dff 0px 0px 30px;
 }
 
 .titleText2 {
-    position: absolute;
-    width: -webkit-max-content;
-    left: calc(50% - 455px / 2 - 0.5px);
     top: -51px;
-
-    font-family: 'Recursive Variable', sans-serif;
-    font-style: normal;
-    font-weight: 900;
-    font-size: 80.6445px;
-    line-height: 97px;
-    /* identical to box height */
-    text-align: center;
-    letter-spacing: 0.03em;
-
     background: linear-gradient(180deg, #f2f1ff 31.32%, #caccef 80.7%), #ffffff;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    /* text-fill-color: transparent; */
 }
 
 .countdownText {
