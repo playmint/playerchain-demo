@@ -24,13 +24,13 @@
 
 ***Playerchains are a way for players to have full control of their own responsive, multiplayer games without relying on anyone or anything beyond their own gaming machine.***
 
-:balance_scale:  We’re interested in moving control of your games away from corporations back to you.
+:balance_scale: &nbsp We’re interested in moving control of your games away from corporations back to you.
 
-:desktop_computer:  For multiplayer games, that means removing the reliance on servers.
+:desktop_computer: &nbsp For multiplayer games, that means removing the reliance on servers.
 
-:atom_symbol:  Public decentralised blockchains are a step in the right direction, but you still rely on the blockchain nodes, and they're not capable of running responsive games.
+:atom_symbol: &nbsp Public decentralised blockchains are a step in the right direction, but you still rely on the blockchain nodes, and they're not capable of running responsive games.
 
-:white_check_mark:  Playerchains remove any reliance on anyone outside your game’s group.
+:white_check_mark: &nbsp Playerchains remove any reliance on anyone outside your game’s group.
 
 <br />
 
@@ -40,7 +40,7 @@ Game code built on Playerchain netcode allows each player’s machine to connect
 
 Cutting edge distributed systems protocols ensure everyone agrees on everyone else’s inputs with fast finality. Each player maintains their own history of actions and connected players combine this into a DAG structure.
 
-Deterministic game logic runs in lockstep with prediction and rollback; an established patter for multiplayer game netcode.
+Deterministic game logic runs in lockstep with prediction and rollback; an established pattern for multiplayer game netcode.
 
 Each input is cryptographically signed so whole game sessions can be verified and results attributed to the players. This could be on a blockchain, a leaderboard server, or even someone else’s Playerchain game.
 
