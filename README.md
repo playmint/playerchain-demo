@@ -41,7 +41,7 @@
 
 :stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on these inputs with fast finality.
 
-:crystal_ball: &nbsp; Deterministic game logic runs in lockstep with prediction and rollback; an established pattern for multiplayer game netcode.
+:crystal_ball: &nbsp; Game logic runs in deterministic lockstep with prediction and rollback; an established netcode pattern.
 
 :lock_with_ink_pen: &nbsp; Designed to be provable, each input is cryptographically signed. Game sessions can be verified and results attributed to the players.
 
