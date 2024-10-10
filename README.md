@@ -1,3 +1,5 @@
+![playerchainBanner_950x250](https://github.com/user-attachments/assets/85ea6921-689e-4093-b0aa-f876afef6df6)
+
 # Playerchains
 
 > [!NOTE]  
