@@ -65,8 +65,10 @@ function PlayerRow({ userScore, rank }: { userScore: Stat; rank: number }) {
             <span className={styles.leaderboardStat}>
                 {userScore.score.toLocaleString()}
             </span>
-            <span className={styles.rankCircleWrapper}>
-                <RankCircle rank={rank} color={userScore.color} />
+            <span className={styles.leaderboardStat}>
+                <span className={styles.rankCircleWrapper}>
+                    <RankCircle rank={rank} color={userScore.color} />
+                </span>
             </span>
         </div>
     );
