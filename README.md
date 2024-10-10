@@ -6,7 +6,7 @@
 We’ve built a Playerchain demo game for you to play! :video_game:
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/2ba2e026-c9ec-47b9-ade4-84f8aca77d40" width="200" />
+<img src="https://github.com/user-attachments/assets/2ba2e026-c9ec-47b9-ade4-84f8aca77d40" width="400" />
 </p>
 
 **Download the Demo and start a Playerchain with your friends** <br>
