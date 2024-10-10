@@ -193,11 +193,9 @@ export class Client {
             ttl: 1000,
         });
         this.parent = id;
-        // setTimeout(() => {
-        //     this.send(signed, {
-        //         ttl: 1000,
-        //     });
-        // }, 15);
+        this.send(signed, {
+            ttl: 1000,
+        });
         return signed;
     }
 
@@ -381,7 +379,23 @@ export class Client {
                     const parentId = Buffer.from(msg.parent).toString('base64');
                     const parent = await this.db.messages.get(parentId);
                     if (!parent) {
-                        this.requestMissingParent(parentId).catch((err) =>
+                        let gap = 0;
+                        if (typeof msg.height === 'number') {
+                            const peerId = Buffer.from(msg.peer).toString(
+                                'hex',
+                            );
+                            const messageAfterGap = await this.db.messages
+                                .where(['peer', 'height'])
+                                .between(
+                                    [peerId, Dexie.minKey],
+                                    [peerId, msg.height],
+                                )
+                                .last();
+                            gap = messageAfterGap
+                                ? msg.height - 2 - messageAfterGap.height
+                                : 0;
+                        }
+                        this.requestMissingParent(parentId, gap).catch((err) =>
                             console.error(
                                 'quick-req-missing-parent-error',
                                 err,
@@ -518,7 +532,7 @@ export class Client {
         }
     }
 
-    async requestMissingParent(parentId: string) {
+    async requestMissingParent(parentId: string, gap?: number) {
         if (!parentId) {
             return;
         }
@@ -533,13 +547,14 @@ export class Client {
             return;
         }
         this.debug(
-            `req-missing asking=everyone missing=${parentId.slice(0, 8)}`,
+            `req-missing asking=everyone missing=${parentId.slice(0, 8)} gap=${gap}`,
         );
         await this.rpc({
             name: 'requestMessagesById',
             timestamp: Date.now(),
             args: {
                 id: parentId,
+                gap: gap || 0,
             },
         });
     }
@@ -640,10 +655,17 @@ export class Client {
             }
             const parent = await this.db.messages.get(child.parent);
             if (!parent) {
+                const messageAfterGap = await this.db.messages
+                    .where(['peer', 'height'])
+                    .between([peerId, Dexie.minKey], [peerId, child.height])
+                    .last();
+                const gap = messageAfterGap
+                    ? child.height - 2 - messageAfterGap.height
+                    : 0;
                 this.debug(
-                    `chain-broken at=${child.height - 1} peer=${peerId.slice(0, 8)}`,
+                    `chain-broken at=${child.height - 1} gap=${gap} peer=${peerId.slice(0, 8)}`,
                 );
-                await this.requestMissingParent(child.parent);
+                await this.requestMissingParent(child.parent, gap);
                 return;
             }
             child = parent;
@@ -942,12 +964,24 @@ export class Client {
 
     private requestMessagesById = async ({
         id,
+        gap,
     }: {
         id: string;
+        gap: number;
     }): Promise<number> => {
         const msg = await this.db.messages.get(id);
         if (!msg) {
             return 0;
+        }
+        if (gap) {
+            const gapMessages = await this.db.messages
+                .where(['peer', 'height'])
+                .between([msg.peer, msg.height - gap], [msg.peer, msg.height])
+                .limit(50)
+                .toArray();
+            for (const gapMsg of gapMessages) {
+                this.send(fromStoredChainMessage(gapMsg), { ttl: 1000 });
+            }
         }
         this.send(fromStoredChainMessage(msg), { ttl: 1000 });
         return 1;
