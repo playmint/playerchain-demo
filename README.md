@@ -21,7 +21,7 @@
 
 ## Why Playerchains?
 
-***Playerchains are a way for players to have full control of their own responsive, multiplayer games without relying on anyone or anything beyond their own gaming machine.***
+_Playerchains are a way for players to have full control of their own responsive, multiplayer games without relying on anyone or anything beyond their own gaming machine._
 
 :balance_scale: &nbsp; We’re interested in moving control of your games away from corporations back to you!
 
@@ -59,12 +59,12 @@
 
 ## Contributors
 
-Todo:
+### Todo:
 - [x] Instructions to build and run from source
 - [ ] Licensing info
 - [ ] Guidance for contributors
 
-If you'd like to build and run from source
+### To build and run from source
 
 build `ssc` from the `playmint-next` branch of playmint/socket
 
