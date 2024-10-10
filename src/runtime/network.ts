@@ -216,6 +216,7 @@ export type SocketRPCGetMessagesByHeight = {
     sender: string;
     args: {
         id: string;
+        gap: number;
     };
 };
 
