@@ -1,7 +1,6 @@
 import '@fontsource-variable/recursive/full.css';
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 import styles from './EndRoundLeaderBoard.module.css';
-// import { Score } from './LeaderBoard';
 import { PlayerInfo } from './PlayerHUD';
 
 interface Stat {
@@ -13,13 +12,9 @@ interface Stat {
 }
 
 export default function EndRoundLeaderBoard({
-    peerId,
     players,
-    player,
 }: {
-    peerId: string;
     players: PlayerInfo[];
-    player: PlayerInfo;
 }) {
     const scores = players
         .map((p) => ({
@@ -28,12 +23,15 @@ export default function EndRoundLeaderBoard({
             kills: p.kills,
             deaths: p.deaths,
             color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)),
-            isMe: peerId === p.id,
         }))
         .sort((a, b) => b.score - a.score);
 
     return (
         <div className={styles.leaderboard}>
+            <div className={styles.titleGroup}>
+                <div className={styles.titleText}>RESULTS</div>
+                <div className={styles.titleText2}>RESULTS</div>
+            </div>
             <div className={styles.leaderboardHeader}>
                 <span className={styles.leaderboardCategory}>NAME</span>
                 <span className={styles.leaderboardCategory}>KILLS</span>
@@ -46,22 +44,13 @@ export default function EndRoundLeaderBoard({
                     key={index + '-' + player.name}
                     userScore={player}
                     rank={index + 1}
-                    isMe={player.isMe}
                 />
             ))}
         </div>
     );
 }
 
-function PlayerRow({
-    userScore,
-    rank,
-    isMe,
-}: {
-    userScore: Stat;
-    rank: number;
-    isMe: boolean;
-}) {
+function PlayerRow({ userScore, rank }: { userScore: Stat; rank: number }) {
     const playerName = rank === 1 ? '👑 ' + userScore.name : userScore.name;
     return (
         <div className={`${styles.leaderboardRow}`}>

@@ -50,10 +50,6 @@
     margin-bottom: 8px;
 }
 
-.leaderboardRow:last-child {
-    margin-bottom: 0px;
-}
-
 .leaderboardUser {
     flex: 2;
     display: flex;
@@ -128,10 +124,9 @@
 
 .titleGroup {
     position: relative;
-    width: 455px;
-    height: 102.02px;
-    left: calc(50% - 455px / 2 - 0.5px);
-    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -80px;
 }
 
 .vector {
