@@ -24,37 +24,37 @@
 
 ***Playerchains are a way for players to have full control of their own responsive, multiplayer games without relying on anyone or anything beyond their own gaming machine.***
 
-:balance_scale: &nbsp; We’re interested in moving control of your games away from corporations back to you.
+:balance_scale: &nbsp; We’re interested in moving control of your games away from corporations back to you!
 
 :desktop_computer: &nbsp; For multiplayer games, that means removing the reliance on central servers.
 
-:atom_symbol: &nbsp; Public blockchains are decentralised, but you still rely on external compute, which is expensive and constrains performance.
+:atom_symbol: &nbsp; Public blockchains are decentralised, but you still rely on external compute. This is expensive and constrains performance.
 
-:white_check_mark: &nbsp; Playerchains remove any reliance on anyone outside your game’s group.
+:white_check_mark: &nbsp; Playerchains remove reliance on anyone outside your game’s group.
 
 <br />
 
 ## How do Playerchains work?
 
-:handshake: &nbsp; Games built on Playerchain netcode allow player’s machines to connect and share their inputs with each other in realtime.
+:handshake: &nbsp; Games built on Playerchain netcode allow the player's machines to connect and share inputs with each other in realtime.
 
-:stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on everyone else’s inputs with fast finality.
+:stopwatch: &nbsp; Cutting edge distributed systems protocols ensure everyone agrees on these inputs with fast finality.
 
-:ledger: &nbsp; Each player maintains their own history of actions and connected players combine this into a DAG structure.
+:ledger: &nbsp; Each player maintains their own history of actions and connected players combine this into a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 
 :crystal_ball: &nbsp; Deterministic game logic runs in lockstep with prediction and rollback; an established pattern for multiplayer game netcode.
 
-✍:lock_with_ink_pen: &nbsp; Designed to be provable, each input is cryptographically signed. Whole game sessions can be verified and results attributed to the players.
+:lock_with_ink_pen: &nbsp; Designed to be provable, each input is cryptographically signed. Game sessions can be verified and results attributed to the players.
 
-:chains: &nbsp; This allows for interop with blockchains, leaderboard servers, or even someone else’s Playerchain game.
+:chains: &nbsp; This allows for interop with independent blockchains, leaderboard servers, community tools, or other Playerchain games.
 
-:crown: &nbsp; Under the hood, each player maintains their own sovereign blockchain with an immutable history of their actions.
+:crown: &nbsp; Each player maintains their own sovereign blockchain with an immutable history of their actions.
 
-:atom_symbol: &nbsp; The individual chains combine to form a blocklace.
+:atom_symbol: &nbsp; The individual chains combine to form an emergent blocklace.
 
-:earth_africa: &nbsp; The nature of a global lace with different partial views opens up possibilities for new ways to persist and connect worlds that we are still exploring.
+:earth_africa: &nbsp; This global lace with a plurality of partial views opens up new possibilities for connecting worlds.
 
-:speech_balloon: &nbsp; If you have any comments or feedback, we'd love to hear from you! Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
+:speech_balloon: &nbsp; If you have comments or feedback, we'd love to hear from you! Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
 
 <br />
 
