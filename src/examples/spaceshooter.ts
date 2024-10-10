@@ -67,7 +67,7 @@ export const schema = {
         input: Type.u32,
         ship: Type.eid,
         score: Type.u32,
-        scoreMul: Type.u8,
+        scoreMul: Type.u32,
     },
     components: {
         entity: {
