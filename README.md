@@ -3,20 +3,23 @@
 > [!NOTE]  
 > Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**.
 
-We’ve built a Playerchain demo game for you to play! :video_game:
+### We’ve built a Playerchain demo game for you to play! :video_game:
 
-<p align="center">
+<p align="left">
 <img src="https://github.com/user-attachments/assets/2ba2e026-c9ec-47b9-ade4-84f8aca77d40" width="400" />
 </p>
 
 **Download the Demo and start a Playerchain with your friends** <br>
-- [Latest stable release](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33) </p>
-- [Latest experimental](https://github.com/playmint/playerchain-demo/releases/latest) </p>
+- [Latest stable release](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
+- [Latest experimental](https://github.com/playmint/playerchain-demo/releases/latest)
+
+<br />
 
 > [!TIP]  
 > By playing our Space Shooter game, you become a node on your own Playerchain along with the other players in the session.
 
-</p>
+<br />
+<br />
 
 ## Why Playerchains?
 
@@ -30,7 +33,8 @@ We’ve built a Playerchain demo game for you to play! :video_game:
 
 :white_check_mark: Playerchains remove any reliance on anyone outside your game’s group.
 
-</p>
+<br />
+<br />
 
 ## How do Playerchains work?
 
