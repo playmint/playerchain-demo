@@ -185,7 +185,7 @@ export class Simulation {
                 }
             });
         // always fetch enough to recalculate the wave
-        startFromRound = Math.max(startFromRound - this.interlace * 4, 1); // THINK: can we reduce num of fetched wave msgs
+        startFromRound = Math.max(startFromRound - this.interlace * 2, 1); // THINK: can we reduce num of fetched wave msgs
         // find the closest state to satisfy startFromRound
         // if we're already at the round we need, return it
         if (latestState.round === startFromRound) {
@@ -335,12 +335,12 @@ export class Simulation {
             // we need to check if the message is accepted or rejected
             const offsetFromFinalization = latestRound - m.round;
             const needsFinalization =
-                offsetFromFinalization > this.interlace * 3;
+                offsetFromFinalization > this.interlace * 2;
             let accepted = true;
             // is well acked?
             // TODO: reduce this number to supermajority
             const requiredConfirmations =
-                requiredConfirmationsFor(this.channelPeerIds.length) - 1;
+                requiredConfirmationsFor(this.channelPeerIds.length) - 2;
             if (
                 needsFinalization &&
                 m.confirmations[requiredConfirmations] < requiredConfirmations
@@ -363,7 +363,7 @@ export class Simulation {
             // we should not attempt to fill the gap and should abort
             if (round.round > 1 && round.delta > 0) {
                 console.log(
-                    `ARGG GAP! THIS IS UNEXPECTED AND LIKELY A BUG!
+                    `[sim/${this.peerId.slice(0, 8)}] ARGG GAP! THIS IS UNEXPECTED AND LIKELY A BUG!
                         delta=${round.delta}
                         round=${round.round}
                     `,
