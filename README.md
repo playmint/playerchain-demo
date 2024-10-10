@@ -1,7 +1,5 @@
 ![playerchainBanner_950x250](https://github.com/user-attachments/assets/28adfeab-2346-4cf0-9188-49192cd5a3d2)
 
-# Playerchains
-
 > [!NOTE]  
 > _Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**._
 
