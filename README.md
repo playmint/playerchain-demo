@@ -8,14 +8,14 @@
 <img src="https://github.com/user-attachments/assets/2ba2e026-c9ec-47b9-ade4-84f8aca77d40" width="400" />
 </p>
 
-### Download and start a Playerchain with your friends
+### Download and start a playerchain with your friends
 
 [![Download button](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download zip")](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
 
 <br />
 
 > [!TIP]  
-> _By playing the game together, you and your friends become nodes on your own Playerchain._
+> _By playing the game together, you and your friends become nodes on your own playerchain._
 
 <br />
 
@@ -35,7 +35,7 @@ _Playerchains are a way for players to have full control of their own responsive
 
 ## How do Playerchains work?
 
-:handshake: &nbsp; Games built on Playerchain netcode allow the player's machines to connect and share inputs in realtime.
+:handshake: &nbsp; Games built on playerchain netcode allow the player's machines to connect and share inputs in realtime.
 
 :ledger: &nbsp; Each player maintains their own history of actions and connected players combine this into a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 
@@ -45,7 +45,7 @@ _Playerchains are a way for players to have full control of their own responsive
 
 :lock_with_ink_pen: &nbsp; Inputs are cryptographically signed, so gameplay and results are provable and allow for player attestations.
 
-:chains: &nbsp; This unlocks interop with blockchains, leaderboard servers, community tools, or other Playerchain games.
+:chains: &nbsp; This unlocks interop with blockchains, leaderboard servers, community tools, or other playerchain games.
 
 :crown: &nbsp; Each player maintains their own sovereign blockchain with an immutable history of their actions.
 
