@@ -47,6 +47,7 @@ import {
     addShake,
     getShakeOffset,
 } from './examples/spaceshooter/renderer/ShakeManager';
+import WallModels from './examples/spaceshooter/renderer/WallModels';
 import { SHIP_MAX_VELOCITY } from './examples/spaceshooter/systems/shipSystem';
 import {
     EntityObject3D,
@@ -71,26 +72,28 @@ function Ship() {
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
 
-    document.addEventListener('keyup', onDocumentKeyUp, false);
-    function onDocumentKeyUp(event) {
-        const keyCode = event.which;
-        if (keyCode == 38) {
-            setShipColor((shipColor + 1) % 5);
+    useEffect(() => {
+        document.addEventListener('keyup', onDocumentKeyUp, false);
+        function onDocumentKeyUp(event) {
+            const keyCode = event.which;
+            if (keyCode == 67) {
+                setShipColor((shipColor + 1) % 5);
+            }
+            if (keyCode == 86) {
+                setShipColor((shipColor + 4) % 5);
+            }
+            if (keyCode == 49) {
+                shipRef.current.visible = false;
+                setThrusting(false);
+            }
+            if (keyCode == 50) {
+                setRespawnTimer(0);
+            }
+            if (keyCode == 87) {
+                setThrusting(!thrusting);
+            }
         }
-        if (keyCode == 40) {
-            setShipColor((shipColor + 4) % 5);
-        }
-        if (keyCode == 49) {
-            shipRef.current.visible = false;
-            setThrusting(false);
-        }
-        if (keyCode == 50) {
-            setRespawnTimer(0);
-        }
-        if (keyCode == 87) {
-            setThrusting(!thrusting);
-        }
-    }
+    }, [shipColor, thrusting]);
 
     const gltf = useGLTF(assetPath(shipGLTF));
     useEffect(() => {
@@ -121,7 +124,7 @@ function Ship() {
 
         // update thruster effect
         if (thrustRef.current) {
-            const pos = new Vector3(-3.5, 0, 0);
+            const pos = new Vector3(40 - 3.5, 0, 0);
             thrustRef.current.particleSystems.forEach((particleObj) => {
                 if (thrusting) {
                     particleObj.start();
@@ -144,7 +147,13 @@ function Ship() {
 
     return (
         <group ref={groupRef}>
-            <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
+            <Clone
+                ref={shipRef}
+                object={gltf.scene}
+                position={[40, 0, 0]}
+                scale={1}
+                deep={true}
+            />
         </group>
     );
 }
@@ -157,30 +166,45 @@ function Particles(props: { bufferScene: Scene }) {
     const sparksRef = useRef<SparksFXHandle>(null!);
     const shipImpactRef = useRef<ShipImpactFXHandle>(null!);
 
-    document.addEventListener('keyup', onDocumentKeyUp, false);
-    function onDocumentKeyUp(event) {
-        const keyCode = event.which;
-        if (keyCode == 49) {
-            explosionRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
-            // shockwaveRef.current.triggerExplosion(new Vector3(0, 0, 0), scene);
-            addShake({
-                intensity: 100, // Adjust as needed
-                frequency: 40,
-                position: new Vector3(0, 0, 0),
-                decay: 200, // Rate at which the shake reduces
-                duration: 1, // How long the shake lasts
-            });
+    useEffect(() => {
+        function onDocumentKeyUp(event: KeyboardEvent) {
+            const keyCode = event.which;
+            if (keyCode === 49) {
+                explosionRef.current.triggerExplosion(
+                    new Vector3(40, 0, 0),
+                    scene,
+                );
+                addShake({
+                    intensity: 100, // Adjust as needed
+                    frequency: 40,
+                    position: new Vector3(40, 0, 0),
+                    decay: 200, // Rate at which the shake reduces
+                    duration: 1, // How long the shake lasts
+                });
+            }
+            if (keyCode === 50) {
+                respawnRef.current.triggerSpawn(new Vector3(40, 0, 0), scene);
+            }
+            if (keyCode === 51) {
+                sparksRef.current.triggerSparks(
+                    randomInRadius(4).add(new Vector3(40, 0, 0)),
+                );
+            }
+            if (keyCode === 52) {
+                shipImpactRef.current.triggerShipImpact(
+                    randomInRadius(4).add(new Vector3(40, 0, 0)),
+                );
+            }
         }
-        if (keyCode == 50) {
-            respawnRef.current.triggerSpawn(new Vector3(0, 0, 0), scene);
-        }
-        if (keyCode == 51) {
-            sparksRef.current.triggerSparks(randomInRadius(4));
-        }
-        if (keyCode == 52) {
-            shipImpactRef.current.triggerShipImpact(randomInRadius(4));
-        }
-    }
+
+        // Add the event listener
+        document.addEventListener('keyup', onDocumentKeyUp);
+
+        // Cleanup function to remove the event listener when the component unmounts
+        return () => {
+            document.removeEventListener('keyup', onDocumentKeyUp);
+        };
+    }, [scene]);
 
     function randomInRadius(radius: number) {
         const rand = Math.random();
@@ -204,6 +228,8 @@ function Particles(props: { bufferScene: Scene }) {
 
 function Diorama() {
     const [velocity, setVelocity] = useState(0);
+    const [camPos, setCamPos] = useState(new Vector3(0, 0, CAM_INITIAL_ZOOM));
+    const [camVel, setCamVel] = useState(new Vector3(0, 0, 0));
     const { scene } = useThree();
     const bufferScene = useMemo(() => new Scene(), []);
     const bufferTarget = useMemo(() => {
@@ -219,17 +245,45 @@ function Diorama() {
         return target;
     }, []);
 
-    document.addEventListener('keyup', onDocumentKeyUp, false);
-    function onDocumentKeyUp(event) {
-        const keyCode = event.which;
-        if (keyCode == 90) {
-            setVelocity(velocity > 0 ? 0 : Math.sqrt(SHIP_MAX_VELOCITY * 10));
+    useEffect(() => {
+        document.addEventListener('keyup', onDocumentKeyUp, false);
+        document.addEventListener('keydown', onDocumentKeyDown, false);
+        function onDocumentKeyUp(event) {
+            const keyCode = event.which;
+            if (keyCode == 90) {
+                setVelocity(
+                    velocity > 0 ? 0 : Math.sqrt(SHIP_MAX_VELOCITY * 10),
+                );
+            }
+            if (keyCode == 37 || keyCode == 39) {
+                setCamVel(new Vector3(0, camVel.y, camVel.z));
+            }
+            if (keyCode == 40 || keyCode == 38) {
+                setCamVel(new Vector3(camVel.x, 0, camVel.z));
+            }
         }
-    }
+
+        function onDocumentKeyDown(event) {
+            const keyCode = event.which;
+            if (keyCode == 37) {
+                setCamVel(new Vector3(-100, camVel.y, camVel.z));
+            }
+            if (keyCode == 39) {
+                setCamVel(new Vector3(100, camVel.y, camVel.z));
+            }
+            if (keyCode == 38) {
+                setCamVel(new Vector3(camVel.x, 100, camVel.z));
+            }
+            if (keyCode == 40) {
+                setCamVel(new Vector3(camVel.x, -100, camVel.z));
+            }
+        }
+    }, [camVel, velocity]);
 
     useFrame(({ camera }, deltaTime) => {
-        const shakeOffset = getShakeOffset(camera.position, deltaTime);
-        camera.position.set(0, 0, CAM_INITIAL_ZOOM);
+        setCamPos(camPos.add(camVel.clone().multiplyScalar(deltaTime)));
+        camera.position.set(camPos.x, camPos.y, camPos.z);
+
         // zoom out based on velocity
         const vmag = velocity;
         const zoom = CAM_INITIAL_ZOOM + vmag * 2;
@@ -241,6 +295,7 @@ function Diorama() {
         );
 
         // Apply shake offset to the camera
+        const shakeOffset = getShakeOffset(camPos, deltaTime);
         camera.position.add(shakeOffset);
     });
 
@@ -254,7 +309,7 @@ function Diorama() {
                 position={[0, 0, CAM_INITIAL_ZOOM]}
                 fov={40}
                 near={1}
-                far={1000}
+                far={2000}
             />
             <color attach="background" args={[0x060d37]} />
             <ambientLight color={0x404040} />
@@ -270,7 +325,7 @@ function Diorama() {
             />
 
             <fog attach="fog" args={[0x444466, 100, 1]} />
-            <BackgroundGrid />
+            {/* <BackgroundGrid /> */}
             <Particles
                 bufferScene={RENDER_BUFFER_SCENE ? scene : bufferScene}
             />
@@ -279,6 +334,7 @@ function Diorama() {
                 bufferScene={bufferScene}
                 bufferTarget={bufferTarget}
             />
+            <WallModels />
         </>
     );
 }
