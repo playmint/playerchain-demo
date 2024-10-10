@@ -68,6 +68,8 @@ export const schema = {
         ship: Type.eid,
         score: Type.u32,
         scoreMul: Type.u32,
+        kills: Type.u32,
+        deaths: Type.u32,
     },
     components: {
         entity: {
@@ -252,6 +254,8 @@ export class SpaceShooter implements GameModule {
                     ship: 0,
                     score: 0,
                     scoreMul: 1,
+                    kills: 0,
+                    deaths: 0,
                 });
             }
             p.input = data.input;

@@ -1,64 +1,78 @@
 import '@fontsource-variable/recursive/full.css';
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 import styles from './EndRoundLeaderBoard.module.css';
-import { Score } from './LeaderBoard';
-import Modal from './Modal';
+// import { Score } from './LeaderBoard';
 import { PlayerInfo } from './PlayerHUD';
 
+interface Stat {
+    name: string;
+    kills: number;
+    deaths: number;
+    score: number;
+    color: string;
+}
+
 export default function EndRoundLeaderBoard({
-    players,
     peerId,
+    players,
+    player,
 }: {
-    players: PlayerInfo[];
     peerId: string;
+    players: PlayerInfo[];
+    player: PlayerInfo;
 }) {
     const scores = players
         .map((p) => ({
-            user: p.name,
+            name: p.name,
             score: p.score,
+            kills: p.kills,
+            deaths: p.deaths,
             color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)),
             isMe: peerId === p.id,
         }))
         .sort((a, b) => b.score - a.score);
 
     return (
-        <Modal
-            isOpen={true}
-            onClose={function (): void {
-                throw new Error('Function not implemented.');
-            }}
-        >
-            <div className={styles.leaderboard}>
-                <div className={styles.leaderboardHeader}>
-                    <span className={styles.leaderboardCategory}>NAME</span>
-                    <span className={styles.leaderboardCategory}>KILLS</span>
-                    <span className={styles.leaderboardCategory}>DEATHS</span>
-                    <span className={styles.leaderboardCategory}>SCORE</span>
-                    <span className={styles.leaderboardCategory}>RANK</span>
-                </div>
-                {scores.map((leader, index) => (
-                    <LdrEntry
-                        key={index + '-' + leader.user}
-                        userScore={leader}
-                        rank={index + 1}
-                    />
-                ))}
+        <div className={styles.leaderboard}>
+            <div className={styles.leaderboardHeader}>
+                <span className={styles.leaderboardCategory}>NAME</span>
+                <span className={styles.leaderboardCategory}>KILLS</span>
+                <span className={styles.leaderboardCategory}>DEATHS</span>
+                <span className={styles.leaderboardCategory}>SCORE</span>
+                <span className={styles.leaderboardCategory}>RANK</span>
             </div>
-        </Modal>
+            {scores.map((player, index) => (
+                <PlayerRow
+                    key={index + '-' + player.name}
+                    userScore={player}
+                    rank={index + 1}
+                    isMe={player.isMe}
+                />
+            ))}
+        </div>
     );
 }
 
-function LdrEntry({ userScore, rank }: { userScore: Score; rank: number }) {
+function PlayerRow({
+    userScore,
+    rank,
+    isMe,
+}: {
+    userScore: Stat;
+    rank: number;
+    isMe: boolean;
+}) {
+    const playerName = rank === 1 ? '👑 ' + userScore.name : userScore.name;
     return (
-        <div className={styles.leaderboardRow}>
+        <div className={`${styles.leaderboardRow}`}>
             <span
                 className={styles.leaderboardUser}
                 style={{ color: userScore.color }}
             >
-                {userScore.user}
+                {playerName}
             </span>
-            <span className={styles.leaderboardStat}>000</span>
-            <span className={styles.leaderboardStat}>000</span>
+            <span className={styles.leaderboardStat}>{userScore.kills}</span>
+            <span className={styles.leaderboardStat}>{userScore.deaths}</span>
             <span className={styles.leaderboardStat}>
                 {userScore.score.toLocaleString()}
             </span>
