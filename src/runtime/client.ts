@@ -974,10 +974,8 @@ export class Client {
         id: string;
         gap: number;
     }): Promise<number> => {
-        console.log('WANTS', id, gap);
         const msg = await this.db.messages.get(id);
         if (!msg) {
-            console.log('NOT GOT IT', id);
             return 0;
         }
         if (gap) {
