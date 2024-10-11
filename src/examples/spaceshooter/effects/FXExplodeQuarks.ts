@@ -3,6 +3,7 @@ import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { BatchedRenderer, QuarksLoader, QuarksUtil } from "three.quarks";
 import explodeJson from "./ExplosionEffect04.json";
 import { Object3D, Vector3 } from "three";
+import { addShake } from "../renderer/ShakeManager";
 
 // Define the type for the methods you will expose via ref
 export interface ExplodeFXHandle {
@@ -19,6 +20,13 @@ export interface ExplodeFXHandle {
             parent.add(effect);
             effect.position.copy(pos);
             QuarksUtil.restart(effect);
+            addShake({
+                intensity: 100, // Adjust as needed
+                frequency: 40,
+                position: new Vector3(40, 0, 0),
+                decay: 200, // Rate at which the shake reduces
+                duration: 1, // How long the shake lasts
+            });
       },
     }));
   
