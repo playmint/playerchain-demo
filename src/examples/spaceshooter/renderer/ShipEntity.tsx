@@ -211,9 +211,9 @@ export default memo(function ShipEntity({
         if (explosionRef.current) {
             const exploding = prevHealthRef.current > 0 && health <= 0;
             if (exploding) {
-                const pos = new Vector3(0, 0, 0);
+                const pos = groupRef.current.position.clone();
                 if (explosionRef.current) {
-                    explosionRef.current.triggerExplosion(pos, shipRef.current);
+                    explosionRef.current.triggerExplosion(pos);
                 }
                 // make noise too
                 if (!explosionSfxRef.current.isPlaying) {

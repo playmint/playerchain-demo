@@ -7,7 +7,7 @@ import { addShake } from "../renderer/ShakeManager";
 
 // Define the type for the methods you will expose via ref
 export interface ExplodeFXHandle {
-    triggerExplosion: (pos:Vector3, parent:Object3D) => void;
+    triggerExplosion: (pos:Vector3) => void;
   }
   
   export const ExplodeFX = forwardRef<ExplodeFXHandle>((props, ref) => {
@@ -16,8 +16,7 @@ export interface ExplodeFXHandle {
     const { scene } = useThree();
   
     useImperativeHandle(ref, () => ({
-      triggerExplosion(pos: Vector3, parent: Object3D) {
-            parent.add(effect);
+      triggerExplosion(pos: Vector3) {
             effect.position.copy(pos);
             QuarksUtil.restart(effect);
             addShake({
