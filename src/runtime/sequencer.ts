@@ -305,7 +305,7 @@ export class Sequencer {
             const timeSinceLastCommit = Date.now() - this.lastCommitted;
             if (timeSinceLastCommit < this.fixedUpdateRate) {
                 const wait = this.fixedUpdateRate - timeSinceLastCommit;
-                if (wait > MIN_SEQUENCE_RATE) {
+                if (wait > 15) {
                     // console.log(
                     //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound} wait=${this.fixedUpdateRate - timeSinceLastCommit}`,
                     // );

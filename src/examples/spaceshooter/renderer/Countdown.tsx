@@ -4,7 +4,21 @@ import EndRoundLeaderBoard from './EndRoundLeaderboard';
 import { PlayerInfo } from './PlayerHUD';
 import { WorldRef } from './ShooterRenderer';
 
-export default function Countdown(props: {
+export default function ReadySetGo({ n }: { n: number }) {
+    return (
+        <div
+            style={{
+                flexGrow: 1,
+                marginRight: '1rem',
+                marginLeft: '1rem',
+            }}
+        >
+            <span className={styles.countdownText}>{n}</span>
+            <span className={styles.countdownText2}>{n}</span>
+        </div>
+    );
+}
+function Countdown(props: {
     currentTick: number;
     player: PlayerInfo;
     worldRef: WorldRef;

@@ -1,5 +1,11 @@
 import { system } from '../../../runtime/ecs';
-import { Input, ShooterSchema, Tags, hasInput } from '../../spaceshooter';
+import {
+    Input,
+    SESSION_TIME_SECONDS,
+    ShooterSchema,
+    Tags,
+    hasInput,
+} from '../../spaceshooter';
 
 export const BULLET_SPEED = 80;
 export const BULLET_MAX_VELOCITY = 80;
@@ -20,8 +26,8 @@ export default system<ShooterSchema>(
         position,
         deltaTime,
         t,
-        timer,
     }) => {
+        const end = SESSION_TIME_SECONDS / deltaTime;
         const bullets = query(Tags.IsBullet);
 
         // check bullet collisions
@@ -65,7 +71,7 @@ export default system<ShooterSchema>(
             }
 
             // No shooting if either round hasn't started (round == 0) or round has ended (t > round)
-            if (timer.round[player.ship] <= t) {
+            if (t >= end) {
                 return;
             }
 
@@ -116,4 +122,3 @@ export default system<ShooterSchema>(
         }
     },
 );
-     
