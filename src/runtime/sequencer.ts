@@ -279,7 +279,7 @@ export class Sequencer {
                     if (!latest) {
                         return acc;
                     }
-                    if (latest.height - validHeight > this.interlace * 3) {
+                    if (latest.height - validHeight > this.interlace * 9) {
                         return acc;
                     }
                     return acc + 1;

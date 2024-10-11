@@ -8,10 +8,12 @@ export const ModelEntity = memo(function ModelEntity({
     worldRef,
     eid,
     playersRef,
+    peerId,
 }: {
     eid: number;
     worldRef: WorldRef;
     playersRef: PlayersRef;
+    peerId: string;
 }) {
     console.log('ModelEntity', eid);
     switch (worldRef.current.components.model.data.type[eid]) {
@@ -21,6 +23,7 @@ export const ModelEntity = memo(function ModelEntity({
                     worldRef={worldRef}
                     eid={eid}
                     playersRef={playersRef}
+                    peerId={peerId}
                 />
             );
         case ModelType.Bullet:
