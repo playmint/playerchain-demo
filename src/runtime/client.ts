@@ -541,7 +541,7 @@ export class Client {
         if (gate) {
             return;
         }
-        this.missingGate.set(parentId, 2);
+        // this.missingGate.set(parentId, 2);
         const exists = await this.db.messages.get(parentId);
         if (exists) {
             return;
