@@ -10,7 +10,6 @@ export default function BulletModel() {
         gltf.scene.scale.set(1.1, 1.1, 1.1);
         gltf.scene.traverse((child) => {
             if (child instanceof Mesh) {
-                // child.material.blending = AdditiveBlending;
                 const targetMaterial = new MeshBasicMaterial({
                     map: child.material.map,
                 });
