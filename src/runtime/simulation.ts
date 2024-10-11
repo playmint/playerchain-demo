@@ -102,17 +102,17 @@ export class Simulation {
     }
 
     private async getCurrentRoundLimitFromMessages(): Promise<number> {
-        const ourLatest = (await this.db.messages
-            .where(['channel', 'peer', 'round'])
+        const latest = (await this.db.messages
+            .where(['channel', 'round', 'peer'])
             .between(
-                [this.channelId, this.peerId, Dexie.minKey],
-                [this.channelId, this.peerId, Dexie.maxKey],
+                [this.channelId, Dexie.minKey, Dexie.minKey],
+                [this.channelId, Dexie.maxKey, Dexie.maxKey],
             )
             .last()) as InputMessage | undefined;
-        if (!ourLatest) {
+        if (!latest) {
             return 1;
         }
-        return ourLatest.round - this.inputDelay; // FIXME: how can we be smart about the offset
+        return latest.round - this.inputDelay; // FIXME: how can we be smart about the offset
     }
 
     private async getCurrentRoundLimitFromTime(): Promise<number> {
