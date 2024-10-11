@@ -3,7 +3,7 @@ import database, { DB, SerializedState, StateTag, StoredMessage } from './db';
 import { GameModule, PlayerData, load } from './game';
 import { IncrementalCache } from './lru';
 import { InputMessage, MessageType } from './messages';
-import { SequencerMode, requiredConfirmationsFor } from './sequencer';
+import { SequencerMode } from './sequencer';
 
 export type State = {
     t: number;
