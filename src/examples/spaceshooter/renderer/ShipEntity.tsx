@@ -125,7 +125,7 @@ export default memo(function ShipEntity({
 
         // show ship marker if this ship offscreen
         markerRef.current.visible = false;
-        if (!isPeerShip) {
+        if (!isPeerShip && ship.visible) {
             const cameraPos = new Vector3(
                 camera.position.x,
                 camera.position.y,
