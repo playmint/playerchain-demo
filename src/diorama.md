@@ -21,3 +21,8 @@ To adjust explosion screen shake:
  - position - Where the shake happens
  - decay - Rate at which the shake reduces
  - duration - How long the shake lasts
+
+ To adjust the scale of the bullet:
+ - Go to src->examples->spaceshooter->renderer->BulletModel.ts
+ - gltf.scene.scale.set(1.1, 1.1, 1.1);
+ - The physics radius for the bullet will need to be updated once the visual scale is finialised.
