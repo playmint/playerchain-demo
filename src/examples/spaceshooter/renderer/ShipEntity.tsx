@@ -15,6 +15,7 @@ import {
     Mesh,
     Object3DEventMap,
     PositionalAudio as PositionalAudioImpl,
+    Vector2,
     Vector3,
 } from 'three';
 import { getPlayerColor } from '../../../gui/fixtures/player-colors';
@@ -55,6 +56,7 @@ export default memo(function ShipEntity({
         Array.from(worldRef.current.players.entries()).find(
             ([_id, p]) => p.ship === eid,
         ) || [undefined, undefined];
+    const vmagPrev = useRef<number>(null!);
     const groupRef = useRef<Group>(null!);
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
@@ -115,6 +117,7 @@ export default memo(function ShipEntity({
             deltaTime,
             InterpolateSpeed.Quick * 2,
         );
+        const rotationBefore = ship.rotation.z;
         interpolateEntityRotation(
             ship,
             world,
@@ -122,6 +125,7 @@ export default memo(function ShipEntity({
             deltaTime,
             InterpolateSpeed.Quick,
         );
+        const rotationDiff = ship.rotation.z - rotationBefore;
 
         // show ship marker if this ship offscreen
         markerRef.current.visible = false;
@@ -168,16 +172,13 @@ export default memo(function ShipEntity({
 
         // apply ship roll if we are turning
         const shipInner = ship.children[0].children[0];
-        const roll = hasInput(player.input, Input.Left)
-            ? -0.4
-            : hasInput(player.input, Input.Right)
-              ? 0.4
-              : 0;
+        const roll =
+            rotationDiff > 0.02 ? -0.75 : rotationDiff < -0.02 ? 0.75 : 0;
         shipInner.rotation.x = interpolate(
             shipInner.rotation.x,
             roll,
             deltaTime,
-            InterpolateSpeed.Smooth,
+            InterpolateSpeed.Quick,
         );
         // flash ship if we lost health
         const health = world.components.stats.data.health[eid];
@@ -234,14 +235,25 @@ export default memo(function ShipEntity({
             }
         }
 
-        // update thruster effect
+        // update thruster effect (if accelerating)
         if (thrustRef.current) {
-            const thrusting =
+            const vmag = new Vector2(
+                world.components.velocity.data.x[eid],
+                world.components.velocity.data.y[eid],
+            ).length();
+            const accelerating =
                 world.components.entity.data.active[eid] &&
-                hasInput(player.input, Input.Forward);
+                vmagPrev.current !== null &&
+                vmag !== vmagPrev.current;
+            vmagPrev.current = vmag;
+            if (accelerating) {
+                thrustRef.current.n = 15;
+            } else if (thrustRef.current.n > 0) {
+                thrustRef.current.n -= 1;
+            }
             const pos = new Vector3(-3.5, 0, 0);
             thrustRef.current.particleSystems.forEach((particleObj) => {
-                if (thrusting) {
+                if (thrustRef.current!.n > 0) {
                     particleObj.start();
                     if (!thrustSfxRef.current.isPlaying) {
                         thrustSfxRef.current.play();
