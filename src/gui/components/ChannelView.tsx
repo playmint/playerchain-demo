@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
@@ -17,9 +18,10 @@ import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-const FIXED_UPDATE_RATE = 60;
-const INTERLACE = 3;
-const SIM_INPUT_DELAY = 0; // number of ticks to avoid
+export const FIXED_UPDATE_RATE = 60;
+export const INTERLACE = 3;
+export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
+export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({

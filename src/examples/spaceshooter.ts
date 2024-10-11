@@ -9,13 +9,13 @@ import {
 } from '../runtime/game';
 import { mulberry32, patchMathLib, xmur3 } from './spaceshooter/lib/math';
 import bulletSystem from './spaceshooter/systems/bulletSystem';
-import countdownSystem from './spaceshooter/systems/countdownSystem';
 import healthSystem from './spaceshooter/systems/healthSystem';
 import levelSystem from './spaceshooter/systems/levelSystem';
 import physicsSystem from './spaceshooter/systems/physicsSystem';
 import shipSystem from './spaceshooter/systems/shipSystem';
 
-// import { ShooterRenderer } from './spaceshooter/ShooterRenderer';
+export const SESSION_TIME_SECONDS = 60 * 3; // 3mins
+export const SESSION_START_SECONDS = 3;
 
 // tags
 export enum Tags {
@@ -109,10 +109,6 @@ export const schema = {
         position: Vec3,
         rotation: Vec3,
         velocity: Vec2,
-        timer: {
-            start: Type.u32,
-            round: Type.u32,
-        },
         stats: {
             damage: Type.u8,
             health: Type.u8,
@@ -164,7 +160,7 @@ export class SpaceShooter implements GameModule {
             case 'Shift':
                 this.input |= Input.Fire;
                 break;
-                /*
+            /*
             case 'e':
             case 'E':
                 this.input |= Input.Respawn;
@@ -267,7 +263,6 @@ export class SpaceShooter implements GameModule {
         physicsSystem(this.world, deltaTime);
         healthSystem(this.world, deltaTime);
         bulletSystem(this.world, deltaTime);
-        countdownSystem(this.world, deltaTime);
     };
 
     getRenderComponent = (): FunctionComponent<RendererProps> | null => {
