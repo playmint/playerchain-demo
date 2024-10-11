@@ -6,6 +6,7 @@ import {
 import { PlayerData } from '../../../runtime/ecs';
 import { SESSION_TIME_SECONDS, ShooterSchema } from '../../spaceshooter';
 import ReadySetGo from './Countdown';
+import EndRoundLeaderBoard from './EndRoundLeaderboard';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
 import { WorldRef } from './ShooterRenderer';
@@ -25,7 +26,7 @@ export default memo(function PlayerHUD({
     peerId: string;
     worldRef: WorldRef;
 }) {
-    const [remaining, setRemaining] = useState(0);
+    const [remaining, setRemaining] = useState(-1);
     useEffect(() => {
         const timer = setInterval(() => {
             if (!worldRef.current) {
@@ -65,11 +66,13 @@ export default memo(function PlayerHUD({
                     </div>
                 )}
             </div>
-            {SESSION_TIME_SECONDS - remaining < 3 && (
+            {remaining > 0 && SESSION_TIME_SECONDS - remaining < 3 ? (
                 <ReadySetGo
                     n={3 - Math.floor(SESSION_TIME_SECONDS - remaining)}
                 />
-            )}
+            ) : remaining === 0 ? (
+                <EndRoundLeaderBoard players={players} />
+            ) : null}
             <div
                 style={{
                     display: 'flex',
