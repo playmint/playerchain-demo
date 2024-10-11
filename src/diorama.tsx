@@ -168,10 +168,7 @@ function Particles(props: { bufferScene: Scene }) {
         function onDocumentKeyUp(event: KeyboardEvent) {
             const keyCode = event.which;
             if (keyCode === 49) {
-                explosionRef.current.triggerExplosion(
-                    new Vector3(40, 0, 0),
-                    scene,
-                );
+                explosionRef.current.triggerExplosion(new Vector3(40, 0, 0));
             }
             if (keyCode === 50) {
                 respawnRef.current.triggerSpawn(new Vector3(40, 0, 0), scene);
@@ -320,7 +317,6 @@ function Diorama() {
                 color={0xffffff}
             />
 
-            <fog attach="fog" args={[0x444466, 100, 1]} />
             {/* <BackgroundGrid /> */}
             <Particles
                 bufferScene={RENDER_BUFFER_SCENE ? scene : bufferScene}

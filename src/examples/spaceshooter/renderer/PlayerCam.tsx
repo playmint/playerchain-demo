@@ -1,6 +1,6 @@
 import { PerspectiveCamera } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { memo, useRef, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Camera, Vector3 } from 'three';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import {
@@ -124,8 +124,6 @@ export default memo(function PlayerCam({
                 intensity={12}
                 color={0xffffff}
             />
-
-            <fog attach="fog" args={[0x444466, 100, 1]} />
             {/* <BackgroundGrid /> */}
         </>
     );
