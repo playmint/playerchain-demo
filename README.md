@@ -1,4 +1,6 @@
-# ![playerchainBanner_2](https://github.com/user-attachments/assets/1f195369-23d2-45ed-9358-1a9014b7d15a)
+![playerchainBanner_2](https://github.com/user-attachments/assets/1f195369-23d2-45ed-9358-1a9014b7d15a)
+
+### Welcome!
 
 > [!NOTE]  
 > _Playerchains are a peer-to-peer network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**._
