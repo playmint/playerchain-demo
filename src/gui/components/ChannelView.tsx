@@ -3,6 +3,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
+import { sleep } from '../../runtime/timers';
+import { hardReset } from '../../runtime/utils';
 import { getPlayerColorCSS } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -16,6 +18,9 @@ import { Spinner } from './Spinner';
 import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
+
+const TERM_DELAY = import.meta.env.MODE !== 'production' ? 100 : 500;
+const MAX_PLAYERS = 4;
 
 const FIXED_UPDATE_RATE = 75;
 const INTERLACE = 4;
@@ -104,10 +109,16 @@ export default memo(function ChannelView({
         if (!client.setPeers) {
             return;
         }
-        client.setPeers(channelId, potentialPeers).catch((err) => {
-            console.error('acceptPeers', err);
+
+        const selectedPeers = [peerId, ...peers.map((p) => p.peerId)].slice(
+            0,
+            MAX_PLAYERS,
+        );
+
+        client.setPeers(channelId, selectedPeers).catch((err) => {
+            console.error('acceptPeers error:', err);
         });
-    }, [client, channelId, potentialPeers]);
+    }, [client, channelId, peerId, peers]);
 
     const peerNames = useLiveQuery(
         () => {
@@ -160,6 +171,10 @@ export default memo(function ChannelView({
 
     const majorityReady = readyPeers >= required;
     const selfIsInTheClub = channel.peers.includes(peerId);
+    const channelIsFull = channel.peers.length >= MAX_PLAYERS;
+    const failedToJoinMessage = channelIsFull
+        ? 'This session is currently full.'
+        : 'This session is already in progress.';
 
     const terminalFlow: Operation[] = [
         {
@@ -305,7 +320,7 @@ export default memo(function ChannelView({
                         flow={[
                             {
                                 text: !selfIsInTheClub ? (
-                                    'session was started without you, sorry!'
+                                    failedToJoinMessage
                                 ) : (
                                     <span>
                                         <Spinner /> Waiting for Playerchain
@@ -316,6 +331,37 @@ export default memo(function ChannelView({
                                     new Promise((resolve) =>
                                         setTimeout(resolve, 1000),
                                     ),
+                            },
+                            {
+                                text: (
+                                    <span
+                                        className={termstyles.promptTextColor}
+                                    >
+                                        Start again:
+                                    </span>
+                                ),
+                                choices: [{ text: 'Return to start', next: 1 }],
+                                promise: () =>
+                                    new Promise((resolve) => {
+                                        setTimeout(resolve, TERM_DELAY);
+                                    }),
+                            },
+                            {
+                                text: 'Returning to start...',
+                                next: 9999,
+                                promise: () =>
+                                    new Promise(() => {
+                                        hardReset()
+                                            .then(() => sleep(1000))
+                                            .then(() =>
+                                                window.location.reload(),
+                                            )
+                                            .catch((err) =>
+                                                alert(
+                                                    `hard-reset-fail: ${err}`,
+                                                ),
+                                            );
+                                    }),
                             },
                         ]}
                         minWait={1000}
