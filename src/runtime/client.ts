@@ -42,6 +42,8 @@ export interface ClientConfig {
     enableSync?: boolean;
 }
 
+const DEFAULT_TTL = 60 * 1000; // people's clocks are really bad, this is less of a TTL and more of an acceptable range of clock skew
+
 export class Client {
     id: Uint8Array;
     peerId: string;
@@ -190,11 +192,11 @@ export class Client {
         }
         this.height = signed.height + 1;
         this.send(signed, {
-            ttl: 1000,
+            ttl: DEFAULT_TTL,
         });
         this.parent = id;
         this.send(signed, {
-            ttl: 1000,
+            ttl: DEFAULT_TTL,
         });
         return signed;
     }
@@ -610,7 +612,7 @@ export class Client {
         const heads = await this.getHeads();
         for (const head of heads) {
             // tell everyone about the heads
-            this.send(head, { ttl: 500 });
+            this.send(head, { ttl: DEFAULT_TTL });
         }
         this.debug(`emit-peer-heads count=${heads.length}`);
     }
@@ -709,7 +711,7 @@ export class Client {
                     name: peerName?.name || '',
                 },
                 {
-                    ttl: 1000,
+                    ttl: DEFAULT_TTL,
                 },
             );
             // sync channel name with genesis and rebroadcast it
@@ -762,7 +764,7 @@ export class Client {
                             );
                             ch.send(fromStoredChainMessage(genesis), {
                                 channels: [ch.id],
-                                ttl: 1000,
+                                ttl: DEFAULT_TTL,
                             }).catch((err) => {
                                 console.error('emit-genesis-error', err);
                             });
@@ -921,7 +923,7 @@ export class Client {
                 `rpc`,
                 Buffer.from(cbor.encode(r)) as unknown as Uint8Array,
                 {
-                    ttl: 100,
+                    ttl: DEFAULT_TTL,
                 },
             );
         }
@@ -985,10 +987,10 @@ export class Client {
                 .limit(50)
                 .toArray();
             for (const gapMsg of gapMessages) {
-                this.send(fromStoredChainMessage(gapMsg), { ttl: 1000 });
+                this.send(fromStoredChainMessage(gapMsg), { ttl: DEFAULT_TTL });
             }
         }
-        this.send(fromStoredChainMessage(msg), { ttl: 1000 });
+        this.send(fromStoredChainMessage(msg), { ttl: DEFAULT_TTL });
         return 1;
     };
 
