@@ -173,8 +173,8 @@ export default memo(function ChannelView({
     const selfIsInTheClub = channel.peers.includes(peerId);
     const channelIsFull = channel.peers.length >= MAX_PLAYERS;
     const failedToJoinMessage = channelIsFull
-        ? 'This session is currently full.'
-        : 'This session is already in progress.';
+        ? '⛔ This session is currently full.'
+        : '⛔ This session is already in progress.';
 
     const terminalFlow: Operation[] = [
         {
