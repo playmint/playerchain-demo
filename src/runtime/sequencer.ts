@@ -2,6 +2,7 @@
 // it is constantly attempting to write a block with
 import * as Comlink from 'comlink';
 import Dexie from 'dexie';
+import { SESSION_TIME_SECONDS } from '../examples/spaceshooter';
 import type { ClientContextType } from '../gui/hooks/use-client';
 import type { Client } from './client';
 import database, { DB } from './db';
@@ -74,6 +75,7 @@ export class Sequencer {
     private mode: SequencerMode;
     private interlace: number;
     private metrics?: DefaultMetrics;
+    private end: number;
     peerId: string;
     db: DB;
     lastCommitted = 0;
@@ -106,6 +108,7 @@ export class Sequencer {
                 : MIN_SEQUENCE_RATE;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 1; // 1s warmup
         this.metrics = metrics;
+        this.end = SESSION_TIME_SECONDS / (this.fixedUpdateRate / 1000);
     }
 
     private loop = async () => {
@@ -133,6 +136,12 @@ export class Sequencer {
         }
         // get the current round
         let round = await this.getRound();
+
+        // stop if past end of session, temp while we are testing with a fixed session length
+        if (round > this.end) {
+            this.stop();
+            return 0;
+        }
 
         // skip if we just did that round
         if (
