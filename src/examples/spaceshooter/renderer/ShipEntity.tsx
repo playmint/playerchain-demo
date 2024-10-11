@@ -1,13 +1,20 @@
-import { Clone, Html, PositionalAudio, useGLTF } from '@react-three/drei';
+import {
+    Clone,
+    Cylinder,
+    Html,
+    PositionalAudio,
+    useGLTF,
+} from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo, useEffect, useRef } from 'react';
 import {
     Color,
+    DoubleSide,
     Group,
+    Line3,
     Mesh,
     Object3DEventMap,
     PositionalAudio as PositionalAudioImpl,
-    Scene,
     Vector3,
 } from 'three';
 import { getPlayerColor } from '../../../gui/fixtures/player-colors';
@@ -17,7 +24,6 @@ import sfxThrust from '../assets/Thrust_Loop.mp3?url';
 import shipGLTF from '../assets/ship.glb?url';
 import { ExplodeFX, ExplodeFXHandle } from '../effects/FXExplodeQuarks';
 import { SpawnFX, SpawnFXHandle } from '../effects/FXRespawnQuarks';
-import { ShockwaveFX, ShockwaveFXHandle } from '../effects/FXShockwaveQuarks';
 import fxShootData from '../effects/FXShoot';
 import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
 import fxThrusterData from '../effects/FXThruster';
@@ -38,10 +44,12 @@ export default memo(function ShipEntity({
     eid,
     worldRef,
     playersRef,
+    peerId,
 }: {
     eid: number;
     worldRef: WorldRef;
     playersRef: PlayersRef;
+    peerId: string;
 }) {
     const getShipOwner = () =>
         Array.from(worldRef.current.players.entries()).find(
@@ -58,6 +66,7 @@ export default memo(function ShipEntity({
     const sparksRef = useRef<SparksFXHandle>(null!);
     const labelRef = useRef<HTMLDivElement>(null!);
     const prevHealthRef = useRef<number | null>(null);
+    const markerRef = useRef<Group>(null!);
     const isTopPlayerRef = useRef(false);
 
     const gltf = useGLTF(assetPath(shipGLTF));
@@ -68,15 +77,18 @@ export default memo(function ShipEntity({
         gltf.scene.scale.set(1, 1, 1);
     }, [gltf]);
 
-    useFrame((_state, deltaTime) => {
+    useFrame(({ camera }, deltaTime) => {
         const world = worldRef.current;
         const players = playersRef.current;
-        const [peerId, player] = getShipOwner();
-        const playerIdx = players.findIndex((p) => p.id === peerId);
+        const [ownerId, player] = getShipOwner();
+        const isPeerShip = ownerId === peerId;
+        const playerIdx = players.findIndex((p) => p.id === ownerId);
         const sortedPlayers = [...players].sort((a, b) => a.score - b.score);
         const topPlayer = sortedPlayers[sortedPlayers.length - 1];
 
-        const color = new Color(peerId ? getPlayerColor(playerIdx) : '#ffffff');
+        const color = new Color(
+            ownerId ? getPlayerColor(playerIdx) : '#ffffff',
+        );
         const group = groupRef.current;
         const ship = shipRef.current as EntityObject3D;
         if (!player) {
@@ -110,6 +122,50 @@ export default memo(function ShipEntity({
             deltaTime,
             InterpolateSpeed.Quick,
         );
+
+        // show ship marker if this ship offscreen
+        markerRef.current.visible = false;
+        if (!isPeerShip) {
+            const cameraPos = new Vector3(
+                camera.position.x,
+                camera.position.y,
+                group.position.z,
+            );
+            const lineFromCameraToShip = new Line3(cameraPos, group.position);
+            const pointVec3 = new Vector3();
+            for (let i = 0; i < 6; i++) {
+                const point = (camera as any).__frustum.planes[i].intersectLine(
+                    lineFromCameraToShip,
+                    pointVec3,
+                );
+                if (point) {
+                    // move point towards the camera x/y
+                    point.add(
+                        cameraPos
+                            .clone()
+                            .sub(point)
+                            .normalize()
+                            .multiplyScalar(8),
+                    );
+                    // if the point is in the frustum, set the marker position and show it
+                    if ((camera as any).__frustum.containsPoint(point)) {
+                        markerRef.current.visible = true;
+                        markerRef.current.position.x = point.x;
+                        markerRef.current.position.y = point.y;
+                        markerRef.current.position.z = group.position.z + 3;
+                        markerRef.current.lookAt(
+                            new Vector3(
+                                group.position.x,
+                                group.position.y,
+                                markerRef.current.position.z,
+                            ),
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+
         // apply ship roll if we are turning
         const shipInner = ship.children[0].children[0];
         const roll = hasInput(player.input, Input.Left)
@@ -277,34 +333,55 @@ export default memo(function ShipEntity({
     });
 
     return (
-        <group ref={groupRef}>
-            <ExplodeFX ref={explosionRef} />
-            <SpawnFX ref={respawnRef} />
-            <SparksFX ref={sparksRef} />
-            <Clone ref={shipRef} object={gltf.scene} scale={1} deep={true} />
-            <Html
-                zIndexRange={[0, 100]}
-                ref={labelRef}
-                style={{
-                    fontSize: 11,
-                    pointerEvents: 'none',
-                    userSelect: 'none',
-                    textAlign: 'center',
-                }}
-                position={[3, 5, 0]}
-            ></Html>
-            <PositionalAudio
-                ref={explosionSfxRef}
-                url={assetPath(sfxDestroy)}
-                distance={500}
-                loop={false}
-            />
-            <PositionalAudio
-                ref={thrustSfxRef}
-                url={assetPath(sfxThrust)}
-                distance={500}
-                loop={false}
-            />
-        </group>
+        <>
+            <group ref={groupRef}>
+                <ExplodeFX ref={explosionRef} />
+                <SpawnFX ref={respawnRef} />
+                <SparksFX ref={sparksRef} />
+                <Clone
+                    ref={shipRef}
+                    object={gltf.scene}
+                    scale={1}
+                    deep={true}
+                />
+                <Html
+                    zIndexRange={[0, 100]}
+                    ref={labelRef}
+                    style={{
+                        fontSize: 11,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                        textAlign: 'center',
+                    }}
+                    position={[3, 5, 0]}
+                ></Html>
+                <PositionalAudio
+                    ref={explosionSfxRef}
+                    url={assetPath(sfxDestroy)}
+                    distance={500}
+                    loop={false}
+                />
+                <PositionalAudio
+                    ref={thrustSfxRef}
+                    url={assetPath(sfxThrust)}
+                    distance={500}
+                    loop={false}
+                />
+            </group>
+            <group ref={markerRef}>
+                <Cylinder
+                    args={[3, 1, 2, 3]}
+                    position={[0, 0, 0]}
+                    rotation={[0, 0, Math.PI / 2]}
+                    scale={[0.7, 1, 1]}
+                >
+                    <meshBasicMaterial
+                        attach="material"
+                        color="red"
+                        side={DoubleSide}
+                    />
+                </Cylinder>
+            </group>
+        </>
     );
 });

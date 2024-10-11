@@ -1,9 +1,6 @@
 import { memo } from 'react';
-import { Camera } from 'three';
 import { PlayerData } from '../../../runtime/ecs';
 import { ShooterSchema } from '../../spaceshooter';
-import Countdown from './Countdown';
-import EnemyLocation from './EnemyLocation';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
 import { WorldRef } from './ShooterRenderer';
@@ -17,15 +14,10 @@ export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
 export default memo(function PlayerHUD({
     peerId,
     players,
-    tick,
-    worldRef,
-    camera,
 }: {
     players: PlayerInfo[];
     peerId: string;
-    tick: number;
     worldRef: WorldRef;
-    camera?: Camera;
 }) {
     const player = players.find((p) => p.id === peerId);
     if (!player) {
@@ -77,12 +69,6 @@ export default memo(function PlayerHUD({
                     <LeaderBoard players={players} peerId={peerId} />
                 </div>
             </div>
-            {/* <EnemyLocation
-                players={players}
-                worldRef={worldRef}
-                peerId={peerId}
-                camera={camera}
-            /> */}
         </div>
     );
 });
