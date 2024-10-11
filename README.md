@@ -61,12 +61,16 @@ _Playerchains are a way for players to have full control of their own responsive
 
 ### Todo
 - [x] Instructions to build and run from source
+- [ ] Host a prebuilt ssc from the Playmint/Socket fork
 - [ ] Licensing info
 - [ ] Guidance for contributors
 
 ### To build and run from source
 
-build `ssc` from the `playmint-next` branch of playmint/socket
+>[!WARNING]
+>building ssc has platform specific dependencies that we don't document, but we hope to provide a prebuilt install package in future.
+
+build `ssc` from the `playmint-next` branch of [playmint/socket](https://github.com/playmint/socket)
 
 ```
 macos:
