@@ -23,7 +23,7 @@ export interface ExplodeFXHandle {
             addShake({
                 intensity: 100, // Adjust as needed
                 frequency: 40,
-                position: new Vector3(40, 0, 0),
+                position: pos,
                 decay: 200, // Rate at which the shake reduces
                 duration: 1, // How long the shake lasts
             });
