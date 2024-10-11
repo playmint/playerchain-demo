@@ -42,6 +42,7 @@ import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
 import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
 import { BackgroundModels } from './examples/spaceshooter/renderer/BackgroundModels';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
+import BulletModel from './examples/spaceshooter/renderer/BulletModel';
 import { FPSLimiter } from './examples/spaceshooter/renderer/FPSLimiter';
 import { getShakeOffset } from './examples/spaceshooter/renderer/ShakeManager';
 import WallModels from './examples/spaceshooter/renderer/WallModels';
@@ -216,6 +217,11 @@ function Particles(props: { bufferScene: Scene }) {
     );
 }
 
+function Bullet() {
+    const [bullet] = useState(BulletModel());
+    return <Clone object={bullet} position={[60, 0, 0]} deep />;
+}
+
 function Diorama() {
     const [velocity, setVelocity] = useState(0);
     const [camPos, setCamPos] = useState(new Vector3(0, 0, CAM_INITIAL_ZOOM));
@@ -320,6 +326,7 @@ function Diorama() {
                 bufferScene={RENDER_BUFFER_SCENE ? scene : bufferScene}
             />
             <Ship />
+            <Bullet />
             <BufferSceneRenderer
                 bufferScene={bufferScene}
                 bufferTarget={bufferTarget}
