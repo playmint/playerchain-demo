@@ -936,18 +936,21 @@ export class Client {
             return;
         }
         if (!req.name) {
+            console.log('ignore no-name');
+            this.debug('RPC: drop: invalid no name');
             return;
         }
         if (
             !req.timestamp ||
             typeof req.timestamp !== 'number' ||
-            req.timestamp < Date.now() - 2000
+            req.timestamp < Date.now() - 20000 // peoples clocks can be REALLY out
         ) {
-            // ignore old requests
+            this.debug('RPC: drop: too old', req.timestamp);
             return;
         }
         const handler = this.getRequestHandler(req.name);
         if (!handler) {
+            this.debug('RPC: drop: no handler for name ', req.name);
             return;
         }
         await handler(req.args as any);
@@ -969,8 +972,10 @@ export class Client {
         id: string;
         gap: number;
     }): Promise<number> => {
+        console.log('WANTS', id, gap);
         const msg = await this.db.messages.get(id);
         if (!msg) {
+            console.log('NOT GOT IT', id);
             return 0;
         }
         if (gap) {
