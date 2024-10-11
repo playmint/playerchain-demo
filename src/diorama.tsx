@@ -43,10 +43,7 @@ import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
 import { BackgroundModels } from './examples/spaceshooter/renderer/BackgroundModels';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
 import { FPSLimiter } from './examples/spaceshooter/renderer/FPSLimiter';
-import {
-    addShake,
-    getShakeOffset,
-} from './examples/spaceshooter/renderer/ShakeManager';
+import { getShakeOffset } from './examples/spaceshooter/renderer/ShakeManager';
 import WallModels from './examples/spaceshooter/renderer/WallModels';
 import { SHIP_MAX_VELOCITY } from './examples/spaceshooter/systems/shipSystem';
 import {
@@ -174,13 +171,6 @@ function Particles(props: { bufferScene: Scene }) {
                     new Vector3(40, 0, 0),
                     scene,
                 );
-                addShake({
-                    intensity: 100, // Adjust as needed
-                    frequency: 40,
-                    position: new Vector3(40, 0, 0),
-                    decay: 200, // Rate at which the shake reduces
-                    duration: 1, // How long the shake lasts
-                });
             }
             if (keyCode === 50) {
                 respawnRef.current.triggerSpawn(new Vector3(40, 0, 0), scene);
