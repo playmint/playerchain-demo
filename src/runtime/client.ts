@@ -848,7 +848,7 @@ export class Client {
             await this.commit(
                 {
                     type: MessageType.INPUT,
-                    round: 1, //(Date.now() + 100) / 50,
+                    round: 1,
                     data: 0,
                 },
                 channelId,
@@ -945,7 +945,7 @@ export class Client {
         if (
             !req.timestamp ||
             typeof req.timestamp !== 'number' ||
-            req.timestamp < Date.now() - 20000 // peoples clocks can be REALLY out
+            req.timestamp < Date.now() - DEFAULT_TTL
         ) {
             this.debug('RPC: drop: too old', req.timestamp);
             return;
