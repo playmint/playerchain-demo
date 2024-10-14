@@ -198,7 +198,7 @@ function addBullet(
     model.type[eid] = ModelType.Bullet;
     entity.active[eid] = 0;
     collider.type[eid] = ColliderType.Circle;
-    collider.radius[eid] = 0.9;
+    collider.radius[eid] = 0.5;
     physics.applyRotation[eid] = 1;
     physics.drag[eid] = 0;
     physics.isTrigger[eid] = 1;
