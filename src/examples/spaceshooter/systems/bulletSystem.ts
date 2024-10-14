@@ -7,12 +7,12 @@ import {
     hasInput,
 } from '../../spaceshooter';
 
-export const BULLET_SPEED = 95;
-export const BULLET_MAX_VELOCITY = 95;
+export const BULLET_SPEED = 110;
+export const BULLET_MAX_VELOCITY = 110;
 export const BULLET_LIFETIME = 25;
 export const SHIP_SHOOT_COOLOFF = 2;
-export const BULLET_HEALTH_COST = 15;
-export const BULLET_INHERIT_VELOCITY = 0.25; //What % velocity do they inherit from firing ship
+export const BULLET_HEALTH_COST = 14;
+export const BULLET_INHERIT_VELOCITY = 0; //What % velocity do they inherit from firing ship
 
 export default system<ShooterSchema>(
     ({
