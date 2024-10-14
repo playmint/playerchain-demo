@@ -216,7 +216,7 @@ function Particles(props: { bufferScene: Scene }) {
 
 function Bullet() {
     const [bullet] = useState(BulletModel());
-    return <Clone object={bullet} position={[60, 0, 0]} deep />;
+    return <Clone object={bullet} position={[60, 0, -1]} deep />;
 }
 
 function Diorama() {
