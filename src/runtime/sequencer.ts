@@ -59,6 +59,7 @@ export const requiredConfirmationsFor = (size: number): number => {
 };
 
 const MIN_SEQUENCE_RATE = 30;
+const INITIAL_LOCKSTEP_PERIOD = 50;
 
 // the current input
 export class Sequencer {
@@ -336,7 +337,9 @@ export class Sequencer {
             .map((m) => Buffer.from(m.id, 'base64'));
         // we can't write a block if we do not have enough acks the interlaced round
         const requiredAcks =
-            requiredConfirmationsFor(this.channelPeerIds.length) - 1;
+            round < INITIAL_LOCKSTEP_PERIOD
+                ? this.channelPeerIds.length - 1
+                : requiredConfirmationsFor(this.channelPeerIds.length) - 1;
         if (ackIds.length < requiredAcks) {
             // console.log(
             //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
