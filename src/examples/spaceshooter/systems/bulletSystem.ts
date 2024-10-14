@@ -7,11 +7,12 @@ import {
     hasInput,
 } from '../../spaceshooter';
 
-export const BULLET_SPEED = 80;
-export const BULLET_MAX_VELOCITY = 80;
-export const BULLET_LIFETIME = 18;
+export const BULLET_SPEED = 95;
+export const BULLET_MAX_VELOCITY = 95;
+export const BULLET_LIFETIME = 25;
 export const SHIP_SHOOT_COOLOFF = 2;
 export const BULLET_HEALTH_COST = 15;
+export const BULLET_INHERIT_VELOCITY = 0.25; //What % velocity do they inherit from firing ship
 
 export default system<ShooterSchema>(
     ({
@@ -55,7 +56,12 @@ export default system<ShooterSchema>(
             // run down bullet health
             if (stats.health[bullet] === 0) {
                 entity.active[bullet] = 0;
-            } else {
+            }
+            //Destroy bullets when parent ship dies
+            else if (stats.health[entity.parent[bullet]] === 0)    {
+                entity.active[bullet] = 0;
+            }
+            else {
                 stats.health[bullet] = Math.max(
                     Math.fround(stats.health[bullet] - deltaTime),
                     0,
@@ -107,11 +113,11 @@ export default system<ShooterSchema>(
                 position.y[bullet] = position.y[player.ship];
                 rotation.z[bullet] = rotation.z[player.ship];
                 velocity.x[bullet] = Math.fround(
-                    velocity.x[player.ship] +
+                    (velocity.x[player.ship] * BULLET_INHERIT_VELOCITY)+
                         Math.cos(rotation.z[player.ship]) * BULLET_SPEED,
                 );
                 velocity.y[bullet] = Math.fround(
-                    velocity.y[player.ship] +
+                    (velocity.y[player.ship] * BULLET_INHERIT_VELOCITY) +
                         Math.sin(rotation.z[player.ship]) * BULLET_SPEED,
                 );
 
