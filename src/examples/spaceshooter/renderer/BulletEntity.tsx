@@ -65,10 +65,7 @@ export default memo(function BulletEntity({
             world,
             eid,
             deltaTime,
-            isNewlySpawned
-                ? InterpolateSpeed.Snap
-                : InterpolateSpeed.Fastest * 2,
-            InterpolateMethod.Linear,
+            isNewlySpawned ? InterpolateSpeed.Snap : InterpolateSpeed.Fastest,
         );
         interpolateEntityRotation(
             group,
