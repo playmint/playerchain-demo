@@ -100,25 +100,38 @@ export default memo(function ChannelView({
         );
     }, [allPeers, channelId, peerId]);
 
-    const potentialPeers = useMemo(
-        () => [...peers.map((p) => p.peerId), peerId].sort(),
-        [peerId, peers],
-    );
+    const potentialPeers = useMemo(() => {
+        const sortedPeers = [...peers.map((p) => p.peerId), peerId].sort();
+        if (channel?.creator) {
+            const creatorIndex = sortedPeers.indexOf(channel.creator);
+            if (creatorIndex > -1) {
+                sortedPeers.splice(creatorIndex, 1);
+            }
+            sortedPeers.unshift(channel.creator);
+        }
+        return sortedPeers;
+    }, [peerId, peers, channel?.creator]);
 
     const acceptPeers = useCallback(() => {
         if (!client.setPeers) {
             return;
         }
 
-        const selectedPeers = [peerId, ...peers.map((p) => p.peerId)].slice(
-            0,
-            MAX_PLAYERS,
-        );
+        const sortedPeers = [...peers.map((p) => p.peerId), peerId].sort();
+        if (channel?.creator) {
+            const creatorIndex = sortedPeers.indexOf(channel.creator);
+            if (creatorIndex > -1) {
+                sortedPeers.splice(creatorIndex, 1);
+            }
+            sortedPeers.unshift(channel.creator);
+        }
+
+        const selectedPeers = sortedPeers.slice(0, MAX_PLAYERS);
 
         client.setPeers(channelId, selectedPeers).catch((err) => {
             console.error('acceptPeers error:', err);
         });
-    }, [client, channelId, peerId, peers]);
+    }, [client, channelId, peerId, peers, channel?.creator]);
 
     const peerNames = useLiveQuery(
         () => {
@@ -301,9 +314,12 @@ export default memo(function ChannelView({
                                         <li
                                             key={pid}
                                             style={{
-                                                color: getPlayerColorCSS(
-                                                    playerIdx,
-                                                ),
+                                                color:
+                                                    playerIdx < MAX_PLAYERS
+                                                        ? getPlayerColorCSS(
+                                                              playerIdx,
+                                                          )
+                                                        : 'grey',
                                             }}
                                         >
                                             {peerNames.find(
