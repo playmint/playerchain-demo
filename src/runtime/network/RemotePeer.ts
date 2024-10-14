@@ -107,12 +107,8 @@ export class RemotePeer {
             );
             cache.set(pid, packet);
             this.localPeer.gate.set(pid, 1);
-            this.localPeer.send(
-                await Packet.encode(packet),
-                port,
-                address,
-                this.socket,
-            );
+            const data = await Packet.encode(packet);
+            this.localPeer.send(data, port, address, this.socket);
         }
 
         return [];

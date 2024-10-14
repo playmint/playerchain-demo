@@ -13,6 +13,7 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSimulation } from '../hooks/use-simulation';
+import { SIM_END } from './ChannelView';
 
 export default memo(function Renderer({
     channelId,
@@ -196,7 +197,11 @@ export default memo(function Renderer({
                     if (!playing) {
                         return null;
                     }
-                    if (prevRound !== null && round === prevRound) {
+                    if (
+                        prevRound !== null &&
+                        round === prevRound &&
+                        round < SIM_END
+                    ) {
                         metrics.sps.add(0);
                         return null;
                     }

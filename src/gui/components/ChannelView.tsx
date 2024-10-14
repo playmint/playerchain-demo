@@ -18,8 +18,8 @@ import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-export const FIXED_UPDATE_RATE = 60;
-export const INTERLACE = 3;
+export const FIXED_UPDATE_RATE = 50;
+export const INTERLACE = 4;
 export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
 export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
@@ -542,9 +542,11 @@ function PeerStatus({
                     // backgroundColor: outbound ? 'green' : 'red',
                     textOverflow: 'ellipsis',
                     overflow: 'hidden',
+                    width: '2rem',
+                    textAlign: 'right',
                 }}
             >
-                {peerId.slice(0, 8)}{' '}
+                {info?.validHeight}{' '}
             </div>
         </div>
     );
