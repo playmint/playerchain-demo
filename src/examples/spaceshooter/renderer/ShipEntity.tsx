@@ -331,12 +331,17 @@ export default memo(function ShipEntity({
             labelRef.current.style.display = 'none';
         }
         if (labelRef.current) {
-            // labelRef.current.innerHTML =
-            //     `${isTopPlayerRef.current ? '👑' : ''}` +
-            //     (players[playerIdx].scoreMul > 1
-            //         ? `&nbsp;x${players[playerIdx].scoreMul}<br/>`
-            //         : '') +
-            //     (players[playerIdx]?.name || peerId.slice(0, 8));
+            const label =
+                `${isTopPlayerRef.current ? '👑' : ''}` +
+                (players[playerIdx].scoreMul > 1
+                    ? `&nbsp;x${players[playerIdx].scoreMul}<br/>`
+                    : '') +
+                (players[playerIdx]?.name || peerId.slice(0, 8));
+            // cache txt on element obj to avoid DOM updates if not needed
+            if ((labelRef.current as any).__label !== label) {
+                (labelRef.current as any).__label = label;
+                labelRef.current.innerHTML = label;
+            }
         }
         // mark prev states
         updateEntityGeneration(group, world, eid);
