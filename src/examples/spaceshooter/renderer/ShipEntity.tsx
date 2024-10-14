@@ -180,6 +180,9 @@ export default memo(function ShipEntity({
             deltaTime,
             InterpolateSpeed.Quick,
         );
+
+        // Flashing is currently affected by firing bullets and not needed with 1-hit kills
+        /*
         // flash ship if we lost health
         const health = world.components.stats.data.health[eid];
         if (
@@ -210,6 +213,7 @@ export default memo(function ShipEntity({
                 }
             }
         });
+        */
 
         // create wall sparks
         const hit = world.components.collider.data.hasCollided[eid];
