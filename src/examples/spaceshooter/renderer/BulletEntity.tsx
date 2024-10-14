@@ -119,7 +119,12 @@ export default memo(function BulletEntity({
     return (
         <group ref={groupRef}>
             <ShipImpactFX ref={hitFXRef} />
-            <Clone ref={bulletRef} object={model} scale={0.5} />
+            <Clone
+                ref={bulletRef}
+                object={model}
+                scale={0.5}
+                position={[0, 0, -1]}
+            />
             <PositionalAudio
                 ref={shotSfxRef}
                 url={assetPath(sfxShot)}
