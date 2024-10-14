@@ -110,7 +110,7 @@ export default system<ShooterSchema>(
                 stats.health[player.ship] -= BULLET_HEALTH_COST;
                 stats.shootTimer[player.ship] = SHIP_SHOOT_COOLOFF;
                 
-                const offsetAmount = 5;
+                const offsetAmount = 1;
 
                 position.x[bullet] = position.x[player.ship] + (offsetAmount * Math.cos(rotation.z[player.ship]));
                 position.y[bullet] = position.y[player.ship] + (offsetAmount * Math.sin(rotation.z[player.ship]));
