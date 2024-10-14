@@ -12,7 +12,7 @@ import {
 import { getShakeOffset } from './ShakeManager';
 import { WorldRef } from './ShooterRenderer';
 
-const CAM_INITIAL_ZOOM = 160;
+const CAM_INITIAL_ZOOM = 140;
 
 // camera and scene setup for following a player's ship
 export default memo(function PlayerCam({
@@ -95,7 +95,7 @@ export default memo(function PlayerCam({
                 world.components.velocity.data.y[player.ship] *
                     world.components.velocity.data.y[player.ship],
         );
-        const zoom = CAM_INITIAL_ZOOM + vmag * 2;
+        const zoom = CAM_INITIAL_ZOOM + vmag ;
         camera.position.z = interpolate(
             camera.position.z,
             zoom,
