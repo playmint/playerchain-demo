@@ -181,8 +181,8 @@ export default memo(function ShipEntity({
             InterpolateSpeed.Quick,
         );
 
-        // Flashing is currently affected by firing bullets and not needed with 1-hit kills
-        /*
+
+        
         // flash ship if we lost health
         const health = world.components.stats.data.health[eid];
         if (
@@ -191,6 +191,9 @@ export default memo(function ShipEntity({
         ) {
             prevHealthRef.current = health;
         }
+
+        // Flashing is currently affected by firing bullets and not needed with 1-hit kills
+        /*
         if (health > 0) {
             if (health < prevHealthRef.current) {
                 // took damage
@@ -201,6 +204,8 @@ export default memo(function ShipEntity({
                 });
             }
         }
+
+
         // fade ship color back to normal
         ship.children[0].children[0].traverse((child) => {
             if (child instanceof Mesh) {
@@ -214,6 +219,7 @@ export default memo(function ShipEntity({
             }
         });
         */
+        
 
         // create wall sparks
         const hit = world.components.collider.data.hasCollided[eid];
