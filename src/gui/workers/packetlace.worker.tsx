@@ -32,6 +32,7 @@ let canvas: OffscreenCanvas | undefined;
 let aspectRatio: number;
 let packets: MessageData | undefined;
 let peers: string[] = [];
+let peersOnStart: string[] = [];
 let peerColors: number[] = [];
 
 let scene: THREE.Scene | undefined;
@@ -64,6 +65,7 @@ export async function startGraph(
     // console.log('packetlace.worker: offscreen canvas set:', width, height);
 
     peers = _peers;
+    peersOnStart = [..._peers];
 
     scene = new THREE.Scene();
     renderer = new THREE.WebGLRenderer({
@@ -230,8 +232,18 @@ function renderPackets(msgData: MessageData): Map<string, BlockProps> {
         const msgId = m.id;
         const peerId = m.peer ?? '';
 
-        if (!peers.includes(peerId)) {
-            peers.push(peerId);
+        if (m.originalRound > 1) {
+            if (!peersOnStart.includes(peerId)) {
+                const index = peers.indexOf(peerId);
+                if (index > -1) {
+                    peers.splice(index, 1);
+                }
+            }
+            peers = peers.filter((peer) => peersOnStart.includes(peer));
+        } else {
+            if (!peers.includes(peerId)) {
+                peers.push(peerId);
+            }
         }
 
         const xPos = peers.indexOf(peerId) * SPREAD_X * PACKET_SCALE;

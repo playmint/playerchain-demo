@@ -4,6 +4,8 @@ import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
+import { sleep } from '../../runtime/timers';
+import { hardReset } from '../../runtime/utils';
 import { getPlayerColorCSS } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -11,6 +13,7 @@ import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
+import { TERM_DELAY } from './ChannelBoot';
 import PacketLace from './PacketLace';
 import Renderer from './Renderer';
 import { Spinner } from './Spinner';
@@ -18,10 +21,12 @@ import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
+const MAX_PLAYERS = 4;
 export const FIXED_UPDATE_RATE = 50;
 export const INTERLACE = 4;
 export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
 export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
+
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({
@@ -91,19 +96,38 @@ export default memo(function ChannelView({
         );
     }, [allPeers, channel.id, peerId]);
 
-    const potentialPeers = useMemo(
-        () => [...peers.map((p) => p.peerId), peerId].sort(),
-        [peerId, peers],
-    );
+    const potentialPeers = useMemo(() => {
+        const sortedPeers = [...peers.map((p) => p.peerId), peerId].sort();
+        if (channel?.creator) {
+            const creatorIndex = sortedPeers.indexOf(channel.creator);
+            if (creatorIndex > -1) {
+                sortedPeers.splice(creatorIndex, 1);
+            }
+            sortedPeers.unshift(channel.creator);
+        }
+        return sortedPeers;
+    }, [peerId, peers, channel?.creator]);
 
     const acceptPeers = useCallback(() => {
         if (!client.setPeers) {
             return;
         }
-        client.setPeers(channel.id, potentialPeers).catch((err) => {
-            console.error('acceptPeers', err);
+
+        const sortedPeers = [...peers.map((p) => p.peerId), peerId].sort();
+        if (channel?.creator) {
+            const creatorIndex = sortedPeers.indexOf(channel.creator);
+            if (creatorIndex > -1) {
+                sortedPeers.splice(creatorIndex, 1);
+            }
+            sortedPeers.unshift(channel.creator);
+        }
+
+        const selectedPeers = sortedPeers.slice(0, MAX_PLAYERS);
+
+        client.setPeers(channel.id, selectedPeers).catch((err) => {
+            console.error('acceptPeers:', err);
         });
-    }, [client, channel.id, potentialPeers]);
+    }, [client, channel.id, peerId, peers, channel?.creator]);
 
     const peerNames = useLiveQuery(
         () => {
@@ -156,6 +180,10 @@ export default memo(function ChannelView({
 
     const majorityReady = readyPeers >= required;
     const selfIsInTheClub = channel.peers.includes(peerId);
+    const channelIsFull = channel.peers.length >= MAX_PLAYERS;
+    const failedToJoinMessage = channelIsFull
+        ? '⛔ This session is currently full.'
+        : '⛔ This session is already in progress.';
 
     const terminalFlow: Operation[] = [
         {
@@ -282,9 +310,12 @@ export default memo(function ChannelView({
                                         <li
                                             key={pid}
                                             style={{
-                                                color: getPlayerColorCSS(
-                                                    playerIdx,
-                                                ),
+                                                color:
+                                                    playerIdx < MAX_PLAYERS
+                                                        ? getPlayerColorCSS(
+                                                              playerIdx,
+                                                          )
+                                                        : 'grey',
                                             }}
                                         >
                                             {peerNames.find(
@@ -301,7 +332,7 @@ export default memo(function ChannelView({
                         flow={[
                             {
                                 text: !selfIsInTheClub ? (
-                                    'session was started without you, sorry!'
+                                    failedToJoinMessage
                                 ) : (
                                     <span>
                                         <Spinner /> Waiting for Playerchain
@@ -312,6 +343,37 @@ export default memo(function ChannelView({
                                     new Promise((resolve) =>
                                         setTimeout(resolve, 1000),
                                     ),
+                            },
+                            {
+                                text: (
+                                    <span
+                                        className={termstyles.promptTextColor}
+                                    >
+                                        Start again:
+                                    </span>
+                                ),
+                                choices: [{ text: 'Return to start', next: 1 }],
+                                promise: () =>
+                                    new Promise((resolve) => {
+                                        setTimeout(resolve, TERM_DELAY);
+                                    }),
+                            },
+                            {
+                                text: 'Returning to start...',
+                                next: 9999,
+                                promise: () =>
+                                    new Promise(() => {
+                                        hardReset()
+                                            .then(() => sleep(1000))
+                                            .then(() =>
+                                                window.location.reload(),
+                                            )
+                                            .catch((err) =>
+                                                alert(
+                                                    `hard-reset-fail: ${err}`,
+                                                ),
+                                            );
+                                    }),
                             },
                         ]}
                         minWait={1000}
