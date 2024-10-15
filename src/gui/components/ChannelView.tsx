@@ -12,6 +12,7 @@ import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
+import { TERM_DELAY } from './ChannelBoot';
 import PacketLace from './PacketLace';
 import Renderer from './Renderer';
 import { Spinner } from './Spinner';
@@ -19,7 +20,6 @@ import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-const TERM_DELAY = import.meta.env.MODE !== 'production' ? 100 : 500;
 const MAX_PLAYERS = 4;
 
 const FIXED_UPDATE_RATE = 75;
