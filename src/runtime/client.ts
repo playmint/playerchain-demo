@@ -687,57 +687,6 @@ export class Client {
                 console.warn('ignoring invalid channel id', ch);
                 continue;
             }
-            // send channel keep alive
-            // see channel.ts ... this is a workaround for a bug
-            // and also how player names get broadcasted... (lol)
-
-            const subclusterPeers = ch.subcluster.peers();
-            const peerName = await this.db.peerNames.get(this.peerId);
-            await ch.send(
-                {
-                    type: MessageType.KEEP_ALIVE,
-                    peer: this.id,
-                    timestamp: Date.now(),
-                    sees: subclusterPeers.map(
-                        (p) =>
-                            Buffer.from(
-                                p.peerId.slice(0, 8),
-                                'hex',
-                            ) as unknown as Uint8Array,
-                    ),
-                    name: peerName?.name || '',
-                },
-                {
-                    ttl: DEFAULT_TTL,
-                },
-            );
-            // sync channel name with genesis and rebroadcast it
-            // const subclusterPeerIds = subclusterPeers
-            //     .map((p) => p.peerId.slice(0, 8))
-            //     .sort()
-            //     .join(',');
-            // const dbPeers = (await this.db.peers.toArray())
-            //     .map((p) => p.peerId.slice(0, 8))
-            //     .sort()
-            //     .join(',');
-            // const alivePeers = Array.from(ch.alivePeerIds.keys())
-            //     .map((peerId) => peerId.slice(0, 8))
-            //     .sort()
-            //     .join(',');
-            // const lastKnowPeers = Array.from(ch.lastKnowPeers.keys())
-            //     .map((peerId) => peerId.slice(0, 8))
-            //     .sort()
-            //     .join(',');
-            // const netPeers = Array.from(this.net.socket.peers.keys())
-            //     .map((peerId) => peerId.slice(0, 8))
-            //     .sort()
-            //     .join(',');
-            // this.debug(`
-            //     peer-info
-            //     subclusterPeers=${subclusterPeerIds}
-            //     lastKnowPeers=${lastKnowPeers}
-            //     alivePeers=${alivePeers}
-            // `);
             const info = await this.db.channels.get(ch.id);
             if (info) {
                 if (info.peers.length === 0) {
