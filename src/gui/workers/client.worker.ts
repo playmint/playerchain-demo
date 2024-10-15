@@ -43,6 +43,10 @@ export async function commit(
     return client!.commit(msg, channelId);
 }
 
+export async function enqueue(msg: ChainMessage, channelId: string | null) {
+    return client!.enqueue(msg, channelId);
+}
+
 export async function send(msg: Message, opts?: EmitOpts) {
     return client!.send(msg, opts);
 }
@@ -70,5 +74,6 @@ const exports = {
     joinChannel,
     setPeers,
     shutdown,
+    enqueue,
 };
 Comlink.expose(exports);
