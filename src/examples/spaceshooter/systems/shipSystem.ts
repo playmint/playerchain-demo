@@ -3,17 +3,20 @@ import {
     ColliderType,
     Input,
     ModelType,
+    SESSION_START_SECONDS,
+    SESSION_TIME_SECONDS,
     ShooterSchema,
     Tags,
     hasInput,
 } from '../../spaceshooter';
 import level from '../levels/level_1';
 
-export const SHIP_THRUST_RATE = 90;
-export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.7);
+export const SHIP_THRUST_RATE = 85;
+export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.55); //was 0.7
 export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
-export const SHIP_MAX_VELOCITY = 72
+export const SHIP_MAX_VELOCITY = 80;
 export const BULLET_DAMAGE = 100;
+export const SHIP_BOUNCINESS = 0.8;
 
 export default system<ShooterSchema>(
     ({
@@ -30,8 +33,9 @@ export default system<ShooterSchema>(
         entity,
         velocity,
         deltaTime,
-        timer,
     }) => {
+        const sessionEnd = SESSION_TIME_SECONDS / deltaTime;
+        const sessionStart = SESSION_START_SECONDS / deltaTime;
         // create a ship entity for each player
         for (const player of players) {
             // find or create a box for the player
@@ -46,8 +50,6 @@ export default system<ShooterSchema>(
                     stats,
                     entity,
                 });
-                // set round timer:
-                timer.round[player.ship] = 0;
             }
 
             // reset ship stats
@@ -61,7 +63,6 @@ export default system<ShooterSchema>(
                     stats.deathTimer[player.ship]) === 0 ||
                 entity.generation[player.ship] === 0
             ) {
-                console.log('respawning ship');
                 resetShip(player.ship, {
                     model,
                     position,
@@ -71,7 +72,13 @@ export default system<ShooterSchema>(
                     entity,
                 });
             }
-            if (entity.active[player.ship] && timer.round[player.ship] > t) {
+
+            // apply thrust/rotation
+            if (
+                entity.active[player.ship] &&
+                t < sessionEnd &&
+                t > sessionStart
+            ) {
                 // calc thurst for input
                 const thrust = hasInput(player.input, Input.Forward)
                     ? SHIP_THRUST_RATE
@@ -135,10 +142,10 @@ function addShip({
     // stats.canShoot[eid] = 1;
     position.x[eid] = eid / 100;
     collider.type[eid] = ColliderType.Circle;
-    collider.radius[eid] = 3;
+    collider.radius[eid] = 2;
     physics.applyRotation[eid] = 0;
     physics.drag[eid] = 0.01;
-    physics.bounciness[eid] = 0.2;
+    physics.bounciness[eid] = SHIP_BOUNCINESS;
     stats.health[eid] = 100;
     stats.deathTimer[eid] = 200;
     stats.hasExploded[eid] = 0;
@@ -191,7 +198,7 @@ function addBullet(
     model.type[eid] = ModelType.Bullet;
     entity.active[eid] = 0;
     collider.type[eid] = ColliderType.Circle;
-    collider.radius[eid] = 0.9;
+    collider.radius[eid] = 0.5;
     physics.applyRotation[eid] = 1;
     physics.drag[eid] = 0;
     physics.isTrigger[eid] = 1;

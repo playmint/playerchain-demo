@@ -42,6 +42,8 @@ export interface ClientConfig {
     enableSync?: boolean;
 }
 
+const DEFAULT_TTL = 60 * 1000; // people's clocks are really bad, this is less of a TTL and more of an acceptable range of clock skew
+
 export class Client {
     id: Uint8Array;
     peerId: string;
@@ -190,14 +192,9 @@ export class Client {
         }
         this.height = signed.height + 1;
         this.send(signed, {
-            ttl: 1000,
+            ttl: DEFAULT_TTL,
         });
         this.parent = id;
-        // setTimeout(() => {
-        //     this.send(signed, {
-        //         ttl: 1000,
-        //     });
-        // }, 15);
         return signed;
     }
 
@@ -381,7 +378,23 @@ export class Client {
                     const parentId = Buffer.from(msg.parent).toString('base64');
                     const parent = await this.db.messages.get(parentId);
                     if (!parent) {
-                        this.requestMissingParent(parentId).catch((err) =>
+                        let gap = 0;
+                        if (typeof msg.height === 'number') {
+                            const peerId = Buffer.from(msg.peer).toString(
+                                'hex',
+                            );
+                            const messageAfterGap = await this.db.messages
+                                .where(['peer', 'height'])
+                                .between(
+                                    [peerId, Dexie.minKey],
+                                    [peerId, msg.height],
+                                )
+                                .last();
+                            gap = messageAfterGap
+                                ? msg.height - 2 - messageAfterGap.height
+                                : 0;
+                        }
+                        this.requestMissingParent(parentId, gap).catch((err) =>
                             console.error(
                                 'quick-req-missing-parent-error',
                                 err,
@@ -518,7 +531,7 @@ export class Client {
         }
     }
 
-    async requestMissingParent(parentId: string) {
+    async requestMissingParent(parentId: string, gap?: number) {
         if (!parentId) {
             return;
         }
@@ -533,13 +546,14 @@ export class Client {
             return;
         }
         this.debug(
-            `req-missing asking=everyone missing=${parentId.slice(0, 8)}`,
+            `req-missing asking=everyone missing=${parentId.slice(0, 8)} gap=${gap}`,
         );
         await this.rpc({
             name: 'requestMessagesById',
             timestamp: Date.now(),
             args: {
                 id: parentId,
+                gap: gap || 0,
             },
         });
     }
@@ -595,7 +609,7 @@ export class Client {
         const heads = await this.getHeads();
         for (const head of heads) {
             // tell everyone about the heads
-            this.send(head, { ttl: 500 });
+            this.send(head, { ttl: DEFAULT_TTL });
         }
         this.debug(`emit-peer-heads count=${heads.length}`);
     }
@@ -640,10 +654,17 @@ export class Client {
             }
             const parent = await this.db.messages.get(child.parent);
             if (!parent) {
+                const messageAfterGap = await this.db.messages
+                    .where(['peer', 'height'])
+                    .between([peerId, Dexie.minKey], [peerId, child.height])
+                    .last();
+                const gap = messageAfterGap
+                    ? child.height - 2 - messageAfterGap.height
+                    : 0;
                 this.debug(
-                    `chain-broken at=${child.height - 1} peer=${peerId.slice(0, 8)}`,
+                    `chain-broken at=${child.height - 1} gap=${gap} peer=${peerId.slice(0, 8)}`,
                 );
-                await this.requestMissingParent(child.parent);
+                await this.requestMissingParent(child.parent, gap);
                 return;
             }
             child = parent;
@@ -687,7 +708,7 @@ export class Client {
                     name: peerName?.name || '',
                 },
                 {
-                    ttl: 1000,
+                    ttl: DEFAULT_TTL,
                 },
             );
             // sync channel name with genesis and rebroadcast it
@@ -740,7 +761,7 @@ export class Client {
                             );
                             ch.send(fromStoredChainMessage(genesis), {
                                 channels: [ch.id],
-                                ttl: 1000,
+                                ttl: DEFAULT_TTL,
                             }).catch((err) => {
                                 console.error('emit-genesis-error', err);
                             });
@@ -824,7 +845,7 @@ export class Client {
             await this.commit(
                 {
                     type: MessageType.INPUT,
-                    round: 1, //(Date.now() + 100) / 50,
+                    round: 1,
                     data: 0,
                 },
                 channelId,
@@ -899,7 +920,7 @@ export class Client {
                 `rpc`,
                 Buffer.from(cbor.encode(r)) as unknown as Uint8Array,
                 {
-                    ttl: 100,
+                    ttl: DEFAULT_TTL,
                 },
             );
         }
@@ -914,18 +935,21 @@ export class Client {
             return;
         }
         if (!req.name) {
+            console.log('ignore no-name');
+            this.debug('RPC: drop: invalid no name');
             return;
         }
         if (
             !req.timestamp ||
             typeof req.timestamp !== 'number' ||
-            req.timestamp < Date.now() - 2000
+            req.timestamp < Date.now() - DEFAULT_TTL
         ) {
-            // ignore old requests
+            this.debug('RPC: drop: too old', req.timestamp);
             return;
         }
         const handler = this.getRequestHandler(req.name);
         if (!handler) {
+            this.debug('RPC: drop: no handler for name ', req.name);
             return;
         }
         await handler(req.args as any);
@@ -942,14 +966,26 @@ export class Client {
 
     private requestMessagesById = async ({
         id,
+        gap,
     }: {
         id: string;
+        gap: number;
     }): Promise<number> => {
         const msg = await this.db.messages.get(id);
         if (!msg) {
             return 0;
         }
-        this.send(fromStoredChainMessage(msg), { ttl: 1000 });
+        if (gap) {
+            const gapMessages = await this.db.messages
+                .where(['peer', 'height'])
+                .between([msg.peer, msg.height - gap], [msg.peer, msg.height])
+                .limit(50)
+                .toArray();
+            for (const gapMsg of gapMessages) {
+                this.send(fromStoredChainMessage(gapMsg), { ttl: DEFAULT_TTL });
+            }
+        }
+        this.send(fromStoredChainMessage(msg), { ttl: DEFAULT_TTL });
         return 1;
     };
 

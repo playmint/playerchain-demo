@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
@@ -21,18 +22,19 @@ import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
 const MAX_PLAYERS = 4;
+export const FIXED_UPDATE_RATE = 50;
+export const INTERLACE = 4;
+export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
+export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 
-const FIXED_UPDATE_RATE = 75;
-const INTERLACE = 4;
-const SIM_INPUT_DELAY = 1; // number of ticks to avoid
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({
-    channelId,
+    channel,
     details,
     metrics,
 }: {
-    channelId: string;
+    channel: ChannelInfo;
     details: boolean;
     metrics: DefaultMetrics;
 }) {
@@ -43,7 +45,7 @@ export default memo(function ChannelView({
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
 
     const copyKeyToClipboard = () => {
-        navigator.clipboard.writeText(channelId).catch((err) => {
+        navigator.clipboard.writeText(channel.id).catch((err) => {
             console.error('clipboard write failed:', err);
         });
     };
@@ -71,12 +73,6 @@ export default memo(function ChannelView({
     }, [db, muted]);
 
     // get channel data
-
-    const channel = useLiveQuery(async (): Promise<
-        ChannelInfo | null | undefined
-    > => {
-        return db.channels.get(channelId);
-    }, [channelId]);
     const channelPeers = useMemo(
         () => channel?.peers || [],
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,10 +91,10 @@ export default memo(function ChannelView({
     const peers = useMemo(() => {
         return allPeers.filter(
             (p) =>
-                p.channels.includes(channelId) &&
+                p.channels.includes(channel.id) &&
                 p.sees.includes(peerId.slice(0, 8)),
         );
-    }, [allPeers, channelId, peerId]);
+    }, [allPeers, channel.id, peerId]);
 
     const potentialPeers = useMemo(() => {
         const sortedPeers = [...peers.map((p) => p.peerId), peerId].sort();
@@ -128,10 +124,10 @@ export default memo(function ChannelView({
 
         const selectedPeers = sortedPeers.slice(0, MAX_PLAYERS);
 
-        client.setPeers(channelId, selectedPeers).catch((err) => {
-            console.error('acceptPeers error:', err);
+        client.setPeers(channel.id, selectedPeers).catch((err) => {
+            console.error('acceptPeers:', err);
         });
-    }, [client, channelId, peerId, peers, channel?.creator]);
+    }, [client, channel.id, peerId, peers, channel?.creator]);
 
     const peerNames = useLiveQuery(
         () => {
@@ -213,7 +209,7 @@ export default memo(function ChannelView({
                             cursor: 'pointer',
                         }}
                     >
-                        {channelId}{' '}
+                        {channel.id}{' '}
                         <span
                             className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                             style={{ padding: '0 4px', cursor: 'pointer' }}
@@ -482,14 +478,12 @@ export default memo(function ChannelView({
                         ))}
                     </div>
 
-                    {channelId && (
-                        <div style={{ flexGrow: 1, overflow: 'hidden' }}>
-                            <PacketLace
-                                channelId={channelId}
-                                peers={channel.peers}
-                            />
-                        </div>
-                    )}
+                    <div style={{ flexGrow: 1, overflow: 'hidden' }}>
+                        <PacketLace
+                            channelId={channel.id}
+                            peers={channel.peers}
+                        />
+                    </div>
 
                     <div style={{ height: '20rem' }}>
                         <Stat metric={metrics.fps} />

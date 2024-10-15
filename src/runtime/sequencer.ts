@@ -2,6 +2,7 @@
 // it is constantly attempting to write a block with
 import * as Comlink from 'comlink';
 import Dexie from 'dexie';
+import { SESSION_TIME_SECONDS } from '../examples/spaceshooter';
 import type { ClientContextType } from '../gui/hooks/use-client';
 import type { Client } from './client';
 import database, { DB } from './db';
@@ -57,7 +58,8 @@ export const requiredConfirmationsFor = (size: number): number => {
     }
 };
 
-const MIN_SEQUENCE_RATE = 25;
+const MIN_SEQUENCE_RATE = 10;
+const INITIAL_LOCKSTEP_PERIOD = 50;
 
 // the current input
 export class Sequencer {
@@ -74,6 +76,7 @@ export class Sequencer {
     private mode: SequencerMode;
     private interlace: number;
     private metrics?: DefaultMetrics;
+    private end: number;
     peerId: string;
     db: DB;
     lastCommitted = 0;
@@ -106,6 +109,9 @@ export class Sequencer {
                 : MIN_SEQUENCE_RATE;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 1; // 1s warmup
         this.metrics = metrics;
+        this.end =
+            SESSION_TIME_SECONDS / (this.fixedUpdateRate / 1000) +
+            this.interlace;
     }
 
     private loop = async () => {
@@ -134,6 +140,12 @@ export class Sequencer {
         // get the current round
         let round = await this.getRound();
 
+        // stop if past end of session, temp while we are testing with a fixed session length
+        if (round > this.end) {
+            this.stop();
+            return 0;
+        }
+
         // skip if we just did that round
         if (
             this.prev &&
@@ -147,12 +159,15 @@ export class Sequencer {
         const mod = await this.mod;
         const input = mod.getInput();
         // can we write a block?
-        const [numCommits, ackIds] = await this.canWriteInputBlock(
+        const [numCommits, ackIds, jumpRound] = await this.canWriteInputBlock(
             input,
             round,
         );
         if (!numCommits) {
             return 0;
+        }
+        if (jumpRound !== round) {
+            round = jumpRound;
         }
         for (let i = 0; i < numCommits; i++) {
             const isMainCommit = i === numCommits - 1;
@@ -167,7 +182,7 @@ export class Sequencer {
             );
             this.lastCommitted = Date.now();
             round++;
-            if (!isMainCommit) {
+            if (!isMainCommit && i > 2) {
                 // wait a bit before sending the next block
                 // or we might drown out the keep alives
                 await new Promise((resolve) => setTimeout(resolve, 1));
@@ -231,7 +246,7 @@ export class Sequencer {
     private async canWriteInputBlock(
         input: number,
         round: number,
-    ): Promise<[number, Uint8Array[] | null]> {
+    ): Promise<[number, Uint8Array[] | null, number]> {
         if (this.mode === SequencerMode.WALLCLOCK) {
             return this.canWriteWallclockInputBlock(input, round);
         } else if (this.mode === SequencerMode.CORDIAL) {
@@ -244,19 +259,22 @@ export class Sequencer {
     async canWriteCordialInputBlock(
         _input: number,
         round: number,
-    ): Promise<[number, Uint8Array[] | null]> {
+    ): Promise<[number, Uint8Array[] | null, number]> {
         // we can write a block (without acks) if our next round is below the interlace
         if (round <= this.interlace * 2 + 1) {
-            return [1, null];
+            return [1, null, round];
         }
         // must not write another block immediately after the last one
         // unless we are lagging behind
         let numCommits = 1;
         const latestKnownRound = await this.getLatestKnownRound();
-        const weAreLagging = round < latestKnownRound - 2;
-        if (weAreLagging) {
+        const behindBy = latestKnownRound - round;
+        if (behindBy > this.interlace * 2) {
+            // console.log('ALLOW TELEPORT', round, '->', latestKnownRound);
+            round = latestKnownRound;
+        } else if (behindBy > 0) {
             numCommits = latestKnownRound - round;
-            console.log('ALLOW FASTFORWARD', numCommits);
+            // console.log('ALLOW FASTFORWARD', numCommits);
         } else {
             const timeSinceLastCommit = Date.now() - this.lastCommitted;
             if (timeSinceLastCommit < this.fixedUpdateRate) {
@@ -265,7 +283,7 @@ export class Sequencer {
                     // console.log(
                     //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound} wait=${this.fixedUpdateRate - timeSinceLastCommit}`,
                     // );
-                    return [0, null];
+                    return [0, null, round];
                 }
             }
         }
@@ -283,12 +301,14 @@ export class Sequencer {
             .map((m) => Buffer.from(m.id, 'base64'));
         // we can't write a block if we do not have enough acks the interlaced round
         const requiredAcks =
-            requiredConfirmationsFor(this.channelPeerIds.length) - 1;
+            round < INITIAL_LOCKSTEP_PERIOD
+                ? this.channelPeerIds.length - 1
+                : requiredConfirmationsFor(this.channelPeerIds.length) - 1;
         if (ackIds.length < requiredAcks) {
             // console.log(
             //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
             // );
-            return [0, null];
+            return [0, null, round];
         }
 
         // fetch all the messages we have from interlaced*N round to ack
@@ -322,20 +342,20 @@ export class Sequencer {
         //     );
         //     return [0, null];
         // }
-        return [numCommits, ackIds];
+        return [numCommits, ackIds, round];
     }
 
     private async canWriteWallclockInputBlock(
         input: number,
         round: number,
-    ): Promise<[number, Uint8Array[] | null]> {
+    ): Promise<[number, Uint8Array[] | null, number]> {
         // commit if we have done something for first time
         if (!this.prev && input !== 0) {
-            return [1, null];
+            return [1, null, round];
         }
         // always write a block at round mod something if we have a non zero input
         if (round % 10 === 0 && input !== 0) {
-            return [1, null];
+            return [1, null, round];
         }
         // if our input has changed write a block
         if (
@@ -343,15 +363,15 @@ export class Sequencer {
             this.prev.type === MessageType.INPUT &&
             this.prev.data !== input
         ) {
-            return [1, null];
+            return [1, null, round];
         }
 
         // always write a block at round mod something so we can form agreement
         if (round % 20 === 0) {
-            return [1, null];
+            return [1, null, round];
         }
 
-        return [0, null];
+        return [0, null, round];
     }
 
     onKeyDown(key: string) {

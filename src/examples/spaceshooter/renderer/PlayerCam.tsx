@@ -1,7 +1,7 @@
 import { PerspectiveCamera } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { memo, useRef, useEffect } from 'react';
-import { Camera, Vector3 } from 'three';
+import { memo, useEffect } from 'react';
+import { Frustum, Matrix4 } from 'three';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import {
     EntityObject3D,
@@ -9,37 +9,44 @@ import {
     interpolate,
     updateEntityGeneration,
 } from '../utils/RenderUtils';
-import { BackgroundGrid } from './Background';
 import { getShakeOffset } from './ShakeManager';
 import { WorldRef } from './ShooterRenderer';
 
-const CAM_INITIAL_ZOOM = 160;
+const CAM_INITIAL_ZOOM = 140;
 
 // camera and scene setup for following a player's ship
 export default memo(function PlayerCam({
     worldRef,
     peerId,
     metrics,
-    setCamera,
 }: {
     worldRef: WorldRef;
     peerId: string;
     metrics?: DefaultMetrics;
-    setCamera: (camera: Camera) => void;
 }) {
-    const { camera } = useThree();
-
+    const camera = useThree((state) => state.camera);
     useEffect(() => {
-        setCamera(camera);
-    }, [camera, setCamera]);
+        if (!camera) {
+            return;
+        }
+        (camera as any).__frustum = new Frustum();
+    }, [camera]);
 
     useFrame(({ camera }, deltaTime) => {
         // fps counter
         if (metrics) {
             metrics.fps.add(1);
         }
-        const world = worldRef.current;
+        // update frustum data
+        // NOTE: this is set here but used elsewhere so that we only set it once per frame
+        (camera as any).__frustum.setFromProjectionMatrix(
+            new Matrix4().multiplyMatrices(
+                camera.projectionMatrix,
+                camera.matrixWorldInverse,
+            ),
+        );
         // find the player data for viewing peerId
+        const world = worldRef.current;
         const player = world.players.get(peerId);
         if (!player) {
             return;
@@ -88,7 +95,7 @@ export default memo(function PlayerCam({
                 world.components.velocity.data.y[player.ship] *
                     world.components.velocity.data.y[player.ship],
         );
-        const zoom = CAM_INITIAL_ZOOM + vmag * 2;
+        const zoom = CAM_INITIAL_ZOOM + vmag ;
         camera.position.z = interpolate(
             camera.position.z,
             zoom,
@@ -124,8 +131,6 @@ export default memo(function PlayerCam({
                 intensity={12}
                 color={0xffffff}
             />
-
-            <fog attach="fog" args={[0x444466, 100, 1]} />
             {/* <BackgroundGrid /> */}
         </>
     );

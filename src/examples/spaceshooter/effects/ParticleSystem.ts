@@ -130,6 +130,7 @@ export class ParticleEffectData {
 export class ParticleEffect {
     particleEffect: ParticleEffectData;
     particleSystems: ParticleSystem[] = [];
+    n: number = 0;
 
     constructor(
         _name: string,

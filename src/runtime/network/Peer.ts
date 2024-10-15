@@ -296,8 +296,8 @@ export class Peer {
 
         await listening;
 
-        this.port = this.socket.address().port;
-        this.probeInternalPort = this.probeSocket.address().port;
+        this.port = (this.socket.address() as any).port;
+        this.probeInternalPort = (this.probeSocket.address() as any).port;
 
         if (this.onListening) {
             this.onListening();

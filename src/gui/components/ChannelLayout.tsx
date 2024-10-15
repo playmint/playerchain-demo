@@ -25,7 +25,7 @@ export default memo(function ChannelLayout({
     return channel ? (
         <ChannelView
             details={channelPanelOpen}
-            channelId={channel.id}
+            channel={channel}
             metrics={metrics}
         />
     ) : (

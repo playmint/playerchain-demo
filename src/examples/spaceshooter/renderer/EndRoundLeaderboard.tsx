@@ -1,159 +1,129 @@
 import '@fontsource-variable/recursive/full.css';
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
-import playerIcon from '../assets/playerIcon.png';
 import styles from './EndRoundLeaderBoard.module.css';
-import { LeaderboardGap, Score, shadeColor } from './LeaderBoard';
-import Modal from './Modal';
 import { PlayerInfo } from './PlayerHUD';
 
-export default function EndRoundLeaderBoard({
-    player,
-    players,
-    peerId,
-}: {
-    player: PlayerInfo;
-    players: PlayerInfo[];
-    peerId: string;
-}) {
-    const color = getPlayerColorCSS(
-        players.findIndex((pp) => pp.id === player.id),
-    );
-    const shadowColor = shadeColor(color, -25);
-    const scores: Score[] = players
-        .map((p) => ({
-            user: p.name,
-            score: p.score,
-            color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)), //'#ac75eb',
-            isMe: peerId === p.id,
-        }))
-        .sort((a, b) => b.score - a.score);
-
-    const position = scores.findIndex((score) => score.isMe) + 1;
-
-    return (
-        <Modal
-            isOpen={true}
-            onClose={function (): void {
-                throw new Error('Function not implemented.');
-            }}
-        >
-            <div className={styles.titleGroup}>
-                <div className={styles.titleText}>GAME OVER</div>
-                <div className={styles.titleText2}>GAME OVER</div>
-            </div>
-
-            <div className={styles.playerStats}>
-                <div
-                    className={styles.playerIcon}
-                    style={{ backgroundImage: `url(${playerIcon})` }}
-                ></div>
-                <div>
-                    <span
-                        className={`${styles.playerScoreCircle} ${styles.playerShadowCircle}`}
-                        style={{ backgroundColor: shadowColor }}
-                    >
-                        <span
-                            className={styles.playerScoreCircle}
-                            style={{ backgroundColor: color }}
-                        >
-                            {position}
-                        </span>
-                    </span>
-                </div>
-                <div className={styles.playerName}>{player.name}</div>
-                <div>
-                    <span className={styles.playerStatLeft}>{'Score'}</span>
-                    <span className={styles.playerStatRight}>
-                        {player.score}
-                    </span>
-                </div>
-            </div>
-            <div style={{ float: 'left' }}>
-                <EndRoundLeaderBoardScores players={players} peerId={peerId} />
-            </div>
-        </Modal>
-    );
+interface Stat {
+    name: string;
+    kills: number;
+    deaths: number;
+    score: number;
+    color: string;
 }
 
-function EndRoundLeaderBoardScores({
+export default function EndRoundLeaderBoard({
     players,
-    peerId,
 }: {
     players: PlayerInfo[];
-    peerId: string;
 }) {
-    const scores: Score[] = players
+    const scores = players
         .map((p) => ({
-            user: p.name,
+            name: p.name,
             score: p.score,
-            color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)), //'#ac75eb',
-            isMe: peerId === p.id,
+            kills: p.kills,
+            deaths: p.deaths,
+            color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)),
         }))
         .sort((a, b) => b.score - a.score);
 
     return (
         <div className={styles.leaderboard}>
-            <div className={styles.leaderboardEntryRow}>
-                <div className={styles.leaderboardCategoryEntry}>
-                    <span className={styles.leaderboardUserCategory}>Name</span>
-                    <span className={styles.leaderboardScore}>Kills</span>
-                    <span className={styles.leaderboardScore}>Deaths</span>
-                    <span className={styles.leaderboardScore}>Score</span>
-                    <span className={styles.leaderboardScore}>Rank</span>
-                </div>
+            <div className={styles.titleGroup}>
+                <div className={styles.titleText}>RESULTS</div>
+                <div className={styles.titleText2}>RESULTS</div>
             </div>
-            {scores.map((leader, index) => (
-                <LdrEntry
-                    key={index + '-' + leader.user + '-' + leader.score}
-                    userScore={leader}
-                    position={
-                        scores.findIndex(
-                            (score) => score.user === leader.user,
-                        ) + 1
-                    }
+            <div className={styles.leaderboardHeader}>
+                <span className={styles.leaderboardCategory}>NAME</span>
+                <span className={styles.leaderboardCategory}>KILLS</span>
+                <span className={styles.leaderboardCategory}>DEATHS</span>
+                <span className={styles.leaderboardCategory}>SCORE</span>
+                <span className={styles.leaderboardCategory}>RANK</span>
+            </div>
+            {scores.map((player, index) => (
+                <PlayerRow
+                    key={index + '-' + player.name}
+                    userScore={player}
+                    rank={index + 1}
                 />
             ))}
         </div>
     );
 }
 
-function LdrEntry(props: {
-    userScore: Score;
-    position: number;
-    scoresBetween?: number;
-}) {
-    const shadowColor = shadeColor(props.userScore.color, -25);
-    const entryClass = `${styles.leaderboardEntry}`;
-
-    const classN = `${styles.leaderboardEntryRow} ${(props.position - 1).toString()}`;
-
+function PlayerRow({ userScore, rank }: { userScore: Stat; rank: number }) {
+    const playerName = rank === 1 ? '👑 ' + userScore.name : userScore.name;
     return (
-        <>
-            <LeaderboardGap count={props.scoresBetween} />
-            <div className={classN}>
-                <div className={entryClass}>
-                    <span className={styles.leaderboardUser}>
-                        {props.userScore.user}
-                    </span>
-                    <span className={styles.leaderboardScore}>{'000'}</span>
-                    <span className={styles.leaderboardScore}>{'000'}</span>
-                    <span className={styles.leaderboardScore}>
-                        {props.userScore.score}
-                    </span>
-                    <span className={styles.leaderboardScore}>
-                        <span
-                            className={`${styles.scoreCircle} ${styles.playerShadowCircle}`}
-                            style={{ backgroundColor: shadowColor }}
-                        />
-                        <span
-                            className={styles.scoreCircle}
-                            style={{ backgroundColor: props.userScore.color }}
-                        >
-                            {props.position}
-                        </span>
-                    </span>
-                </div>
-            </div>
-        </>
+        <div className={`${styles.leaderboardRow}`}>
+            <span
+                className={styles.leaderboardUser}
+                style={{ color: userScore.color }}
+            >
+                {playerName}
+            </span>
+            <span className={styles.leaderboardStat}>{userScore.kills}</span>
+            <span className={styles.leaderboardStat}>{userScore.deaths}</span>
+            <span className={styles.leaderboardStat}>
+                {userScore.score.toLocaleString()}
+            </span>
+            <span className={styles.leaderboardStat}>
+                <span className={styles.rankCircleWrapper}>
+                    <RankCircle rank={rank} color={userScore.color} />
+                </span>
+            </span>
+        </div>
     );
+}
+
+function RankCircle({ rank, color }: { rank: number; color: string }) {
+    const shadowColor = darkenColor(color, 0.6);
+    return (
+        <svg
+            width="30"
+            height="30"
+            viewBox="0 0 60 60"
+            style={{ position: 'relative' }}
+        >
+            <circle
+                cx="30"
+                cy="30"
+                r="25"
+                fill={shadowColor}
+                style={{ transform: 'translate(0px, 3px)' }}
+            />
+            <circle
+                cx="30"
+                cy="30"
+                r="25"
+                fill={color}
+                style={{ transform: 'translate(0px, -3px)' }}
+            />
+            <text
+                x="50%"
+                y="50%"
+                dominantBaseline="middle"
+                textAnchor="middle"
+                fontSize="32px"
+                fill="#1d1d1d"
+                fontWeight="900"
+            >
+                {rank}
+            </text>
+        </svg>
+    );
+}
+
+function darkenColor(color: string, percent: number): string {
+    let R = parseInt(color.substring(1, 3), 16);
+    let G = parseInt(color.substring(3, 5), 16);
+    let B = parseInt(color.substring(5, 7), 16);
+
+    R = Math.floor(R * (1 - percent));
+    G = Math.floor(G * (1 - percent));
+    B = Math.floor(B * (1 - percent));
+
+    const RR = R.toString(16).padStart(2, '0');
+    const GG = G.toString(16).padStart(2, '0');
+    const BB = B.toString(16).padStart(2, '0');
+
+    return '#' + RR + GG + BB;
 }

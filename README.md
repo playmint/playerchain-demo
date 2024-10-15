@@ -1,7 +1,7 @@
-![playerchainBanner_2](https://github.com/user-attachments/assets/1f195369-23d2-45ed-9358-1a9014b7d15a)
+# &nbsp; ![playerchainBanner_2](https://github.com/user-attachments/assets/1f195369-23d2-45ed-9358-1a9014b7d15a)
 
 > [!NOTE]  
-> _Playerchains are a network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**._
+> _Playerchains are a peer-to-peer network architecture for running **responsive,** **multiplayer** games that are **decentralised** and **verifiable**._
 
 ### We’ve built a demo game you can play!
 <p align="left">
@@ -10,7 +10,7 @@
 
 ### Download and start a playerchain with your friends
 
-[![Download button](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download zip")](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.33)
+[![Download button](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download zip")](https://github.com/playmint/playerchain-demo/releases/tag/v0.0.45)
 
 <br />
 
@@ -61,12 +61,16 @@ _Playerchains are a way for players to have full control of their own responsive
 
 ### Todo
 - [x] Instructions to build and run from source
+- [ ] Host a prebuilt ssc from the Playmint/Socket fork
 - [ ] Licensing info
 - [ ] Guidance for contributors
 
 ### To build and run from source
 
-build `ssc` from the `playmint-next` branch of playmint/socket
+>[!WARNING]
+>building ssc has platform specific dependencies that we don't document, but we hope to provide a prebuilt install package in future.
+
+build `ssc` from the `playmint-next` branch of [playmint/socket](https://github.com/playmint/socket)
 
 ```
 macos:

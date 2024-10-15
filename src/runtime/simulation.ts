@@ -3,7 +3,7 @@ import database, { DB, SerializedState, StateTag, StoredMessage } from './db';
 import { GameModule, PlayerData, load } from './game';
 import { IncrementalCache } from './lru';
 import { InputMessage, MessageType } from './messages';
-import { SequencerMode, requiredConfirmationsFor } from './sequencer';
+import { SequencerMode } from './sequencer';
 
 export type State = {
     t: number;
@@ -102,17 +102,17 @@ export class Simulation {
     }
 
     private async getCurrentRoundLimitFromMessages(): Promise<number> {
-        const ourLatest = (await this.db.messages
-            .where(['channel', 'peer', 'round'])
+        const latest = (await this.db.messages
+            .where(['channel', 'round', 'peer'])
             .between(
-                [this.channelId, this.peerId, Dexie.minKey],
-                [this.channelId, this.peerId, Dexie.maxKey],
+                [this.channelId, Dexie.minKey, Dexie.minKey],
+                [this.channelId, Dexie.maxKey, Dexie.maxKey],
             )
             .last()) as InputMessage | undefined;
-        if (!ourLatest) {
+        if (!latest) {
             return 1;
         }
-        return ourLatest.round - this.inputDelay; // FIXME: how can we be smart about the offset
+        return latest.round - this.inputDelay; // FIXME: how can we be smart about the offset
     }
 
     private async getCurrentRoundLimitFromTime(): Promise<number> {
@@ -185,7 +185,7 @@ export class Simulation {
                 }
             });
         // always fetch enough to recalculate the wave
-        startFromRound = Math.max(startFromRound - this.interlace * 4, 1); // THINK: can we reduce num of fetched wave msgs
+        startFromRound = Math.max(startFromRound - this.interlace * 2, 1); // THINK: can we reduce num of fetched wave msgs
         // find the closest state to satisfy startFromRound
         // if we're already at the round we need, return it
         if (latestState.round === startFromRound) {
@@ -335,12 +335,11 @@ export class Simulation {
             // we need to check if the message is accepted or rejected
             const offsetFromFinalization = latestRound - m.round;
             const needsFinalization =
-                offsetFromFinalization > this.interlace * 3;
+                offsetFromFinalization > this.interlace * 2;
             let accepted = true;
             // is well acked?
             // TODO: reduce this number to supermajority
-            const requiredConfirmations =
-                requiredConfirmationsFor(this.channelPeerIds.length) - 1;
+            const requiredConfirmations = 0;
             if (
                 needsFinalization &&
                 m.confirmations[requiredConfirmations] < requiredConfirmations
@@ -363,7 +362,7 @@ export class Simulation {
             // we should not attempt to fill the gap and should abort
             if (round.round > 1 && round.delta > 0) {
                 console.log(
-                    `ARGG GAP! THIS IS UNEXPECTED AND LIKELY A BUG!
+                    `[sim/${this.peerId.slice(0, 8)}] ARGG GAP! THIS IS UNEXPECTED AND LIKELY A BUG!
                         delta=${round.delta}
                         round=${round.round}
                     `,

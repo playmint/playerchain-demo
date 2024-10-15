@@ -42,11 +42,9 @@ import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
 import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
 import { BackgroundModels } from './examples/spaceshooter/renderer/BackgroundModels';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
+import BulletModel from './examples/spaceshooter/renderer/BulletModel';
 import { FPSLimiter } from './examples/spaceshooter/renderer/FPSLimiter';
-import {
-    addShake,
-    getShakeOffset,
-} from './examples/spaceshooter/renderer/ShakeManager';
+import { getShakeOffset } from './examples/spaceshooter/renderer/ShakeManager';
 import WallModels from './examples/spaceshooter/renderer/WallModels';
 import { SHIP_MAX_VELOCITY } from './examples/spaceshooter/systems/shipSystem';
 import {
@@ -170,17 +168,7 @@ function Particles(props: { bufferScene: Scene }) {
         function onDocumentKeyUp(event: KeyboardEvent) {
             const keyCode = event.which;
             if (keyCode === 49) {
-                explosionRef.current.triggerExplosion(
-                    new Vector3(40, 0, 0),
-                    scene,
-                );
-                addShake({
-                    intensity: 100, // Adjust as needed
-                    frequency: 40,
-                    position: new Vector3(40, 0, 0),
-                    decay: 200, // Rate at which the shake reduces
-                    duration: 1, // How long the shake lasts
-                });
+                explosionRef.current.triggerExplosion(new Vector3(40, 0, 0));
             }
             if (keyCode === 50) {
                 respawnRef.current.triggerSpawn(new Vector3(40, 0, 0), scene);
@@ -224,6 +212,11 @@ function Particles(props: { bufferScene: Scene }) {
             <ShipImpactFX ref={shipImpactRef} />
         </>
     );
+}
+
+function Bullet() {
+    const [bullet] = useState(BulletModel());
+    return <Clone object={bullet} position={[60, 0, -1]} deep />;
 }
 
 function Diorama() {
@@ -324,12 +317,12 @@ function Diorama() {
                 color={0xffffff}
             />
 
-            <fog attach="fog" args={[0x444466, 100, 1]} />
             {/* <BackgroundGrid /> */}
             <Particles
                 bufferScene={RENDER_BUFFER_SCENE ? scene : bufferScene}
             />
             <Ship />
+            <Bullet />
             <BufferSceneRenderer
                 bufferScene={bufferScene}
                 bufferTarget={bufferTarget}
