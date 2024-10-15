@@ -7,7 +7,7 @@ import { assetPath } from '../utils/RenderUtils';
 export default function BulletModel() {
     const gltf = useGLTF(assetPath(shipGLTF));
     useMemo(() => {
-        gltf.scene.scale.set(1.1, 1.1, 1.1);
+        gltf.scene.scale.set(0.85, 0.85, 0.85);
         gltf.scene.traverse((child) => {
             if (child instanceof Mesh) {
                 const targetMaterial = new MeshBasicMaterial({
