@@ -58,7 +58,7 @@ export const requiredConfirmationsFor = (size: number): number => {
     }
 };
 
-const MIN_SEQUENCE_RATE = 30;
+const MIN_SEQUENCE_RATE = 10;
 const INITIAL_LOCKSTEP_PERIOD = 50;
 
 // the current input
@@ -109,7 +109,9 @@ export class Sequencer {
                 : MIN_SEQUENCE_RATE;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 1; // 1s warmup
         this.metrics = metrics;
-        this.end = SESSION_TIME_SECONDS / (this.fixedUpdateRate / 1000);
+        this.end =
+            SESSION_TIME_SECONDS / (this.fixedUpdateRate / 1000) +
+            this.interlace;
     }
 
     private loop = async () => {
@@ -268,54 +270,16 @@ export class Sequencer {
         const latestKnownRound = await this.getLatestKnownRound();
         const behindBy = latestKnownRound - round;
         if (behindBy > this.interlace * 2) {
-            // we are more than the interlace period behind
-            // the train has left the station without us
-            // let's check if we have validated enough of the chains that
-            // we have a chance of catching up
-            const peers = await this.db.peers.toArray();
-            const closeEnoughCount = await Promise.all(
-                peers.map(async (p) => {
-                    const latest = await this.db.messages
-                        .where(['peer', 'height'])
-                        .between(
-                            [p.peerId, Dexie.minKey],
-                            [p.peerId, Dexie.maxKey],
-                        )
-                        .last();
-                    return { latest, validHeight: p.validHeight };
-                }),
-            ).then((latests) =>
-                latests.reduce((acc, { latest, validHeight }) => {
-                    if (!latest) {
-                        return acc;
-                    }
-                    if (latest.height - validHeight > this.interlace * 18) {
-                        return acc;
-                    }
-                    return acc + 1;
-                }, 0),
-            );
-            if (
-                closeEnoughCount >=
-                requiredConfirmationsFor(peers.length) - 1
-            ) {
-                console.log('ALLOW TELEPORT', round, '->', latestKnownRound);
-                round = latestKnownRound;
-                numCommits = this.interlace;
-            } else {
-                // looks like we are out of the game as we are too far behind
-                // TODO: find a way to catch up safely
-                console.log('BLOCKED TOO FAR BEHIND');
-                return [0, null, round];
-            }
-        } else if (behindBy > 1) {
+            // console.log('ALLOW TELEPORT', round, '->', latestKnownRound);
+            round = latestKnownRound;
+        } else if (behindBy > 0) {
             numCommits = latestKnownRound - round;
-            console.log('ALLOW FASTFORWARD', numCommits);
+            // console.log('ALLOW FASTFORWARD', numCommits);
         } else {
             const timeSinceLastCommit = Date.now() - this.lastCommitted;
             if (timeSinceLastCommit < this.fixedUpdateRate) {
                 const wait = this.fixedUpdateRate - timeSinceLastCommit;
-                if (wait > 15) {
+                if (wait > MIN_SEQUENCE_RATE) {
                     // console.log(
                     //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound} wait=${this.fixedUpdateRate - timeSinceLastCommit}`,
                     // );
