@@ -7,9 +7,9 @@ import type { ClientContextType } from '../gui/hooks/use-client';
 import type { Client } from './client';
 import database, { DB } from './db';
 import { GameModule, load } from './game';
-import { InputMessage, Message, MessageType } from './messages';
+import { InputMessage, MessageType } from './messages';
 import { DefaultMetrics } from './metrics';
-import { CancelFunction, setPeriodic } from './utils';
+import { CancelFunction } from './utils';
 
 export interface Committer {
     commit: Client['commit'];
@@ -42,7 +42,7 @@ export const requiredConfirmationsFor = (size: number): number => {
         case 2:
             return 2;
         case 3:
-            return 2;
+            return 3;
         case 4:
             return 3;
         case 5:
@@ -58,19 +58,18 @@ export const requiredConfirmationsFor = (size: number): number => {
     }
 };
 
-const MIN_SEQUENCE_RATE = 10;
+// const MIN_SEQUENCE_RATE = 10;
 const INITIAL_LOCKSTEP_PERIOD = 50;
 
 // the current input
 export class Sequencer {
     private committer: Comlink.Remote<ClientContextType>;
     private mod: Promise<GameModule>;
-    private loopInterval: number;
     private playing = false;
     private channelId: string;
     private channelPeerIds: string[];
     private warmingUp = 0;
-    private prev?: Message;
+    private prevRound: number | null = null;
     private fixedUpdateRate: number;
     private inputDelay = 100;
     private mode: SequencerMode;
@@ -103,10 +102,6 @@ export class Sequencer {
         this.channelId = channelId;
         this.channelPeerIds = channelPeerIds;
         this.fixedUpdateRate = rate;
-        this.loopInterval =
-            this.mode === SequencerMode.WALLCLOCK
-                ? this.fixedUpdateRate
-                : MIN_SEQUENCE_RATE;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 1; // 1s warmup
         this.metrics = metrics;
         this.end =
@@ -125,6 +120,8 @@ export class Sequencer {
             }
         } catch (err) {
             console.error(`seq-loop-err`, err);
+        } finally {
+            setTimeout(this.loop, this.getFuzzyFixedUpdateRate());
         }
     };
 
@@ -147,49 +144,45 @@ export class Sequencer {
         }
 
         // skip if we just did that round
-        if (
-            this.prev &&
-            this.prev.type === MessageType.INPUT &&
-            round <= this.prev.round
-        ) {
+        if (this.prevRound !== null && round <= this.prevRound) {
             console.log('seq-no-new-round', round);
             return 0;
         }
         // get the current input state
         const mod = await this.mod;
-        const input = mod.getInput();
-        // can we write a block?
-        const [numCommits, ackIds, jumpRound] = await this.canWriteInputBlock(
-            input,
-            round,
-        );
-        if (!numCommits) {
-            return 0;
-        }
-        if (jumpRound !== round) {
-            round = jumpRound;
-        }
-        for (let i = 0; i < numCommits; i++) {
-            const isMainCommit = i === numCommits - 1;
-            this.prev = await this.committer.commit(
-                {
-                    type: MessageType.INPUT,
-                    round: round,
-                    data: input,
-                    acks: isMainCommit ? ackIds || [] : [], // only ack the lastest block
-                },
-                this.channelId,
-            );
-            this.lastCommitted = Date.now();
-            round++;
-            if (!isMainCommit && i > 2) {
-                // wait a bit before sending the next block
-                // or we might drown out the keep alives
-                await new Promise((resolve) => setTimeout(resolve, 1));
+        for (;;) {
+            if (!this.playing) {
+                break;
             }
+            const input = mod.getInput();
+            // can we write a block?
+            const [numCommits, ackIds, jumpRound] =
+                await this.canWriteInputBlock(input, round);
+            if (!numCommits) {
+                console.log('seq-cannot-write-block', round);
+                continue;
+            }
+            if (jumpRound !== round) {
+                round = jumpRound;
+            }
+            for (let i = 0; i < numCommits; i++) {
+                const isMainCommit = i === numCommits - 1;
+                await this.committer.enqueue(
+                    {
+                        type: MessageType.INPUT,
+                        round: round,
+                        data: input,
+                        acks: isMainCommit ? ackIds || [] : [], // only ack the lastest block
+                    },
+                    this.channelId,
+                );
+                this.lastCommitted = Date.now();
+                this.prevRound = round;
+                round++;
+            }
+            return numCommits;
         }
-        // we commited, count it
-        return numCommits;
+        throw new Error('unreachable');
     }
 
     private async getRound(): Promise<number> {
@@ -210,6 +203,9 @@ export class Sequencer {
     }
 
     private async getNextRound(): Promise<number> {
+        if (this.prevRound !== null) {
+            return this.prevRound + 1;
+        }
         // find our latest round
         let ourLatestRound = 0;
         const ourLatest = (await this.db.messages
@@ -272,20 +268,9 @@ export class Sequencer {
         if (behindBy > this.interlace * 2) {
             // console.log('ALLOW TELEPORT', round, '->', latestKnownRound);
             round = latestKnownRound;
-        } else if (behindBy > 0) {
+        } else if (behindBy > 1) {
             numCommits = latestKnownRound - round;
             // console.log('ALLOW FASTFORWARD', numCommits);
-        } else {
-            const timeSinceLastCommit = Date.now() - this.lastCommitted;
-            if (timeSinceLastCommit < this.fixedUpdateRate) {
-                const wait = this.fixedUpdateRate - timeSinceLastCommit;
-                if (wait > MIN_SEQUENCE_RATE) {
-                    // console.log(
-                    //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED SLOWDOWN wanted=${round} latest=${latestKnownRound} wait=${this.fixedUpdateRate - timeSinceLastCommit}`,
-                    // );
-                    return [0, null, round];
-                }
-            }
         }
         // fetch all the messages we have from interlaced round to ack
         const ackIds = (
@@ -306,42 +291,11 @@ export class Sequencer {
                 : requiredConfirmationsFor(this.channelPeerIds.length) - 1;
         if (ackIds.length < requiredAcks) {
             // console.log(
-            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredCount}`,
+            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredAcks}`,
             // );
             return [0, null, round];
         }
 
-        // fetch all the messages we have from interlaced*N round to ack
-        // const longAckIds = (
-        //     await this.db.messages
-        //         .where(['channel', 'round', 'peer'])
-        //         .between(
-        //             [
-        //                 this.channelId,
-        //                 round - this.interlace * 2 - 1,
-        //                 Dexie.minKey,
-        //             ],
-        //             [
-        //                 this.channelId,
-        //                 round - this.interlace * 2 - 1,
-        //                 Dexie.maxKey,
-        //             ],
-        //         )
-        //         .toArray()
-        // )
-        //     .filter(
-        //         (m) =>
-        //             m.peer &&
-        //             m.peer !== this.peerId,
-        //     )
-        //     .map((m) => m.id);
-        // // we can't write a block if we do not have enough acks on the interlaced*N round
-        // if (longAckIds.length < requiredCount) {
-        //     console.log(
-        //         `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGH LONG ACKS round=${round} longacks=${longAckIds.length} needacks=${requiredCount}`,
-        //     );
-        //     return [0, null];
-        // }
         return [numCommits, ackIds, round];
     }
 
@@ -349,23 +303,10 @@ export class Sequencer {
         input: number,
         round: number,
     ): Promise<[number, Uint8Array[] | null, number]> {
-        // commit if we have done something for first time
-        if (!this.prev && input !== 0) {
-            return [1, null, round];
-        }
         // always write a block at round mod something if we have a non zero input
         if (round % 10 === 0 && input !== 0) {
             return [1, null, round];
         }
-        // if our input has changed write a block
-        if (
-            this.prev &&
-            this.prev.type === MessageType.INPUT &&
-            this.prev.data !== input
-        ) {
-            return [1, null, round];
-        }
-
         // always write a block at round mod something so we can form agreement
         if (round % 20 === 0) {
             return [1, null, round];
@@ -395,7 +336,13 @@ export class Sequencer {
             return;
         }
         this.playing = true;
-        this.threads.push(setPeriodic(this.loop, this.loopInterval));
+        setTimeout(this.loop, this.getFuzzyFixedUpdateRate());
+    }
+
+    // returns a jittered fixed update rate
+    // the jitter helps even out differences in client updates
+    getFuzzyFixedUpdateRate(): number {
+        return this.fixedUpdateRate + Math.floor(Math.random() * 3 - 10);
     }
 
     stop() {

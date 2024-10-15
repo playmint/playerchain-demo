@@ -198,6 +198,38 @@ export class Client {
         return signed;
     }
 
+    queue: [ChainMessage, string | null][] = [];
+    dequeueTimer: null | any = null;
+    async enqueue(msg: ChainMessage, channelId: string | null) {
+        this.queue.push([msg, channelId]);
+        this.dequeueCommit();
+        return this.queue.length;
+    }
+
+    dequeueCommit() {
+        if (this.queue.length === 0) {
+            return;
+        }
+        if (this.dequeueTimer) {
+            return;
+        }
+        this.dequeueTimer = setTimeout(async () => {
+            const queue = [...this.queue];
+            this.queue = [];
+            for (const [msg, channelId] of queue) {
+                try {
+                    await this.commit(msg, channelId);
+                } catch (err) {
+                    console.error('enqueue-commit-error', err);
+                }
+            }
+            this.dequeueTimer = null;
+            if (this.queue.length > 0) {
+                this.dequeueCommit();
+            }
+        }, 0);
+    }
+
     // returns the signed message and the id
     async sign(msg: ChainMessage): Promise<[ChainMessage, string]> {
         await _sodium.ready;

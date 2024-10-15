@@ -103,10 +103,10 @@ export class Simulation {
 
     private async getCurrentRoundLimitFromMessages(): Promise<number> {
         const latest = (await this.db.messages
-            .where(['channel', 'round', 'peer'])
+            .where(['channel', 'peer', 'round'])
             .between(
-                [this.channelId, Dexie.minKey, Dexie.minKey],
-                [this.channelId, Dexie.maxKey, Dexie.maxKey],
+                [this.channelId, this.peerId, Dexie.minKey],
+                [this.channelId, this.peerId, Dexie.maxKey],
             )
             .last()) as InputMessage | undefined;
         if (!latest) {
