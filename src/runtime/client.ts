@@ -195,9 +195,6 @@ export class Client {
             ttl: DEFAULT_TTL,
         });
         this.parent = id;
-        this.send(signed, {
-            ttl: DEFAULT_TTL,
-        });
         return signed;
     }
 
