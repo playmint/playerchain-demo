@@ -75,6 +75,8 @@ export class Channel {
     }
 
     private updatePeers = async () => {
+        // tell channels peers we exist
+        await this.sendKeepAlive();
         // check for removed peers
         const peers = this.subcluster.peers();
         for (const [peerId, _] of this.lastKnowPeers) {
@@ -152,7 +154,7 @@ export class Channel {
         this.alivePeerIds.set(peerId, m);
         this.client.db.peers
             .update(peerId, {
-                lastSeen: m.timestamp,
+                lastSeen: Date.now(),
                 sees: m.sees.map((s) => Buffer.from(s).toString('hex')),
             })
             .catch((err) => {
@@ -170,6 +172,26 @@ export class Channel {
                 });
             this.peerNames.set(peerId, m.name);
         }
+    };
+
+    sendKeepAlive = async () => {
+        const subclusterPeers = this.subcluster.peers();
+        const peerName = await this.client.db.peerNames.get(this.client.peerId);
+        const msg: KeepAliveMessage = {
+            type: MessageType.KEEP_ALIVE,
+            peer: this.client.id,
+            timestamp: Date.now(),
+            sees: subclusterPeers.map(
+                (p) =>
+                    Buffer.from(
+                        p.peerId.slice(0, 8),
+                        'hex',
+                    ) as unknown as Uint8Array,
+            ),
+            name: peerName?.name || '',
+        };
+        const opts = { ttl: 60 * 1000 };
+        await this.send(msg, opts);
     };
 
     send = async (m: Message, opts?: EmitOpts) => {
