@@ -20,8 +20,8 @@ export interface ExplodeFXHandle {
             effect.position.copy(pos);
             QuarksUtil.restart(effect);
             addShake({
-                intensity: 350, // Adjust as needed
-                frequency: 55,
+                intensity: 300, // Adjust as needed
+                frequency: 40,
                 position: pos,
                 decay: 700, // Rate at which the shake reduces
                 duration: 1, // How long the shake lasts
