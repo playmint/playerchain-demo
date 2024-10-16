@@ -1,10 +1,10 @@
+import * as Comlink from 'comlink';
 import { Buffer } from 'socket:buffer';
 import { Client } from './client';
 import {
     KeepAliveMessage,
     Message,
     MessageType,
-    decodeMessage,
     encodeMessage,
 } from './messages';
 import { SocketEmitOpts } from './network';
@@ -14,10 +14,9 @@ import { CancelFunction, setPeriodic } from './utils';
 export type ChannelConfig = {
     id: string;
     name: string;
-    subcluster: Subcluster;
-    onMsg?: (m: Message, channelId: string) => void;
+    subcluster: Comlink.Remote<Subcluster>;
+    onMsg?: (m: Message, id: string, channelId: string) => void;
     client: Client;
-    Buffer: typeof Buffer;
 };
 
 export interface ChannelInfo {
@@ -47,30 +46,23 @@ export class Channel {
     shortId: string;
     client: Client;
     name: string = '';
-    Buffer: typeof Buffer;
-    subcluster: Subcluster;
+    subcluster: Comlink.Remote<Subcluster>;
     threads: CancelFunction[] = [];
-    _onMsg?: (m: Message, channelId: string) => void;
+    _onMsg?: (m: Message, id: string, channelId: string) => void;
     lastKnowPeers = new Map<string, PeerStatus>();
     alivePeerIds: Map<string, KeepAliveMessage> = new Map();
     peerNames: Map<string, string> = new Map();
 
-    constructor({
-        id,
-        client,
-        subcluster,
-        name,
-        onMsg,
-        Buffer,
-    }: ChannelConfig) {
-        this.Buffer = Buffer;
+    constructor({ id, client, subcluster, name, onMsg }: ChannelConfig) {
         this.id = id;
         this.shortId = id.slice(0, 8);
         this.name = name;
         this._onMsg = onMsg;
         this.subcluster = subcluster;
         this.client = client;
-        subcluster.onMsg = this.onChannelMsg;
+        subcluster
+            .set('onMsg', Comlink.proxy(this.onChannelMsg))
+            .catch((err) => console.error('set-on-msg-err:', err));
         this.threads.push(setPeriodic(this.updatePeers, 1000));
     }
 
@@ -78,7 +70,7 @@ export class Channel {
         // tell channels peers we exist
         await this.sendKeepAlive();
         // check for removed peers
-        const peers = this.subcluster.peers();
+        const peers = await this.subcluster.getPeerInfo();
         for (const [peerId, _] of this.lastKnowPeers) {
             if (!peers.some((p) => p.peerId === peerId)) {
                 this.lastKnowPeers.delete(peerId);
@@ -92,7 +84,7 @@ export class Channel {
         // check for added peers
         for (const peer of peers) {
             const connected = peer.connected ? 1 : 0;
-            const proxy = !!peer.proxies.size;
+            const proxy = !!peer.proxy;
             let status = this.lastKnowPeers.get(peer.peerId);
             if (!status) {
                 status = { connected, proxy };
@@ -129,15 +121,14 @@ export class Channel {
         }
     }
 
-    private onChannelMsg = async (b: Buffer) => {
+    private onChannelMsg = async (m: Message, id) => {
         if (!this._onMsg) {
             return;
         }
-        const m = decodeMessage(b);
         if (m.type === MessageType.KEEP_ALIVE) {
             return this.handleKeepAlive(m);
         } else {
-            this._onMsg(m, this.id);
+            this._onMsg(m, id, this.id);
         }
     };
 
@@ -175,7 +166,7 @@ export class Channel {
     };
 
     sendKeepAlive = async () => {
-        const subclusterPeers = this.subcluster.peers();
+        const subclusterPeers = await this.subcluster.getPeerInfo();
         const peerName = await this.client.db.peerNames.get(this.client.peerId);
         const msg: KeepAliveMessage = {
             type: MessageType.KEEP_ALIVE,
@@ -196,27 +187,17 @@ export class Channel {
 
     send = async (m: Message, opts?: EmitOpts) => {
         const bytes = encodeMessage(m);
-        this.emit('msg', bytes, opts).catch((err) => {
-            console.error('send-err:', err);
-        });
+        return this.emit('msg', bytes, opts);
     };
 
     emit = async (evt: string, buf: Uint8Array, opts?: EmitOpts) => {
         // const ourPeerIds = ourPeers.map((p) => p.peerId);
-        if (this.subcluster.peers().length === 0) {
+        const subclusterPeers = await this.subcluster.getPeerInfo();
+        if (subclusterPeers.length === 0) {
             console.log(`${this.client.shortId} USING CRAPPY SEND`);
             return this.subcluster.publish(evt, buf, opts);
         } else {
             return this.subcluster.stream(evt, buf, opts);
-            // for (const [peerId, peer] of this.socket.peers) {
-            // if (ourPeers.length > 0 && !ourPeerIds.includes(peerId)) {
-            //     continue;
-            // }
-            // console.log(
-            //     `${this.client.shortId} ---> ${peerId.slice(0, 8)}`,
-            // );
-            //     return peer.emit(evt, buf, opts);
-            // }
         }
     };
 

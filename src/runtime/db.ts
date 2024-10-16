@@ -116,7 +116,7 @@ export type StoredMessage = StoredChainMessage & {
     id: string;
     updated: number;
     channel: string | null;
-    confirmations: MessageConfirmationMatrix;
+    // confirmations: MessageConfirmationMatrix;
 };
 
 export function fromStoredChainMessage(m: StoredMessage): ChainMessage {
@@ -155,7 +155,7 @@ export function toStoredChainMessage(
     id: string,
     updated: number,
     channel: string | null,
-    confirmations: MessageConfirmationMatrix,
+    // confirmations: MessageConfirmationMatrix,
 ): StoredMessage {
     if (!m.peer) {
         throw new Error('peer field is required');
@@ -177,7 +177,7 @@ export function toStoredChainMessage(
         sig: Buffer.from(m.sig).toString('base64'),
         updated,
         channel,
-        confirmations,
+        // confirmations,
     };
     switch (m.type) {
         case MessageType.INPUT:
@@ -202,20 +202,25 @@ export function toStoredChainMessage(
     }
 }
 
-export type Ack = {
-    from: string;
-    to: string;
+export type Tape = {
+    round: number;
+    channel: string;
+    inputs: number[]; // inputs indexed by peer index
+    ids: string[]; // list of message ids indexed by peer index
+    acks: string[][]; // list of messages ids that ack the input at the peer index
+    final: boolean;
+    updated: number;
 };
 
 export type DB = Dexie & {
     channels: EntityTable<ChannelInfo, 'id'>;
     messages: EntityTable<StoredMessage, 'id'>;
-    acks: EntityTable<Ack, 'from'>;
     state: EntityTable<SerializedState>;
     peers: EntityTable<PeerInfo, 'peerId'>;
     network: EntityTable<NetworkInfo, 'id'>;
     settings: EntityTable<PlayerSettings, 'id'>;
     peerNames: EntityTable<PeerNames, 'peerId'>;
+    tapes: EntityTable<Tape>;
 };
 
 export function open(name: string): DB {
@@ -226,11 +231,11 @@ export function open(name: string): DB {
         peers: 'peerId, connected',
         messages:
             'id, &sig, &[peer+height], [channel+type], &[channel+peer+round], &[channel+round+peer], &[channel+updated]',
-        acks: '[from+to], to',
         state: '[channel+tag+round]',
         network: 'id',
         settings: 'id',
         peerNames: 'peerId',
+        tapes: '[channel+round], [channel+updated]',
     });
 
     return db;
