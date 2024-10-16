@@ -1,8 +1,10 @@
 /**
  * This module provides primitives for creating a p2p network.
  */
+import * as Comlink from 'comlink';
 import { Buffer } from 'socket:buffer';
 import { randomBytes, sodium } from 'socket:crypto';
+import dgram from 'socket:dgram';
 import { isBufferLike } from 'socket:util';
 import { BOOTSTRAP_PEERS } from '../bootstrap';
 import { RemotePeer } from './RemotePeer';
@@ -166,7 +168,7 @@ export class Peer {
     mainLoopTimer?: any;
     keepalive: number;
 
-    dgram: typeof import('node:dgram');
+    dgram: typeof import('socket:dgram');
 
     onListening?: () => void;
     onDelete?: (packet: Packet) => void;
@@ -175,9 +177,9 @@ export class Peer {
     gate = new Map();
     encryption: Encryption;
 
-    socket: import('node:dgram').Socket;
-    socketPool?: import('node:dgram').Socket[];
-    probeSocket: import('node:dgram').Socket;
+    socket: any;
+    socketPool?: import('socket:dgram').Socket[];
+    probeSocket: import('socket:dgram').Socket;
 
     onDebug?: (peerId: string, ...args: any[]) => void;
     onState?: () => void;
@@ -192,12 +194,12 @@ export class Peer {
         o: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 },
     };
 
-    constructor(config: PeerConfig, dgram: typeof import('node:dgram')) {
-        if (!dgram) {
-            throw new Error(
-                'dgram implementation required in constructor as second argument',
-            );
-        }
+    constructor(config: PeerConfig, _dgramImpl?: typeof import('node:dgram')) {
+        // if (!dgram) {
+        //     throw new Error(
+        //         'dgram implementation required in constructor as second argument',
+        //     );
+        // }
         this.dgram = dgram;
 
         this.peerId = Buffer.from(config.signingKeys.publicKey).toString('hex');
@@ -257,6 +259,10 @@ export class Peer {
         );
     }
 
+    async set(event, fn) {
+        this[event] = fn;
+    }
+
     _onError = (err) => {
         this.onError && this.onError(err);
     };
@@ -276,12 +282,12 @@ export class Peer {
         this.socket.removeAllListeners();
         this.probeSocket.removeAllListeners();
 
-        this.socket.on('message', (...args) => this._onMessage(...args));
-        this.socket.on('error', (...args) => this._onError(...args));
-        this.probeSocket.on('message', (...args) =>
-            this._onProbeMessage(...args),
+        this.socket.on('message', (data, opts) => this._onMessage(data, opts));
+        this.socket.on('error', (err) => this._onError(err));
+        this.probeSocket.on('message', (data, opts) =>
+            this._onProbeMessage(data, opts),
         );
-        this.probeSocket.on('error', (...args) => this._onError(...args));
+        this.probeSocket.on('error', (err) => this._onError(err));
 
         this.socket.setMaxListeners(2048);
         this.probeSocket.setMaxListeners(2048);
@@ -926,7 +932,7 @@ export class Peer {
             SubclusterConfig,
             'clusterId' | 'signingKeys' | 'localPeer'
         >,
-    ): Promise<Subcluster> {
+    ): Promise<Subcluster & Comlink.ProxyMarked> {
         const signingKeys = await Encryption.createKeyPair(config.sharedKey);
         const subclusterId = signingKeys.publicKey;
         this.encryption.add(signingKeys.publicKey, signingKeys.privateKey);
@@ -944,7 +950,8 @@ export class Peer {
         }
 
         if (!this.port || !this.natType) {
-            return subcluster;
+            console.log('-------------------noportnonat');
+            return Comlink.proxy(subcluster);
         }
 
         this.clock += 1;
@@ -972,7 +979,8 @@ export class Peer {
         await this.mcast(packet);
         this.gate.set(packet.packetId.toString('hex'), 1);
 
-        return subcluster;
+        console.log('-------------------JOINED');
+        return Comlink.proxy(subcluster);
     }
 
     async _message2packets(T: any, message: any, args) {
@@ -1772,7 +1780,9 @@ export class Peer {
 
                     const data = await Packet.encode(new PacketPing(p));
 
-                    pooledSocket.send(data as any, rinfo.port, rinfo.address);
+                    pooledSocket
+                        .send(data as any, rinfo.port, rinfo.address)
+                        .catch((err) => console.error('send-error', err));
 
                     // create a new socket to replace it in the pool
                     const pool = this.socketPool || [];
@@ -1788,7 +1798,7 @@ export class Peer {
                 });
 
                 try {
-                    pooledSocket.send(data as any, peerPort, peerAddress);
+                    await pooledSocket.send(data as any, peerPort, peerAddress);
                 } catch (err) {
                     console.error('STRATEGY_TRAVERSAL_CONNECT error', err);
                 }

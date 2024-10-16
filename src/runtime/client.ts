@@ -1,4 +1,5 @@
 import * as cbor from 'cbor-x';
+import * as Comlink from 'comlink';
 import Dexie from 'dexie';
 import _sodium from 'libsodium-wrappers';
 import { Buffer } from 'socket:buffer';
@@ -6,15 +7,15 @@ import { Encryption } from 'socket:latica';
 import { Channel, ChannelInfo, EmitOpts } from './channels';
 import database, {
     DB,
-    MessageConfirmationMatrix,
+    StoredChainMessage,
     StoredMessage,
+    Tape,
     fromStoredChainMessage,
     toStoredChainMessage,
 } from './db';
 import {
     ChainMessage,
     CreateChannelMessage,
-    InputMessage,
     Message,
     MessageType,
     SetPeersMessage,
@@ -63,6 +64,7 @@ export class Client {
     _ready: null | Promise<void>;
     enableSync: boolean;
     missingGate: Map<string, number> = new Map();
+    channelPeerIds: string[] = [];
 
     constructor(config: ClientConfig) {
         this.id = config.keys.publicKey;
@@ -95,7 +97,7 @@ export class Client {
             keys: config.keys,
             clusterId: config.clusterId,
             config: config.config,
-            dgram: config.dgram,
+            // dgram: config.dgram,
         });
         // this.net.socket.on('#disconnect', this.onPeerDisconnect);
         this.debug('starting-head-reporter');
@@ -170,52 +172,40 @@ export class Client {
                 : null,
         };
         const [signed, id] = await this.sign(attest);
-        const stored = toStoredChainMessage(
-            signed,
-            id,
-            this.nextSequenceNumber(),
-            channelId,
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        );
-        await this.db.transaction(
-            'rw',
-            [this.db.messages, this.db.acks],
-            async () => {
-                await this.db.messages.add(stored);
-                if (attest.acks) {
-                    await this.updateAcks(attest, id);
-                }
-            },
-        );
+        await this.onMsg(signed, id, channelId);
+        this.send(signed, {
+            ttl: DEFAULT_TTL,
+        });
+        setTimeout(() => {
+            this.send(signed, {
+                ttl: DEFAULT_TTL,
+            });
+        }, 10);
         if (typeof signed.height !== 'number') {
             throw new Error('signed-invalid-height');
         }
         this.height = signed.height + 1;
-        this.send(signed, {
-            ttl: DEFAULT_TTL,
-        });
         this.parent = id;
         return signed;
     }
 
-    queue: [ChainMessage, string | null][] = [];
-    dequeueTimer: null | any = null;
+    commitQueue: [ChainMessage, string | null][] = [];
+    commitTimer: null | any = null;
     async enqueue(msg: ChainMessage, channelId: string | null) {
-        this.queue.push([msg, channelId]);
+        this.commitQueue.push([msg, channelId]);
         this.dequeueCommit();
-        return this.queue.length;
+        return this.commitQueue.length;
     }
-
     dequeueCommit() {
-        if (this.queue.length === 0) {
+        if (this.commitQueue.length === 0) {
             return;
         }
-        if (this.dequeueTimer) {
+        if (this.commitTimer) {
             return;
         }
-        this.dequeueTimer = setTimeout(async () => {
-            const queue = [...this.queue];
-            this.queue = [];
+        this.commitTimer = setTimeout(async () => {
+            const queue = [...this.commitQueue];
+            this.commitQueue = [];
             for (const [msg, channelId] of queue) {
                 try {
                     await this.commit(msg, channelId);
@@ -223,8 +213,8 @@ export class Client {
                     console.error('enqueue-commit-error', err);
                 }
             }
-            this.dequeueTimer = null;
-            if (this.queue.length > 0) {
+            this.commitTimer = null;
+            if (this.commitQueue.length > 0) {
                 this.dequeueCommit();
             }
         }, 0);
@@ -317,240 +307,348 @@ export class Client {
         );
     }
 
-    private onMsg = async (m: Message, channelId: string) => {
-        // ignore keep alive messages
-        // these are (weirdly) being handled in the channel
+    messageQueue: [Message, string, string | null][] = [];
+    messageTimer: null | any = null;
+    enqueueMessage(m: Message, id: string, channelId: string | null) {
+        if (!this.messageQueue.some((q) => q[1] === id)) {
+            this.messageQueue.push([m, id, channelId]);
+        }
+        this.dequeueMessage();
+    }
+    dequeueMessage() {
+        if (this.messageQueue.length === 0) {
+            return;
+        }
+        if (this.messageTimer) {
+            return;
+        }
+        this.messageTimer = setTimeout(async () => {
+            if (this.channelPeerIds.length === 0) {
+                this.debug('not ready to process messages yet');
+            } else {
+                const queue = [...this.messageQueue];
+                this.messageQueue = [];
+                await this.processMessages(queue);
+            }
+            this.messageTimer = null;
+            if (this.messageQueue.length > 0) {
+                this.dequeueMessage();
+            }
+        }, 10);
+    }
+
+    ackQueue: [StoredChainMessage, string, string][] = [];
+    ackTimer: null | any = null;
+    enqueueAck(m: StoredChainMessage, id: string, channelId: string) {
+        if (!this.ackQueue.some((q) => q[1] === id)) {
+            this.ackQueue.push([m, id, channelId]);
+        }
+        this.dequeueAck();
+    }
+    dequeueAck() {
+        if (this.ackQueue.length === 0) {
+            return;
+        }
+        if (this.ackTimer) {
+            return;
+        }
+        this.ackTimer = setTimeout(async () => {
+            if (this.channelPeerIds.length === 0) {
+                this.debug('not ready to process acks yet');
+            } else {
+                const queue = [...this.ackQueue];
+                this.ackQueue = [];
+                const tapes = [];
+                for (const [m, id, channelId] of queue) {
+                    await this.updateAcks(m, id, channelId, tapes);
+                }
+            }
+            this.ackTimer = null;
+            if (this.ackQueue.length > 0) {
+                this.dequeueAck();
+            }
+        }, 100);
+    }
+
+    async getMessage(id: string, messages?: StoredMessage[]) {
+        const m = messages?.find((m) => m.id === id);
+        if (m) {
+            return m;
+        }
+        return this.db.messages.get(id);
+    }
+
+    private onMsg = async (
+        m: Message,
+        id: string,
+        channelId: string | null,
+    ) => {
         if (m.type === MessageType.KEEP_ALIVE) {
             return;
-        }
-        // ignore own messages, assume we took care of those
-        if (Buffer.from(m.peer).toString('hex') === this.peerId) {
-            return;
-        }
-        // verify it
-        const [verified, id] = await this.verify(m);
-        if (!verified) {
-            this.debug(
-                'drop-message-verification-fail',
-                Buffer.from(m.sig).toString('hex'),
+        } else if (m.type === MessageType.CREATE_CHANNEL) {
+            await this.db.messages.put(
+                toStoredChainMessage(
+                    m,
+                    id,
+                    this.nextSequenceNumber(),
+                    channelId,
+                ),
             );
-            return;
-        }
-        if (!id) {
-            this.debug(
-                'drop-message-no-id',
-                Buffer.from(m.sig).toString('hex'),
-            );
-            return;
-        }
-        if (!m.sig) {
-            this.debug(
-                'drop-message-no-id',
-                Buffer.from(m.sig).toString('hex'),
-            );
-            return;
-        }
-        if (m.type !== MessageType.INPUT) {
-            // store it
-            const existing = await this.db.messages.get(id);
-            if (!existing) {
-                await this.db.messages.put(
-                    toStoredChainMessage(
-                        m,
-                        id,
-                        this.nextSequenceNumber(),
-                        channelId,
-                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    ),
-                );
+            await this.onCreateChannel(m);
+        } else if (m.type === MessageType.SET_PEERS) {
+            if (!channelId) {
+                return;
             }
-        }
-        // process it
-        switch (m.type) {
-            case MessageType.INPUT:
-                await this.onInputMessage(m, channelId, id);
-                return;
-            case MessageType.CREATE_CHANNEL:
-                await this.onCreateChannel(m);
-                return;
-            case MessageType.SET_PEERS:
-                await this.onSetPeers(m, channelId);
-                return;
-            default:
-                console.warn('unhandled-msg', m);
-                return;
+            await this.db.messages.put(
+                toStoredChainMessage(
+                    m,
+                    id,
+                    this.nextSequenceNumber(),
+                    channelId,
+                ),
+            );
+            await this.onSetPeers(m, channelId);
+        } else {
+            this.enqueueMessage(m, id, channelId);
         }
     };
 
-    async onInputMessage(
-        msg: InputMessage,
-        channelId: string,
-        id: string,
-    ): Promise<void> {
-        await this.db.transaction(
-            'rw',
-            [this.db.messages, this.db.acks],
-            async () => {
-                // store it
-                const existing = await this.db.messages.get(id);
-                if (existing) {
-                    return;
-                }
-                await this.db.messages.put(
-                    toStoredChainMessage(
-                        msg,
-                        id,
-                        this.nextSequenceNumber(),
-                        channelId,
-                        await this.calculateMessageConfirmations(id),
-                    ),
-                );
-                // do we have this message's parent?
-                if (msg.parent) {
-                    const parentId = Buffer.from(msg.parent).toString('base64');
-                    const parent = await this.db.messages.get(parentId);
-                    if (!parent) {
-                        let gap = 0;
-                        if (typeof msg.height === 'number') {
-                            const peerId = Buffer.from(msg.peer).toString(
-                                'hex',
-                            );
-                            const messageAfterGap = await this.db.messages
-                                .where(['peer', 'height'])
-                                .between(
-                                    [peerId, Dexie.minKey],
-                                    [peerId, msg.height],
-                                )
-                                .last();
-                            gap = messageAfterGap
-                                ? msg.height - 2 - messageAfterGap.height
-                                : 0;
-                        }
-                        this.requestMissingParent(parentId, gap).catch((err) =>
-                            console.error(
-                                'quick-req-missing-parent-error',
-                                err,
-                            ),
-                        );
+    private processMessages = async (
+        queue: [Message, string, string | null][],
+    ) => {
+        const messages: StoredMessage[] = [];
+        for (const [m, id, channelId] of queue) {
+            // ignore keep alive messages
+            // these are (weirdly) being handled in the channel
+            if (m.type === MessageType.KEEP_ALIVE) {
+                continue;
+            }
+            messages.push(
+                toStoredChainMessage(
+                    m,
+                    id,
+                    this.nextSequenceNumber(),
+                    channelId,
+                    // [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ),
+            );
+            // process it
+            switch (m.type) {
+                case MessageType.INPUT:
+                    if (!channelId) {
+                        this.debug('input-missing-channel-id', m);
+                        continue;
                     }
-                }
-                // updated acks
-                // TODO: don't just blindly trust the acks are valid, ensure that each ack does not ack a message before a previous ack
-                if (msg.acks) {
-                    await this.updateAcks(msg, id);
-                }
-            },
+                    // do we have this message's parent?
+                    if (m.parent) {
+                        const parentId = Buffer.from(m.parent).toString(
+                            'base64',
+                        );
+                        const parent = await this.getMessage(
+                            parentId,
+                            messages,
+                        );
+                        if (!parent) {
+                            setTimeout(async () => {
+                                let gap = 0;
+                                if (typeof m.height === 'number') {
+                                    const peerId = Buffer.from(m.peer).toString(
+                                        'hex',
+                                    );
+                                    const messageAfterGap =
+                                        await this.db.messages
+                                            .where(['peer', 'height'])
+                                            .between(
+                                                [peerId, Dexie.minKey],
+                                                [peerId, m.height],
+                                            )
+                                            .last();
+                                    gap = messageAfterGap
+                                        ? m.height - 2 - messageAfterGap.height
+                                        : 0;
+                                }
+                                this.requestMissingParent(parentId, gap).catch(
+                                    (err) =>
+                                        console.error(
+                                            'quick-req-missing-parent-error',
+                                            err,
+                                        ),
+                                );
+                            }, 0);
+                        }
+                    }
+                    break;
+                case MessageType.CREATE_CHANNEL:
+                    await this.onCreateChannel(m);
+                    break;
+                case MessageType.SET_PEERS:
+                    if (!channelId) {
+                        this.debug('set-peers-missing-channel-id', m);
+                        continue;
+                    }
+                    await this.onSetPeers(m, channelId);
+                    break;
+                default:
+                    this.debug('unhandled-msg', m);
+                    return;
+            }
+        }
+        // write in bulk
+        if (messages.length > 0) {
+            // this.debug('write-messages', messages);
+            await this.db.messages.bulkPut(messages);
+        }
+        // process the tapes
+        const tapes: Tape[] = [];
+        for (const m of messages) {
+            if (m.type === MessageType.INPUT && m.channel) {
+                await this.processTapes(m, m.id, m.channel, tapes);
+            }
+        }
+        if (tapes.length > 0) {
+            // this.debug('write-tapes', tapes);
+            await this.db.tapes.bulkPut(
+                tapes.map((t) => {
+                    t.updated = this.nextSequenceNumber();
+                    return t;
+                }),
+            );
+        }
+    };
+
+    async processTapes(
+        m: StoredChainMessage,
+        id: string,
+        channelId: string,
+        updatedTapes: Tape[],
+    ): Promise<Tape[]> {
+        if (m.type !== MessageType.INPUT) {
+            return [];
+        }
+        if (this.channelPeerIds.length === 0) {
+            throw new Error('channel-peers-not-set-yet');
+        }
+        let needsUpdate = false;
+        let tape = updatedTapes.find(
+            (t) => t.round === m.round && t.channel === channelId,
         );
+        if (!tape) {
+            tape = await this.db.tapes
+                .where(['channel', 'round'])
+                .equals([channelId, m.round])
+                .first();
+        }
+        if (!tape) {
+            tape = {
+                channel: channelId,
+                round: m.round,
+                ids: new Array(this.channelPeerIds.length)
+                    .fill(null)
+                    .map(() => ''),
+                inputs: new Array(this.channelPeerIds.length).fill(-1),
+                acks: new Array(this.channelPeerIds.length)
+                    .fill(null)
+                    .map(() => []),
+                final: false,
+                updated: 0,
+            };
+            needsUpdate = true;
+        }
+        // update the tape with the new input
+        if (this.channelPeerIds.length !== tape.ids.length) {
+            throw new Error('invalid-tape-length');
+        }
+        const peerIndex = this.channelPeerIds.indexOf(m.peer);
+        if (peerIndex === -1) {
+            this.debug('input-from-unknown-peer', m.peer);
+            return updatedTapes;
+        }
+        if (tape.ids[peerIndex] !== id) {
+            tape.ids[peerIndex] = id;
+            tape.inputs[peerIndex] = m.data;
+            needsUpdate = true;
+        }
+        if (needsUpdate && !updatedTapes.some((t) => t === tape)) {
+            updatedTapes.push(tape);
+        }
+        // does this message ack a message in another tape
+        if (m.acks) {
+            await this.updateAcks(m, id, channelId, updatedTapes);
+        }
+        return updatedTapes;
     }
 
-    async updateAcks(msg: ChainMessage, id: string) {
-        if (!msg.acks) {
+    async updateAcks(
+        m: StoredChainMessage,
+        id: string,
+        channelId: string,
+        updatedTapes: Tape[],
+    ) {
+        if (!m.acks) {
             return;
         }
-        // write the acks to db
-        await this.db.acks.bulkPut(
-            msg.acks.map((ackId) => ({
-                from: id,
-                to: Buffer.from(ackId).toString('base64'),
-            })),
-        );
-        // recalculate the confirmations for each acked message
-        await Promise.all(
-            msg.acks.map(async (ackId) => {
-                const ackee = await this.updateMessageConfirmations(
-                    Buffer.from(ackId).toString('base64'),
-                );
-                if (!ackee) {
-                    return Promise.resolve(null);
-                }
-                // if the ackee confirmaiton changed, update the ackee's acks too
-                if (ackee.acks) {
-                    await Promise.all(
-                        ackee.acks.map(
-                            (ackAckId) =>
-                                this.updateMessageConfirmations(ackAckId),
-                            [] as Promise<StoredMessage>[],
-                        ),
-                    );
-                }
-            }),
-        );
-    }
-
-    async updateMessageConfirmations(
-        id: string,
-    ): Promise<StoredMessage | null> {
-        const ackee = await this.db.messages.get(id);
-        if (!ackee) {
-            return null;
+        for (const ackId of m.acks) {
+            let needsUpdate = false;
+            const acked = await this.db.messages.get(ackId);
+            if (!acked) {
+                this.debug('enqueuing-ack-as-target-not-available', ackId);
+                this.enqueueAck(m, id, channelId);
+                continue;
+            }
+            if (acked.type !== MessageType.INPUT) {
+                continue;
+            }
+            let tape = updatedTapes.find(
+                (t) => t.round === acked.round && t.channel === channelId,
+            );
+            if (!tape) {
+                tape = await this.db.tapes
+                    .where(['channel', 'round'])
+                    .equals([channelId, acked.round])
+                    .first();
+            }
+            if (!tape) {
+                tape = {
+                    channel: channelId,
+                    round: acked.round,
+                    ids: new Array(this.channelPeerIds.length)
+                        .fill(null)
+                        .map(() => ''),
+                    inputs: new Array(this.channelPeerIds.length).fill(-1),
+                    acks: new Array(this.channelPeerIds.length)
+                        .fill(null)
+                        .map(() => []),
+                    final: false,
+                    updated: 0,
+                };
+                needsUpdate = true;
+            }
+            const ackedIndex = this.channelPeerIds.indexOf(acked.peer);
+            if (ackedIndex === -1) {
+                this.debug('ack-from-unknown-peer', acked.peer);
+                continue;
+            }
+            if (!tape.acks[ackedIndex].some((a) => a === id)) {
+                tape.acks[ackedIndex].push(id);
+                needsUpdate = true;
+            }
+            if (needsUpdate && !updatedTapes.some((t) => t === tape)) {
+                updatedTapes.push(tape);
+            }
         }
-        const confirmations = await this.calculateMessageConfirmations(id);
-        if (confirmations.join(',') === ackee.confirmations.join(',')) {
-            return ackee;
-        }
-        const updated: StoredMessage = {
-            ...ackee,
-            updated: this.nextSequenceNumber(),
-            confirmations,
-        };
-        await this.db.messages.put(updated);
-        return updated;
-    }
-
-    async calculateMessageConfirmations(
-        id: string,
-    ): Promise<MessageConfirmationMatrix> {
-        // lookup who acked this message
-        const ackedBy = await Promise.all(
-            (await this.db.acks.where('to').equals(id).toArray()).map(
-                async (ack) => ({
-                    from: ack.from,
-                    to: ack.to,
-                    acks: await this.db.acks
-                        .where('to')
-                        .equals(ack.from)
-                        .count(),
-                }),
-            ),
-        );
-        // TODO: we MUST check that the ack is for the correct interlace
-
-        // build a matrix of confirmation counts
-        // a "confirmation" is an ack that is acked by another ack
-        // ...but this is a weird structure isn't it...
-        // we do not know what the "right" number of confirmations is
-        // so instead we count a range of potential confirmations
-        // confirmations[1] is the number of acks that are acked at least once
-        // confirmation[2] is the number of acks that are acked at least twice
-        // etc
-        // this can be used later to decide if the message is accepted or rejected
-        // for a given required number of confirmations (up to a group of 10)
-        // everything caps out at 10 for other reasons so this is enough for now
-        return (ackedBy || []).reduce(
-            (c, ack) => {
-                c[1] += ack.acks > 0 ? 1 : 0;
-                c[2] += ack.acks > 1 ? 1 : 0;
-                c[3] += ack.acks > 2 ? 1 : 0;
-                c[4] += ack.acks > 3 ? 1 : 0;
-                c[5] += ack.acks > 4 ? 1 : 0;
-                c[6] += ack.acks > 5 ? 1 : 0;
-                c[7] += ack.acks > 6 ? 1 : 0;
-                c[8] += ack.acks > 7 ? 1 : 0;
-                c[9] += ack.acks > 8 ? 1 : 0;
-                return c;
-            },
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as MessageConfirmationMatrix,
-        );
     }
 
     async onSetPeers(msg: SetPeersMessage, channelId: string) {
         // TODO: implement checking that SET_PEERS is from same peer as CREATE_CHANNEL
         const channel = await this.db.channels.get(channelId);
         if (!channel) {
-            console.warn('set-peers-unknown-channel', channelId);
+            this.debug('set-peers-unknown-channel', channelId);
             return;
         }
         // if channel peers has changed update it
+        this.channelPeerIds = msg.peers
+            .map((p) => Buffer.from(p).toString('hex'))
+            .sort((a, b) => (a < b ? -1 : 1));
         if (
             channel.peers.length !== msg.peers.length ||
             !msg.peers.every((p) =>
@@ -558,7 +656,7 @@ export class Client {
             )
         ) {
             await this.db.channels.update(channel.id, {
-                peers: msg.peers.map((p) => Buffer.from(p).toString('hex')),
+                peers: this.channelPeerIds,
             });
         }
     }
@@ -716,7 +814,7 @@ export class Client {
         // update channels
         for (const [_, ch] of this.channels) {
             if (typeof ch.id !== 'string') {
-                console.warn('ignoring invalid channel id', ch);
+                this.debug('ignoring invalid channel id', ch);
                 continue;
             }
             const info = await this.db.channels.get(ch.id);
@@ -787,6 +885,11 @@ export class Client {
             info = { id, name: '', peers: [], creator: '', scid };
             await this.db.channels.put(info);
         }
+        if (this.channelPeerIds.length !== info.peers.length) {
+            this.channelPeerIds = info.peers
+                .map((p) => Buffer.from(p).toString('hex'))
+                .sort((a, b) => (a < b ? -1 : 1));
+        }
         return info;
     }
 
@@ -798,18 +901,15 @@ export class Client {
             const subcluster = await this.net.socket.join({
                 sharedKey,
             });
-            subcluster.onRPC = this.onRPCRequest;
+            await subcluster.set('onRPC', Comlink.proxy(this.onRPCRequest));
             channel = new Channel({
                 id: config.id,
                 client: this,
                 subcluster,
                 name: config.name || '',
                 onMsg: this.onMsg,
-                Buffer: Buffer,
             });
-            this.debug(
-                `monitor-channel chid=${config.id.slice(0, 6)} scid=${subcluster.scid.slice(0, 6)}`,
-            );
+            this.debug(`monitor-channel chid=${config.id.slice(0, 6)}`);
         }
         this.channels.set(config.id, channel);
     }
@@ -820,18 +920,6 @@ export class Client {
         }
         const cfg = await this.updateChannelConfig(channelId);
         await this.monitorChannel(cfg);
-        // FIXME: commit an empty input message, if we don't have one
-        // we currently depend on this in the simulation but we really shouldn't!!
-        if ((await this.db.messages.count()) === 0) {
-            await this.commit(
-                {
-                    type: MessageType.INPUT,
-                    round: 1,
-                    data: 0,
-                },
-                channelId,
-            );
-        }
     }
 
     async createChannel(name: string): Promise<string> {
@@ -871,8 +959,8 @@ export class Client {
         await this.onSetPeers(msg, channelId);
     }
 
-    private debug(...args: any[]) {
-        console.log(`[client/${this.shortId}]`, ...args);
+    private debug(..._args: any[]) {
+        // console.log(`[client/${this.shortId}]`, ..._args);
     }
 
     async getHeight(): Promise<number> {
@@ -916,7 +1004,6 @@ export class Client {
             return;
         }
         if (!req.name) {
-            console.log('ignore no-name');
             this.debug('RPC: drop: invalid no name');
             return;
         }
@@ -973,7 +1060,7 @@ export class Client {
     send = (m: Message, opts?: EmitOpts) => {
         for (const [_, ch] of this.channels) {
             ch.send(m, opts).catch((err) => {
-                console.error('send-err:', err);
+                console.error('client-send-err:', err);
             });
         }
     };

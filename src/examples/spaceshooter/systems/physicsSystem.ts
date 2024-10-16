@@ -25,12 +25,14 @@ export default system<ShooterSchema>(
         deltaTime,
     }) => {
         const bodies = query(Tags.IsSolidBody);
-        const steps = Math.ceil(100 * deltaTime); // number of times we check physics between updates
-        // console.log('steps', steps);
+        const shipsAndBullets = bodies.filter(
+            (eid) => hasTag(eid, Tags.IsShip) || hasTag(eid, Tags.IsBullet),
+        );
+        const steps = 1; // number of times we check physics between updates
 
         // apply physics
         for (let i = 0; i < steps; i++) {
-            for (const eid of bodies) {
+            for (const eid of shipsAndBullets) {
                 if (i === 0) {
                     collider.hasCollided[eid] = 0; // reset collision flag
                     collider.collisionEntity[eid] = 0; // reset collision flag

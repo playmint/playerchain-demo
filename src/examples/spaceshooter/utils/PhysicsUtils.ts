@@ -163,7 +163,7 @@ export function intersectCircleRectangle(
         };
     }
     if (pointInRectangle(center, rectangle)) {
-        console.log('too far inside geometry - wind it back');
+        // console.log('too far inside geometry - wind it back');
         const normalizedVelocity = NormalizeVector2(velocity);
         const newPoint = {
             x: Math.fround(center.x - normalizedVelocity.x * radius),

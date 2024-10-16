@@ -1,3 +1,4 @@
+import * as Comlink from 'comlink';
 import { NETWORK_ID } from './config';
 import { DB, NetworkInfo } from './db';
 import Peer, { Keys, PeerConfig } from './network/Peer';
@@ -9,28 +10,28 @@ export type Ports = {
 };
 
 // FIXME: remove this distinction between envs and make it configurable
-async function getPorts(): Promise<Ports> {
-    if (import.meta.env.MODE === 'hacky') {
-        const application = await import('socket:application');
-        const win = await application.getCurrentWindow();
-        return {
-            port: 9801 + win.index * 2,
-            probeInternalPort: 9802 + win.index * 2,
-        };
-    } else {
-        return {};
-    }
-}
+// async function getPorts(): Promise<Ports> {
+//     if (import.meta.env.MODE === 'hacky') {
+//         const application = await import('socket:application');
+//         const win = await application.getCurrentWindow();
+//         return {
+//             port: 9801 + win.index * 2,
+//             probeInternalPort: 9802 + win.index * 2,
+//         };
+//     } else {
+//         return {};
+//     }
+// }
 
 export type SocketNetwork = {
-    socket: Peer;
+    socket: Comlink.Remote<Peer>;
     shutdown: () => void;
 };
 
 export async function createSocketCluster({
     db,
     keys,
-    dgram,
+    // dgram,
     clusterId,
     config,
 }: {
@@ -38,14 +39,14 @@ export async function createSocketCluster({
     keys: Keys;
     clusterId: Uint8Array;
     config: PeerConfig;
-    dgram: typeof import('node:dgram');
+    // dgram?: typeof import('node:dgram');
 }): Promise<SocketNetwork> {
     const onShutdown: any[] = [];
     const defer = (fn: any) => {
         onShutdown.push(fn);
     };
     const peerId = Buffer.from(keys.publicKey).toString('hex');
-    const ports = await getPorts();
+    // const ports = await getPorts();
     const info: NetworkInfo = {
         id: NETWORK_ID,
         clusterId,
@@ -54,17 +55,30 @@ export async function createSocketCluster({
         natType: -1,
         online: globalThis.navigator?.onLine ?? true,
         ready: false,
-        ...ports,
+        // ...ports,
     };
 
     await db.network.put(info);
 
-    const socket = new Peer(config, dgram);
+    const w = new Worker(
+        // this worker is built seperately from the rest of the app
+        // to work around issues with vite in dev mode
+        // see workers.vite.ts
+        new URL('./network/worker.ts', import.meta.url),
+        {
+            type: 'module',
+            /* @vite-ignore */
+            name: `net-worker`,
+        },
+    );
+
+    const PeerProxy = Comlink.wrap<typeof Peer>(w);
+    const socket = await new PeerProxy(config);
     await socket.init();
 
     console.log('started net');
     defer(() => {
-        socket.close();
+        return socket.close();
     });
 
     const onApplicationResume = () => {
@@ -116,7 +130,7 @@ export async function createSocketCluster({
 
     // mark network as ready
     const onReady = (info) => {
-        console.log('ready updated', JSON.stringify(info));
+        console.log(`ready updated ${JSON.stringify(info)}`);
         db.network
             .update(NETWORK_ID, {
                 ready: true,
@@ -131,7 +145,7 @@ export async function createSocketCluster({
                 console.error('network-ready-update-err:', err);
             });
     };
-    socket.onReady = onReady;
+    await socket.set('onReady', Comlink.proxy(onReady));
 
     // Debugging! Just tweak to filter logs, this is a firehose!
     // Don't listen to debug in production, it can strain the CPU.
@@ -141,59 +155,65 @@ export async function createSocketCluster({
         globalThis.process?.env?.SS_DEBUG === 'true'
     ) {
         let clock = Date.now();
-        socket.onDebug = (pid, str) => {
-            pid = pid.slice(0, 6);
+        await socket.set(
+            'onDebug',
+            Comlink.proxy((pid, str) => {
+                pid = pid.slice(0, 6);
 
-            // if (str.includes('SYNC')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('SYNC')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('JOIN')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('JOIN')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('CONN')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('CONN')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('<- STREAM')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('<- STREAM')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('<- PUB')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('<- PUB')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('DROP')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('DROP')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('PONG')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('PONG')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('INTRO')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('INTRO')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('WRITE')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('WRITE')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // if (str.includes('XX') || str.includes('LIMIT')) {
-            //     console.log(pid, str, ...args);
-            // }
+                // if (str.includes('XX') || str.includes('LIMIT')) {
+                //     console.log(pid, str, ...args);
+                // }
 
-            // everything expect the SENDS
-            const delta = Date.now() - clock;
-            console.log(pid, str, `[${delta}ms]`);
-            clock = Date.now();
-        };
+                // everything expect the SENDS
+                const delta = Date.now() - clock;
+                console.log(pid, str, `[${delta}ms]`);
+                clock = Date.now();
+            }),
+        );
     }
 
-    socket.onError = (err) => {
-        console.error('SOCKET ERROR', err);
-    };
+    await socket.set(
+        'onError',
+        Comlink.proxy((err) => {
+            console.error('SOCKET ERROR', err);
+        }),
+    );
     // socket.on('#packet', (...args) => console.log('PACKET', ...args))
     // socket.on('#send', (...args) => console.log('SEND', ...args))
 

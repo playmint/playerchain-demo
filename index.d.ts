@@ -386,7 +386,7 @@ declare module "socket:events" {
         prependOnceListener(type: any, listener: any): this;
         removeListener(type: any, listener: any): this;
         off(type: any, listener: any): this;
-        removeAllListeners(type: any, ...args: any[]): this;
+        removeAllListeners(type?: any, ...args?: any[]): this;
         listeners(type: any): any[];
         rawListeners(type: any): any[];
         listenerCount(type: any): any;
@@ -9486,7 +9486,7 @@ declare module "socket:dgram" {
          * @param {function} callback - With no parameters. Called when binding is complete.
          * @see {@link https://nodejs.org/api/dgram.html#socketbindport-address-callback}
          */
-        bind(arg1: any, arg2: any, arg3: any): this;
+        bind(arg1?: any, arg2?: any, arg3?: any): this;
         dataListener: ({ detail }: {
             detail: any;
         }) => any;
@@ -9572,7 +9572,7 @@ declare module "socket:dgram" {
          *
          * @see {@link https://nodejs.org/api/dgram.html#socketclosecallback}
          */
-        close(cb: any): this;
+        close(cb?: any): this;
         /**
          *
          * Returns an object containing the address information for a socket. For
