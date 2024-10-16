@@ -162,7 +162,7 @@ export class Sequencer {
             const [numCommits, ackIds, jumpRound] =
                 await this.canWriteInputBlock(input, round);
             if (!numCommits) {
-                console.log('seq-cannot-write-block', round);
+                // console.log('seq-cannot-write-block', round);
                 await sleep(2);
                 continue;
             }
@@ -299,9 +299,9 @@ export class Sequencer {
                 ? this.channelPeerIds.length - 1
                 : requiredConfirmationsFor(this.channelPeerIds.length) - 1;
         if (ackIds.length < requiredBlocks) {
-            console.log(
-                `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGPREV round=${round} got=${ackIds.length} need=${requiredBlocks}`,
-            );
+            // console.log(
+            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGPREV round=${round} got=${ackIds.length} need=${requiredBlocks}`,
+            // );
             return [0, null, round];
         }
 
