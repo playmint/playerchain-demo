@@ -7,6 +7,7 @@ import { PlayerData } from '../../../runtime/ecs';
 import { SESSION_TIME_SECONDS, ShooterSchema } from '../../spaceshooter';
 import ReadySetGo from './Countdown';
 import EndRoundLeaderBoard from './EndRoundLeaderboard';
+import EndSessionButton from './EndSessionButton';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
 import { WorldRef } from './ShooterRenderer';
@@ -71,7 +72,10 @@ export default memo(function PlayerHUD({
                     n={3 - Math.floor(SESSION_TIME_SECONDS - remaining)}
                 />
             ) : remaining === 0 ? (
-                <EndRoundLeaderBoard players={players} />
+                <>
+                    <EndRoundLeaderBoard players={players} />
+                    <EndSessionButton />
+                </>
             ) : null}
             <div
                 style={{
