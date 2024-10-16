@@ -43,7 +43,7 @@ export const requiredConfirmationsFor = (size: number): number => {
         case 2:
             return 2;
         case 3:
-            return 3;
+            return 2;
         case 4:
             return 3;
         case 5:
@@ -147,7 +147,7 @@ export class Sequencer {
 
         // skip if we just did that round
         if (this.prevRound !== null && round <= this.prevRound) {
-            // console.log('seq-no-new-round', round);
+            console.log('seq-no-new-round', round);
             return 0;
         }
         // get the current input state
@@ -161,7 +161,7 @@ export class Sequencer {
             const [numCommits, ackIds, jumpRound] =
                 await this.canWriteInputBlock(input, round);
             if (!numCommits) {
-                // console.log('seq-cannot-write-block', round);
+                console.log('seq-cannot-write-block', round);
                 await new Promise((resolve) => setTimeout(resolve, 1));
                 continue;
             }
@@ -298,9 +298,9 @@ export class Sequencer {
                 ? this.channelPeerIds.length - 1
                 : requiredConfirmationsFor(this.channelPeerIds.length) - 1;
         if (ackIds.length < requiredBlocks) {
-            // console.log(
-            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGPREV round=${round} got=${ackIds.length} need=${requiredBlocks}`,
-            // );
+            console.log(
+                `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGPREV round=${round} got=${ackIds.length} need=${requiredBlocks}`,
+            );
             return [0, null, round];
         }
 

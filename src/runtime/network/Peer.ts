@@ -979,7 +979,6 @@ export class Peer {
         await this.mcast(packet);
         this.gate.set(packet.packetId.toString('hex'), 1);
 
-        console.log('-------------------JOINED');
         return Comlink.proxy(subcluster);
     }
 
@@ -1265,9 +1264,9 @@ export class Peer {
             if (peer.proxies.size > 0) {
                 // remove any proxies that were previously assigned
                 // because we are now directly connected
-                console.log(
-                    `SHOULD REMOVE PROXIES, DIRECT CONNECTION ESTABLISHED`,
-                );
+                // console.log(
+                //     `SHOULD REMOVE PROXIES, DIRECT CONNECTION ESTABLISHED`,
+                // );
                 // this._onDebug(
                 //     `<- CONNECTION REMOVING PROXY PEER (id=${peer.peerId}, address=${address}:${port} count=${peer.proxies.size - 1})`,
                 // );
