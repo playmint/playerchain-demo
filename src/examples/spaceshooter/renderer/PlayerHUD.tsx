@@ -77,29 +77,31 @@ export default memo(function PlayerHUD({
                     <EndSessionButton />
                 </>
             ) : null}
-            <div
-                style={{
-                    display: 'flex',
-                    marginBottom: '1rem',
-                    alignContent: 'center',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
-            >
-                <div style={{ width: '30%' }}></div>
+            {remaining !== 0 && (
                 <div
                     style={{
-                        flexGrow: 1,
-                        marginRight: '1rem',
-                        marginLeft: '1rem',
+                        display: 'flex',
+                        marginBottom: '1rem',
+                        alignContent: 'center',
+                        justifyContent: 'center',
+                        alignItems: 'center',
                     }}
                 >
-                    {player && <EnergyBar energy={player.health} />}
+                    <div style={{ width: '30%' }}></div>
+                    <div
+                        style={{
+                            flexGrow: 1,
+                            marginRight: '1rem',
+                            marginLeft: '1rem',
+                        }}
+                    >
+                        {player && <EnergyBar energy={player.health} />}
+                    </div>
+                    <div style={{ width: '30%' }}>
+                        <LeaderBoard players={players} peerId={peerId} />
+                    </div>
                 </div>
-                <div style={{ width: '30%' }}>
-                    <LeaderBoard players={players} peerId={peerId} />
-                </div>
-            </div>
+            )}
         </div>
     );
 });
