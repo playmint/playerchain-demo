@@ -14,6 +14,7 @@ import { useSettings } from '../hooks/use-settings';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import { TERM_DELAY } from './ChannelBoot';
+import Connectivity from './Connectivity';
 import PacketLace from './PacketLace';
 import Renderer from './Renderer';
 import { Spinner } from './Spinner';
@@ -439,6 +440,10 @@ export default memo(function ChannelView({
                     >
                         {muted ? 'volume_off' : 'volume_up'}
                     </span>
+                    <Connectivity
+                        metric={metrics.cps}
+                        peerCount={channel.peers.length}
+                    />
                 </div>
             </div>
             {details && (
