@@ -11,10 +11,10 @@ import {
 } from '../../spaceshooter';
 import level from '../levels/level_1';
 
-export const SHIP_THRUST_RATE = 95;
-export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.55); //was 0.7
+export const SHIP_THRUST_RATE = 60;
+export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.6); //was 0.7
 export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
-export const SHIP_MAX_VELOCITY = 80;
+export const SHIP_MAX_VELOCITY = 70;
 export const BULLET_DAMAGE = 100;
 export const SHIP_BOUNCINESS = 0.8;
 
@@ -142,7 +142,7 @@ function addShip({
     // stats.canShoot[eid] = 1;
     position.x[eid] = eid / 100;
     collider.type[eid] = ColliderType.Circle;
-    collider.radius[eid] = 2;
+    collider.radius[eid] = 5;
     physics.applyRotation[eid] = 0;
     physics.drag[eid] = 0.01;
     physics.bounciness[eid] = SHIP_BOUNCINESS;

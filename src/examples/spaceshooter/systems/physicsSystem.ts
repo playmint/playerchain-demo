@@ -25,17 +25,18 @@ export default system<ShooterSchema>(
         deltaTime,
     }) => {
         const bodies = query(Tags.IsSolidBody);
-        const shipsAndBullets = bodies.filter(
-            (eid) => hasTag(eid, Tags.IsShip) || hasTag(eid, Tags.IsBullet),
+        const otherBodies = bodies.filter(
+            (eid) => !hasTag(eid, Tags.IsBullet) && entity.active[eid],
         );
-        const steps = 1; // number of times we check physics between updates
+        const steps = 2; // number of times we check physics between updates
 
         // apply physics
         for (let i = 0; i < steps; i++) {
-            for (const eid of shipsAndBullets) {
+            for (const eid of bodies) {
+                //reset
                 if (i === 0) {
-                    collider.hasCollided[eid] = 0; // reset collision flag
-                    collider.collisionEntity[eid] = 0; // reset collision flag
+                    collider.hasCollided[eid] = 0;
+                    collider.collisionEntity[eid] = 0;
                 }
 
                 // skip inactive entities
@@ -43,12 +44,19 @@ export default system<ShooterSchema>(
                     continue;
                 }
 
+                // we only care about ships and bullets
+                if (!(hasTag(eid, Tags.IsBullet) || hasTag(eid, Tags.IsShip))) {
+                    continue;
+                }
+
                 // set position based on velocity
                 position.x[eid] = Math.fround(
-                    position.x[eid] + (velocity.x[eid] * deltaTime) / steps,
+                    position.x[eid] +
+                        (velocity.x[eid] * deltaTime) / (steps + 0.05),
                 );
                 position.y[eid] = Math.fround(
-                    position.y[eid] + (velocity.y[eid] * deltaTime) / steps,
+                    position.y[eid] +
+                        (velocity.y[eid] * deltaTime) / (steps + 0.05),
                 );
                 const velocityMagnitude = Math.sqrt(
                     velocity.x[eid] ** 2 + velocity.y[eid] ** 2,
@@ -80,13 +88,9 @@ export default system<ShooterSchema>(
                     collider.type[eid] === ColliderType.Circle &&
                     entity.active[eid]
                 ) {
-                    for (const otherBody of bodies) {
+                    for (const otherBody of otherBodies) {
                         if (eid === otherBody) {
                             // ignore self
-                            continue;
-                        }
-                        if (!entity.active[otherBody]) {
-                            // ignore invisible entities
                             continue;
                         }
                         if (entity.parent[eid] === otherBody) {
@@ -97,13 +101,12 @@ export default system<ShooterSchema>(
                             // don't collide with our own children
                             continue;
                         }
-                        if (entity.parent[otherBody]) {
-                            if (
-                                entity.parent[otherBody] === entity.parent[eid]
-                            ) {
-                                // don't collide with siblings
-                                continue;
-                            }
+                        if (
+                            entity.parent[otherBody] &&
+                            entity.parent[otherBody] === entity.parent[eid]
+                        ) {
+                            // don't collide with siblings
+                            continue;
                         }
                         if (collider.type[otherBody] === ColliderType.Circle) {
                             collideCircle(eid, otherBody, {
