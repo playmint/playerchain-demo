@@ -10,6 +10,7 @@ import database, { DB } from './db';
 import { GameModule, load } from './game';
 import { InputMessage, MessageType } from './messages';
 import { DefaultMetrics } from './metrics';
+import { sleep } from './timers';
 import { CancelFunction } from './utils';
 
 export interface Committer {
@@ -162,7 +163,7 @@ export class Sequencer {
                 await this.canWriteInputBlock(input, round);
             if (!numCommits) {
                 console.log('seq-cannot-write-block', round);
-                await new Promise((resolve) => setTimeout(resolve, 1));
+                await sleep(2);
                 continue;
             }
             if (jumpRound !== round) {
