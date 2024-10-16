@@ -2,6 +2,7 @@
 // it is constantly attempting to write a block with
 import * as Comlink from 'comlink';
 import Dexie from 'dexie';
+import { MathUtils } from 'three';
 import { SESSION_TIME_SECONDS } from '../examples/spaceshooter';
 import type { ClientContextType } from '../gui/hooks/use-client';
 import type { Client } from './client';
@@ -76,6 +77,7 @@ export class Sequencer {
     private interlace: number;
     private metrics?: DefaultMetrics;
     private end: number;
+    private skew = 0;
     peerId: string;
     db: DB;
     lastCommitted = 0;
@@ -130,7 +132,7 @@ export class Sequencer {
         // give it a couple of seconds to learn the network
         // TODO: how can we ever know for sure when ready?
         if (this.warmingUp > 0) {
-            console.log('seq-warming-up', this.warmingUp);
+            // console.log('seq-warming-up', this.warmingUp);
             this.warmingUp -= 1;
             return 0;
         }
@@ -145,7 +147,7 @@ export class Sequencer {
 
         // skip if we just did that round
         if (this.prevRound !== null && round <= this.prevRound) {
-            console.log('seq-no-new-round', round);
+            // console.log('seq-no-new-round', round);
             return 0;
         }
         // get the current input state
@@ -159,7 +161,8 @@ export class Sequencer {
             const [numCommits, ackIds, jumpRound] =
                 await this.canWriteInputBlock(input, round);
             if (!numCommits) {
-                console.log('seq-cannot-write-block', round);
+                // console.log('seq-cannot-write-block', round);
+                await new Promise((resolve) => setTimeout(resolve, 1));
                 continue;
             }
             if (jumpRound !== round) {
@@ -224,18 +227,14 @@ export class Sequencer {
     }
 
     private async getLatestKnownRound(): Promise<number> {
-        let anyLatestRound = 0;
-        const latest = (await this.db.messages
-            .where(['channel', 'round', 'peer'])
+        const latest = await this.db.tapes
+            .where(['channel', 'round'])
             .between(
-                [this.channelId, Dexie.minKey, Dexie.minKey],
-                [this.channelId, Dexie.maxKey, Dexie.maxKey],
+                [this.channelId, Dexie.minKey],
+                [this.channelId, Dexie.maxKey],
             )
-            .last()) as InputMessage | undefined;
-        if (latest) {
-            anyLatestRound = latest.round;
-        }
-        return anyLatestRound;
+            .last();
+        return latest?.round ?? 0;
     }
 
     // returns number of commits we need to make and the acks we need
@@ -265,33 +264,42 @@ export class Sequencer {
         let numCommits = 1;
         const latestKnownRound = await this.getLatestKnownRound();
         const behindBy = latestKnownRound - round;
-        if (behindBy > this.interlace * 2) {
+        if (behindBy > this.interlace * 2 + 1) {
             // console.log('ALLOW TELEPORT', round, '->', latestKnownRound);
-            round = latestKnownRound;
-        } else if (behindBy > 1) {
-            numCommits = latestKnownRound - round;
-            // console.log('ALLOW FASTFORWARD', numCommits);
+            round = latestKnownRound - this.interlace;
+            numCommits = this.interlace;
+        } else if (behindBy > 2) {
+            // this.skew = Math.max(-this.fixedUpdateRate, this.skew - 1);
+            numCommits = behindBy;
+            // console.log('ALLOW FASTFORWARD', numCommits, this.skew);
+            // } else if (behindBy < -this.interlace) {
+            //     // this.skew = Math.min(this.fixedUpdateRate, this.skew + 1);
+            //     console.log('ALLOW SLOWDOWN', this.skew);
+            //     return [0, null, round];
         }
-        // fetch all the messages we have from interlaced round to ack
-        const ackIds = (
-            await this.db.messages
-                .where(['channel', 'round', 'peer'])
-                .between(
-                    [this.channelId, round - this.interlace, Dexie.minKey],
-                    [this.channelId, round - this.interlace, Dexie.maxKey],
-                )
-                .toArray()
-        )
-            .filter((m) => m.peer && m.peer !== this.peerId)
-            .map((m) => Buffer.from(m.id, 'base64'));
-        // we can't write a block if we do not have enough acks the interlaced round
-        const requiredAcks =
+        // fetch the tape for the interlaced round
+        const interlaceTape = await this.db.tapes
+            .where(['channel', 'round'])
+            .equals([this.channelId, round - this.interlace])
+            .first();
+
+        // we can't write a block if we do not have enough blocks on the interlaced round
+        const peerIndex = this.channelPeerIds.indexOf(this.peerId);
+        if (peerIndex === -1) {
+            throw new Error('seq peerIndex not found');
+        }
+        const ackIds = (interlaceTape?.ids || [])
+            .map((id, idx) =>
+                id && idx != peerIndex ? Buffer.from(id, 'base64') : null,
+            )
+            .filter((id) => id !== null) as Uint8Array[];
+        const requiredBlocks =
             round < INITIAL_LOCKSTEP_PERIOD
                 ? this.channelPeerIds.length - 1
                 : requiredConfirmationsFor(this.channelPeerIds.length) - 1;
-        if (ackIds.length < requiredAcks) {
+        if (ackIds.length < requiredBlocks) {
             // console.log(
-            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGHACKS round=${round} gotacks=${ackIds.length} needacks=${requiredAcks}`,
+            //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGPREV round=${round} got=${ackIds.length} need=${requiredBlocks}`,
             // );
             return [0, null, round];
         }
@@ -342,7 +350,11 @@ export class Sequencer {
     // returns a jittered fixed update rate
     // the jitter helps even out differences in client updates
     getFuzzyFixedUpdateRate(): number {
-        return this.fixedUpdateRate + Math.floor(Math.random() * 3 - 10);
+        return (
+            this.fixedUpdateRate +
+            Math.floor(Math.random() * 3 - 10) +
+            MathUtils.clamp(this.skew, -5, 5)
+        );
     }
 
     stop() {
