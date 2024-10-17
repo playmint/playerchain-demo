@@ -7,8 +7,8 @@ import {
     hasInput,
 } from '../../spaceshooter';
 
-export const BULLET_SPEED = 110;
-export const BULLET_MAX_VELOCITY = 110;
+export const BULLET_SPEED = 75;
+export const BULLET_MAX_VELOCITY = 75;
 export const BULLET_LIFETIME = 26;
 export const SHIP_SHOOT_COOLOFF = 2;
 export const BULLET_HEALTH_COST = 14;
