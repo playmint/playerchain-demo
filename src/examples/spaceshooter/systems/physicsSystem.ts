@@ -28,7 +28,7 @@ export default system<ShooterSchema>(
         const otherBodies = bodies.filter(
             (eid) => !hasTag(eid, Tags.IsBullet) && entity.active[eid],
         );
-        const steps = 2; // number of times we check physics between updates
+        const steps = 1; // number of times we check physics between updates
 
         // apply physics
         for (let i = 0; i < steps; i++) {
