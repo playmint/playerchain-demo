@@ -142,7 +142,7 @@ function addShip({
     // stats.canShoot[eid] = 1;
     position.x[eid] = eid / 100;
     collider.type[eid] = ColliderType.Circle;
-    collider.radius[eid] = 5;
+    collider.radius[eid] = 3.5;
     physics.applyRotation[eid] = 0;
     physics.drag[eid] = 0.01;
     physics.bounciness[eid] = SHIP_BOUNCINESS;
@@ -198,7 +198,7 @@ function addBullet(
     model.type[eid] = ModelType.Bullet;
     entity.active[eid] = 0;
     collider.type[eid] = ColliderType.Circle;
-    collider.radius[eid] = 0.7;
+    collider.radius[eid] = 0.8;
     physics.applyRotation[eid] = 1;
     physics.drag[eid] = 0;
     physics.isTrigger[eid] = 1;

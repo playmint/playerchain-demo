@@ -51,12 +51,10 @@ export default system<ShooterSchema>(
 
                 // set position based on velocity
                 position.x[eid] = Math.fround(
-                    position.x[eid] +
-                        (velocity.x[eid] * deltaTime) / (steps + 0.05),
+                    position.x[eid] + (velocity.x[eid] * deltaTime) / steps,
                 );
                 position.y[eid] = Math.fround(
-                    position.y[eid] +
-                        (velocity.y[eid] * deltaTime) / (steps + 0.05),
+                    position.y[eid] + (velocity.y[eid] * deltaTime) / steps,
                 );
                 const velocityMagnitude = Math.sqrt(
                     velocity.x[eid] ** 2 + velocity.y[eid] ** 2,
@@ -165,6 +163,20 @@ function collideCircle(
         },
         radius: collider.radius[thatEid],
     };
+
+    // cull out early if we can
+    if (
+        Math.abs(circle1.center.x - circle2.center.x) >
+        circle1.radius + circle2.radius
+    ) {
+        return;
+    }
+    if (
+        Math.abs(circle1.center.y - circle2.center.y) >
+        circle1.radius + circle2.radius
+    ) {
+        return;
+    }
 
     const distance = Math.sqrt(
         (circle1.center.x - circle2.center.x) ** 2 +

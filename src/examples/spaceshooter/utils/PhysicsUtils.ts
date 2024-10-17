@@ -29,20 +29,19 @@ export function reflectVector(velocity: Vector2, normal: Vector2): Vector2 {
     };
 }
 
+function crossProduct(p1: Vector2, p2: Vector2): number {
+    return Math.fround(p1.x * p2.y - p1.y * p2.x);
+}
+
+function subtractPoints(p1: Vector2, p2: Vector2): Vector2 {
+    return { x: Math.fround(p1.x - p2.x), y: Math.fround(p1.y - p2.y) };
+}
+
 export function pointInRectangle(
     point: Vector2,
     rectangle: Rectangle,
 ): boolean {
     const { a, b, c, d } = rectangle;
-
-    function crossProduct(p1: Vector2, p2: Vector2): number {
-        return Math.fround(p1.x * p2.y - p1.y * p2.x);
-    }
-
-    function subtractPoints(p1: Vector2, p2: Vector2): Vector2 {
-        return { x: Math.fround(p1.x - p2.x), y: Math.fround(p1.y - p2.y) };
-    }
-
     const AB = subtractPoints(b, a);
     const AP = subtractPoints(point, a);
     const BC = subtractPoints(c, b);
@@ -62,6 +61,15 @@ export function pointInRectangle(
         (cross1 >= 0 && cross2 >= 0 && cross3 >= 0 && cross4 >= 0)
     );
 }
+
+function distanceSquared(p1: Vector2, p2: Vector2): number {
+    return Math.fround((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+}
+
+function dotProduct(p1: Vector2, p2: Vector2): number {
+    return Math.fround(p1.x * p2.x + p1.y * p2.y);
+}
+
 function intersectCircle(
     circle: Circle,
     segment: [Vector2, Vector2],
@@ -69,20 +77,11 @@ function intersectCircle(
     const { center, radius } = circle;
     const [p1, p2] = segment;
 
-    function distanceSquared(p1: Vector2, p2: Vector2): number {
-        return Math.fround((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
-    }
-
-    function dotProduct(p1: Vector2, p2: Vector2): number {
-        return Math.fround(p1.x * p2.x + p1.y * p2.y);
-    }
-
-    function closestPointOnSegment(): Vector2 {
-        const segmentLengthSquared = distanceSquared(p1, p2);
-        if (segmentLengthSquared === 0) {
-            return p1;
-        }
-
+    let closestPoint: Vector2;
+    const segmentLengthSquared = distanceSquared(p1, p2);
+    if (segmentLengthSquared === 0) {
+        closestPoint = p1;
+    } else {
         const t = Math.max(
             0,
             Math.min(
@@ -94,13 +93,12 @@ function intersectCircle(
             ),
         );
 
-        return {
+        closestPoint = {
             x: Math.fround(p1.x + t * (p2.x - p1.x)),
             y: Math.fround(p1.y + t * (p2.y - p1.y)),
         };
     }
 
-    const closestPoint = closestPointOnSegment();
     return {
         intersects:
             distanceSquared(center, closestPoint) <= Math.fround(radius ** 2),
