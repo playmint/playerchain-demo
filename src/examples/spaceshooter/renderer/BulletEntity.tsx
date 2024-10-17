@@ -52,14 +52,10 @@ export default memo(function BulletEntity({
         // during the first few frames of bullet shooting, the bullet is not
         // alighed with the interpolated position of the ship so we hide it for
         // a bit and snap position to make it look bit better
-        const isNewlySpawned =         
+        const isNewlySpawned =
             world.components.stats.data.health[eid] > BULLET_LIFETIME - 1;
-        
-       // if (isNewlySpawned) {
-            //bullet.visible = false;
-        //} else
-            interpolateEntityVisibility(bullet, world, eid, 0);
-        //}
+
+        interpolateEntityVisibility(bullet, world, eid, 0);
 
         // track bullet
         interpolateEntityPosition(
@@ -67,7 +63,7 @@ export default memo(function BulletEntity({
             world,
             eid,
             deltaTime,
-            isNewlySpawned ? InterpolateSpeed.Quick : InterpolateSpeed.Fastest,
+            isNewlySpawned ? InterpolateSpeed.Snap : InterpolateSpeed.Fastest,
         );
         interpolateEntityRotation(
             group,
