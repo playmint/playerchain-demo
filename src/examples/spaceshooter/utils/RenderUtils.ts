@@ -23,7 +23,7 @@ export enum InterpolateMethod {
 
 export enum InterpolateSpeed {
     Snap = -1,
-    Fastest = 9,
+    Fastest = 9.8,
     Quick = 5,
     Smooth = 2.5,
     Slow = 0.5,
