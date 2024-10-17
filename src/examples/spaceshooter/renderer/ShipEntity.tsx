@@ -115,7 +115,7 @@ export default memo(function ShipEntity({
             world,
             eid,
             deltaTime,
-            InterpolateSpeed.Fastest,
+            InterpolateSpeed.Snap,
         );
         const rotationBefore = ship.rotation.z;
         interpolateEntityRotation(
@@ -123,7 +123,7 @@ export default memo(function ShipEntity({
             world,
             eid,
             deltaTime,
-            InterpolateSpeed.Fastest,
+            InterpolateSpeed.Snap,
         );
         const rotationDiff = ship.rotation.z - rotationBefore;
 
@@ -178,7 +178,7 @@ export default memo(function ShipEntity({
             shipInner.rotation.x,
             roll,
             deltaTime,
-            InterpolateSpeed.Fastest,
+            InterpolateSpeed.Snap,
         );
 
 
