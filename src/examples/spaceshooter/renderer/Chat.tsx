@@ -41,7 +41,7 @@ export default memo(function Chat({
             }
             // focus back to the window
             input.current.blur();
-            const text = input.current.value;
+            const text = (input.current.value || '').trim().slice(0, 64);
             if (!text) {
                 return;
             }
@@ -93,6 +93,7 @@ export default memo(function Chat({
                 <input
                     ref={input}
                     type="text"
+                    maxLength={64}
                     style={{
                         background: 'transparent',
                         color: 'white',
