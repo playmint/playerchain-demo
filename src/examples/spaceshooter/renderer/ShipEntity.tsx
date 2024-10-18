@@ -115,7 +115,7 @@ export default memo(function ShipEntity({
             world,
             eid,
             deltaTime,
-            InterpolateSpeed.Quick * 2,
+            InterpolateSpeed.Fastest,
         );
         const rotationBefore = ship.rotation.z;
         interpolateEntityRotation(
@@ -181,8 +181,6 @@ export default memo(function ShipEntity({
             InterpolateSpeed.Quick,
         );
 
-
-        
         // flash ship if we lost health
         const health = world.components.stats.data.health[eid];
         if (
@@ -219,7 +217,6 @@ export default memo(function ShipEntity({
             }
         });
         */
-        
 
         // create wall sparks
         const hit = world.components.collider.data.hasCollided[eid];

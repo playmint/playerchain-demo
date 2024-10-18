@@ -51,7 +51,11 @@ export default memo(function BulletEntity({
         const isNewlySpawned =
             world.components.stats.data.health[eid] > BULLET_LIFETIME - 1;
 
-        interpolateEntityVisibility(bullet, world, eid, 0);
+        if (isNewlySpawned) {
+            bullet.visible = false;
+        } else {
+            interpolateEntityVisibility(bullet, world, eid, 0);
+        }
 
         // track bullet
         interpolateEntityPosition(

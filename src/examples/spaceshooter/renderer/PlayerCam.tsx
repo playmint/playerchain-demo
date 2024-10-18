@@ -60,7 +60,7 @@ export default memo(function PlayerCam({
         const snapiness =
             world.components.entity.data.generation[player.ship] ===
             (camera as EntityObject3D).__generation
-                ? InterpolateSpeed.Quick * 1.5
+                ? InterpolateSpeed.Quick
                 : InterpolateSpeed.Snap;
         camera.position.x = Math.max(
             Math.min(
@@ -95,7 +95,7 @@ export default memo(function PlayerCam({
                 world.components.velocity.data.y[player.ship] *
                     world.components.velocity.data.y[player.ship],
         );
-        const zoom = CAM_INITIAL_ZOOM + vmag ;
+        const zoom = CAM_INITIAL_ZOOM + vmag;
         camera.position.z = interpolate(
             camera.position.z,
             zoom,
