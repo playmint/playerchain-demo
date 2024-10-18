@@ -95,7 +95,7 @@ export function createDefaultMetrics(fixedUpdatedRate) {
                 In an ideal world this value should match the
                 target ${estimatedTargetCPS} CPS value one to one.
                 Spikes in this value mean that we are performing
-                rollbacks, drops in this value without a corrosponding
+                rollbacks, drops in this value without a corresponding
                 drop in CPS may indicate we are unable to process
                 simulation ticks fast enough.`,
             max: 60,
