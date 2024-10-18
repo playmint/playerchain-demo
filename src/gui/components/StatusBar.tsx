@@ -56,7 +56,9 @@ export default memo(function StatusBar({
                 .then((tx) => {
                     const newHeight = tx?.height ?? 0;
                     const diff = newHeight - prevHeight;
-                    metrics.cps.add(diff);
+                    if (newHeight > 1) {
+                        metrics.cps.add(diff);
+                    }
                     setInfo((prev) => ({ ...prev, tx: newHeight }));
                     prevHeight = newHeight;
                 })

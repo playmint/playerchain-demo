@@ -5,6 +5,8 @@ export type Metric = {
     max: number;
     add: (n: number) => void;
     set: (value: number) => void;
+    disable: () => void;
+    enable: () => void;
     subscribe: (callback: (value: number) => void) => CancelSubscription;
 };
 
@@ -21,7 +23,8 @@ export function createMetric({
 }: MetricConfig): Metric {
     let counts = 0;
     let prevTime = (performance || Date).now();
-    let value = 0;
+    let value = -1;
+    let enabled = true;
     const callbacks: ((value: number) => void)[] = [];
     const set = (v: number) => {
         value = v;
@@ -34,6 +37,9 @@ export function createMetric({
         description,
         max: maxValue,
         add: (count: number) => {
+            if (!enabled) {
+                return;
+            }
             counts += count;
             const time = (performance || Date).now();
             if (time >= prevTime + 1000) {
@@ -43,6 +49,13 @@ export function createMetric({
             }
         },
         set,
+        disable: () => {
+            set(-1);
+            enabled = false;
+        },
+        enable: () => {
+            enabled = true;
+        },
         subscribe(callback: (value: number) => void): CancelSubscription {
             callbacks.push(callback);
             return () => {
