@@ -1,10 +1,11 @@
+export type CancelSubscription = () => void;
 export type Metric = {
     name: string;
     description: string;
     max: number;
     add: (n: number) => void;
     set: (value: number) => void;
-    subscribe: (callback: (value: number) => void) => void;
+    subscribe: (callback: (value: number) => void) => CancelSubscription;
 };
 
 export type MetricConfig = {
@@ -42,7 +43,7 @@ export function createMetric({
             }
         },
         set,
-        subscribe(callback: (value: number) => void) {
+        subscribe(callback: (value: number) => void): CancelSubscription {
             callbacks.push(callback);
             return () => {
                 const index = callbacks.indexOf(callback);

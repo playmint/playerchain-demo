@@ -1,38 +1,67 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Metric } from '../../runtime/metrics';
 import theme from '../styles/default.module.css';
 
-const SHOW_AT_THRESHOLD = 6;
+const BAD_THRESHOLD = 5;
+const FATAL_THRESHOLD = 2;
 
-export default function Connectivity({
-    metric,
-    peerCount,
-}: {
-    metric: Metric;
-    peerCount: number;
-}) {
-    const [state, setState] = useState({
-        showConnectivity: false,
+enum ConnectivityStatus {
+    OK,
+    BAD,
+    FATAL,
+}
+
+export default memo(function Connectivity({ metric }: { metric: Metric }) {
+    const [status, setStatus] = useState({
+        status: ConnectivityStatus.OK,
         color: '#fac905',
         icon: 'sentiment_dissatisfied',
     });
 
     useEffect(() => {
-        metric.subscribe((value) => {
-            setState({
-                showConnectivity: value <= SHOW_AT_THRESHOLD && peerCount > 0,
-                color: value < 1 ? '#FF0000' : '#fac905',
-                icon:
-                    value < 1
-                        ? 'sentiment_very_dissatisfied'
-                        : 'sentiment_dissatisfied',
-            });
+        let n = 0;
+        const values = [-1, -1, -1];
+        let hasBeenZeroBefore = false;
+        let prevStatus = ConnectivityStatus.OK;
+        const unsubscribe = metric.subscribe((value) => {
+            values[n % values.length] = value;
+            n++;
+            if (!hasBeenZeroBefore && values.every((v) => v > 0)) {
+                hasBeenZeroBefore = true;
+            }
+            const isFatal =
+                hasBeenZeroBefore &&
+                values.every((v) => v > -1 && v <= FATAL_THRESHOLD);
+            const isBad =
+                isFatal ||
+                (hasBeenZeroBefore &&
+                    values.every((v) => v > -1 && v <= BAD_THRESHOLD));
+            const newStatus = isFatal
+                ? ConnectivityStatus.FATAL
+                : isBad
+                  ? ConnectivityStatus.BAD
+                  : ConnectivityStatus.OK;
+            if (newStatus !== prevStatus) {
+                setStatus({
+                    status: newStatus,
+                    color:
+                        newStatus === ConnectivityStatus.FATAL
+                            ? '#FF0000'
+                            : '#fac905',
+                    icon:
+                        newStatus === ConnectivityStatus.FATAL
+                            ? 'sentiment_very_dissatisfied'
+                            : 'sentiment_dissatisfied',
+                });
+                prevStatus = newStatus;
+            }
         });
-    }, [metric, peerCount]);
+        return () => unsubscribe();
+    }, [metric]);
 
     return (
         <>
-            {state.showConnectivity && (
+            {status.status !== ConnectivityStatus.OK && (
                 <div
                     style={{
                         position: 'absolute',
@@ -40,7 +69,7 @@ export default function Connectivity({
                         left: '1rem',
                         display: 'flex',
                         alignItems: 'center',
-                        color: state.color,
+                        color: status.color,
                     }}
                 >
                     <span
@@ -49,11 +78,11 @@ export default function Connectivity({
                         }}
                         className={theme.materialSymbolsOutlined}
                     >
-                        {state.icon}
+                        {status.icon}
                     </span>
                     <span
                         style={{
-                            color: 'white',
+                            color: status.color,
                             marginLeft: '0.5rem',
                         }}
                     >
@@ -63,4 +92,4 @@ export default function Connectivity({
             )}
         </>
     );
-}
+});
