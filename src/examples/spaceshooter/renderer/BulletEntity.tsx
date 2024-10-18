@@ -1,10 +1,8 @@
-import { Clone, PositionalAudio, useGLTF } from '@react-three/drei';
+import { Clone, PositionalAudio } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { memo, useMemo, useRef } from 'react';
+import { memo, useRef } from 'react';
 import {
-    AdditiveBlending,
     Group,
-    Mesh,
     Object3DEventMap,
     PositionalAudio as PositionalAudioImpl,
     Vector3,
@@ -12,7 +10,6 @@ import {
 import { Tags } from '../../spaceshooter';
 import sfxHit from '../assets/Hit.mp3?url';
 import sfxShot from '../assets/Shot.mp3?url';
-import shipGLTF from '../assets/bullet.glb?url';
 import {
     ShipImpactFX,
     ShipImpactFXHandle,
@@ -20,7 +17,6 @@ import {
 import { BULLET_LIFETIME } from '../systems/bulletSystem';
 import {
     EntityObject3D,
-    InterpolateMethod,
     InterpolateSpeed,
     assetPath,
     interpolateEntityPosition,
