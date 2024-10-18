@@ -33,6 +33,7 @@ export interface Operation {
 export interface Choice {
     text: string;
     next: number;
+    noop?: boolean;
 }
 
 interface OperationText {
@@ -236,6 +237,9 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
                     e.preventDefault();
                     const choice = flow[opIndex].choices![currentChoice];
                     if (choice) {
+                        if (choice.noop) {
+                            return;
+                        }
                         setOpIndex(opIndex + choice.next);
                         setIsOperationInProgress(false);
                     }
