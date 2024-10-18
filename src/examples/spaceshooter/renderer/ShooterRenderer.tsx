@@ -39,7 +39,6 @@ export default memo(function ShooterCanvas({
     const prevEntities = useRef<(EntityId | null)[]>([]);
 
     // stuff we send to the hud
-    const [nextPlayers, setNextPlayers] = useState<PlayerInfo[]>([]);
     const prevPlayers = useRef<PlayerInfo[]>([]);
 
     // subscribe to updates
@@ -80,7 +79,6 @@ export default memo(function ShooterCanvas({
                     );
                 })
             ) {
-                setNextPlayers(nextPlayers);
                 playersRef.current = nextPlayers;
             }
             prevPlayers.current = nextPlayers;
@@ -131,8 +129,9 @@ export default memo(function ShooterCanvas({
             </Canvas>
             <PlayerHUD
                 peerId={peerId}
-                players={nextPlayers}
+                playersRef={playersRef}
                 worldRef={worldRef}
+                metrics={metrics}
             />
         </>
     );

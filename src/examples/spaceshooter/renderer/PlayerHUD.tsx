@@ -4,13 +4,14 @@ import {
     SIM_END,
 } from '../../../gui/components/ChannelView';
 import { PlayerData } from '../../../runtime/ecs';
+import { DefaultMetrics } from '../../../runtime/metrics';
 import { SESSION_TIME_SECONDS, ShooterSchema } from '../../spaceshooter';
 import ReadySetGo from './Countdown';
 import EndRoundLeaderBoard from './EndRoundLeaderboard';
 import EndSessionButton from './EndSessionButton';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
-import { WorldRef } from './ShooterRenderer';
+import { PlayersRef, WorldRef } from './ShooterRenderer';
 
 export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
     id: string;
@@ -20,12 +21,14 @@ export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
 
 export default memo(function PlayerHUD({
     peerId,
-    players,
+    playersRef,
     worldRef,
+    metrics,
 }: {
-    players: PlayerInfo[];
+    playersRef: PlayersRef;
     peerId: string;
     worldRef: WorldRef;
+    metrics?: DefaultMetrics;
 }) {
     const [remaining, setRemaining] = useState(-1);
     useEffect(() => {
@@ -38,12 +41,15 @@ export default memo(function PlayerHUD({
             const remainingSeconds =
                 remainingTicks * (FIXED_UPDATE_RATE / 1000);
             // format as MM:SS with leading zeros
+            if (remainingSeconds === 0) {
+                metrics?.cps.disable();
+            }
             setRemaining(remainingSeconds);
         }, 1000);
         return () => clearInterval(timer);
-    }, [worldRef]);
+    }, [worldRef, metrics]);
 
-    const player = players.find((p) => p.id === peerId);
+    const player = playersRef.current?.find((p) => p.id === peerId);
     return (
         <div
             style={{
@@ -73,7 +79,7 @@ export default memo(function PlayerHUD({
                 />
             ) : remaining === 0 ? (
                 <>
-                    <EndRoundLeaderBoard players={players} />
+                    <EndRoundLeaderBoard players={playersRef.current} />
                     <EndSessionButton />
                 </>
             ) : null}
@@ -98,7 +104,10 @@ export default memo(function PlayerHUD({
                         {player && <EnergyBar energy={player.health} />}
                     </div>
                     <div style={{ width: '30%' }}>
-                        <LeaderBoard players={players} peerId={peerId} />
+                        <LeaderBoard
+                            players={playersRef.current}
+                            peerId={peerId}
+                        />
                     </div>
                 </div>
             )}
