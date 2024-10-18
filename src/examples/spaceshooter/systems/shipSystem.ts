@@ -166,7 +166,6 @@ function addShip({
         });
     }
 
-    console.log('new ship eid: ', eid);
     return eid;
 }
 

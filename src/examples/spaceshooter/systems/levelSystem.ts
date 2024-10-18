@@ -73,7 +73,6 @@ function addWall(
     position.y[eid] = wall.position.y;
     position.z[eid] = 0;
     rotation.z[eid] = wall.rotation;
-    console.log('added wall', eid, wall);
 
     model.type[eid] = ModelType.Wall;
     model.width[eid] = wall.width;
