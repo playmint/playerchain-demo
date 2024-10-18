@@ -27,23 +27,24 @@ export default memo(function Connectivity({ metric }: { metric: Metric }) {
 
     useEffect(() => {
         let n = 0;
-        let values = [-1, -1, 1, -1];
-        let hasBeenZeroBefore = false;
+        let values = [-1, -1, -1];
+        let active = false;
         let prevStatus = STATUS_OK;
         return metric.subscribe((value) => {
             values[n % values.length] = value;
             n++;
-            if (!hasBeenZeroBefore && values.every((v) => v > 0)) {
-                hasBeenZeroBefore = true;
+            const probablyActive = values.every((v) => v > -1);
+            if (!active && probablyActive) {
+                active = true;
                 values = values.slice(-2);
                 n = 0;
+            } else if (active && !probablyActive) {
+                active = false;
             }
-            const isBad =
-                hasBeenZeroBefore && values.every((v) => v > -1 && v < 2);
+            const isBad = active && values.every((v) => v > -1 && v < 2);
             const isPoor =
                 isBad ||
-                (hasBeenZeroBefore &&
-                    values.every((v) => v > -1 && v <= POOR_THRESHOLD));
+                (active && values.every((v) => v > -1 && v <= POOR_THRESHOLD));
             const newStatus = isBad
                 ? STATUS_BAD
                 : isPoor

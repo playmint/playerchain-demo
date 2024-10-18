@@ -76,7 +76,6 @@ export class Sequencer {
     private inputDelay = 100;
     private mode: SequencerMode;
     private interlace: number;
-    private metrics?: DefaultMetrics;
     private end: number;
     private skew = 0;
     peerId: string;
@@ -94,7 +93,6 @@ export class Sequencer {
         channelPeerIds,
         interlace,
         rate,
-        metrics,
     }: SequencerConfig) {
         this.db = database.open(dbname);
         this.mode = mode;
@@ -106,7 +104,6 @@ export class Sequencer {
         this.channelPeerIds = channelPeerIds;
         this.fixedUpdateRate = rate;
         this.warmingUp = (1000 / this.fixedUpdateRate) * 1; // 1s warmup
-        this.metrics = metrics;
         this.end =
             SESSION_TIME_SECONDS / (this.fixedUpdateRate / 1000) +
             this.interlace;
@@ -117,10 +114,7 @@ export class Sequencer {
             return;
         }
         try {
-            const commits = await this._loop();
-            if (this.metrics) {
-                this.metrics.cps.add(commits);
-            }
+            await this._loop();
         } catch (err) {
             console.error(`seq-loop-err`, err);
         } finally {
