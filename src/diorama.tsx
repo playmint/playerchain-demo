@@ -39,7 +39,6 @@ import {
 } from './examples/spaceshooter/effects/FXSparksQuarks';
 import { StarFieldFX } from './examples/spaceshooter/effects/FXStarfieldQuarks';
 import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
-import { BackgroundGrid } from './examples/spaceshooter/renderer/Background';
 import { BackgroundModels } from './examples/spaceshooter/renderer/BackgroundModels';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
 import BulletModel from './examples/spaceshooter/renderer/BulletModel';

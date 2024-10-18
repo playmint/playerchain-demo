@@ -1,5 +1,5 @@
 import { Effect } from 'postprocessing';
-import React, { forwardRef, useMemo } from 'react';
+import { forwardRef, useMemo } from 'react';
 import { Texture, Uniform } from 'three';
 
 let _ustrength;
@@ -29,7 +29,7 @@ class WarpEffectImpl extends Effect {
         tBuffer = new Texture(),
     }: { strength?: number; tBuffer?: Texture } = {}) {
         super('WarpEffect', HorizontalBlurShader.fragmentShader, {
-            uniforms: new Map([
+            uniforms: new Map<string, Uniform<any>>([
                 ['strength', new Uniform(strength)],
                 ['tBuffer', new Uniform(tBuffer)],
             ]),
@@ -46,8 +46,14 @@ class WarpEffectImpl extends Effect {
 
     update(_renderer, _inputBuffer, _deltaTime) {
         // Update uniforms directly from instance variables
-        this.uniforms.get('strength').value = _ustrength;
-        this.uniforms.get('tBuffer').value = this.tBuffer;
+        const strength = this.uniforms.get('strength');
+        if (strength) {
+            strength.value = _ustrength;
+        }
+        const tBuffer = this.uniforms.get('tBuffer');
+        if (tBuffer) {
+            tBuffer.value = this.tBuffer;
+        }
     }
 }
 

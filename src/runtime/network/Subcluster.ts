@@ -135,17 +135,18 @@ export class Subcluster {
         const opened = await this.localPeer.open(packet.message, scid);
 
         if (!opened) {
-            console.log('UNOPENED', packet);
+            // console.log('UNOPENED', packet);
             return {};
         }
 
         if (packet.sig) {
             try {
+                // we verify packets elsewhere, might come back to this
                 //if (Encryption.verify(opened, packet.sig, packet.usr2)) {
                 verified = true;
                 //}
             } catch (_err) {
-                console.log('UNVERIFIED', packet);
+                // console.log('UNVERIFIED', packet);
                 return {};
             }
         }

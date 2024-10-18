@@ -171,7 +171,6 @@ export class World<T extends WorldSchema> {
         }
         const eid = this.entities.length + 1;
         this.entities = [...this.entities, eid];
-        console.log('added entity', eid);
         return eid;
     };
 
