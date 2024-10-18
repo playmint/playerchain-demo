@@ -51,21 +51,6 @@ export default memo(function ChannelView({
         });
     };
 
-    const toggleFullscreen = useCallback(() => {
-        if (document.fullscreenElement) {
-            document.exitFullscreen().catch((err) => {
-                console.error('exit-fullscreen-err:', err);
-            });
-            return;
-        }
-        if (!canvasRef.current) {
-            return;
-        }
-        canvasRef.current.requestFullscreen().catch((err) => {
-            console.error('request-fullscreen-err:', err);
-        });
-    }, []);
-
     const { muted } = useSettings();
     const toggleMuted = useCallback(() => {
         db.settings
@@ -428,19 +413,6 @@ export default memo(function ChannelView({
                         pointerEvents: 'none',
                     }}
                 >
-                    <span
-                        style={{
-                            pointerEvents: 'auto',
-                            position: 'absolute',
-                            bottom: '1rem',
-                            left: '1rem',
-                            color: '#555',
-                        }}
-                        onClick={toggleFullscreen}
-                        className={theme.materialSymbolsOutlined}
-                    >
-                        fullscreen
-                    </span>
                     <span
                         style={{
                             pointerEvents: 'auto',
