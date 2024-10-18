@@ -419,7 +419,7 @@ export default memo(function ChannelView({
                             position: 'absolute',
                             top: '1rem',
                             right: '1rem',
-                            color: '#555',
+                            color: '#d9d9d9',
                         }}
                         onClick={toggleMuted}
                         className={theme.materialSymbolsOutlined}
