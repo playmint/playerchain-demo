@@ -39,7 +39,7 @@ export default memo(function PlayerHUD({
                 remainingTicks * (FIXED_UPDATE_RATE / 1000);
             // format as MM:SS with leading zeros
             setRemaining(remainingSeconds);
-        }, 500);
+        }, 1000);
         return () => clearInterval(timer);
     }, [worldRef]);
 

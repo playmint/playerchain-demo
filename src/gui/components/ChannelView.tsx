@@ -181,10 +181,6 @@ export default memo(function ChannelView({
 
     const majorityReady = readyPeers >= required;
     const selfIsInTheClub = channel.peers.includes(peerId);
-    const channelIsFull = channel.peers.length >= MAX_PLAYERS;
-    const failedToJoinMessage = channelIsFull
-        ? '⛔ This session is currently full.'
-        : '⛔ This session is already in progress.';
 
     const terminalFlow: Operation[] = [
         {
@@ -333,7 +329,11 @@ export default memo(function ChannelView({
                         flow={[
                             {
                                 text: !selfIsInTheClub ? (
-                                    failedToJoinMessage
+                                    channel.peers.length >= MAX_PLAYERS ? (
+                                        '⛔ This session is currently full.'
+                                    ) : (
+                                        '⛔ This session is already in progress.'
+                                    )
                                 ) : (
                                     <span>
                                         <Spinner /> Waiting for Playerchain
@@ -440,10 +440,7 @@ export default memo(function ChannelView({
                     >
                         {muted ? 'volume_off' : 'volume_up'}
                     </span>
-                    <Connectivity
-                        metric={metrics.cps}
-                        peerCount={channel.peers.length}
-                    />
+                    <Connectivity metric={metrics.cps} />
                 </div>
             </div>
             {details && (
