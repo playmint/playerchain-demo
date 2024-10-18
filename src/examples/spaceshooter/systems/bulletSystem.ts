@@ -103,7 +103,6 @@ export default system<ShooterSchema>(
                         !entity.active[eid],
                 );
                 if (!bullet) {
-                    console.log('no bullets');
                     continue;
                 }
                 stats.health[player.ship] -= BULLET_HEALTH_COST;
