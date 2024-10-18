@@ -2,8 +2,6 @@
     zoom: 0.8; /* just temp hack remove me */
     position: relative;
     text-align: right;
-    margin-bottom: 30px;
-    margin-right: 30px;
     overflow: hidden;
 }
 
