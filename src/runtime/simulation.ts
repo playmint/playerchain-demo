@@ -49,7 +49,7 @@ export class Simulation {
     private channelPeerIds: string[];
     private inputDelay: number; // in "ticks"
     private db: DB;
-    private interlace: number;
+    interlace: number;
     cueing = false;
 
     constructor({
@@ -268,7 +268,6 @@ export class Simulation {
                     updated: prevUpdated,
                     inputs: this.channelPeerIds.map((id) => ({ id, input: 0 })),
                 });
-                console.log('FAKE TAPE', prevRound);
             }
             // assert we have not missed any rounds
             if (tape.round !== prevRound + 1) {

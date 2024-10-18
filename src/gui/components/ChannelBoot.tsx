@@ -8,7 +8,7 @@ import { useDatabase } from '../hooks/use-database';
 import { TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
-export const TERM_DELAY = import.meta.env.MODE !== 'production' ? 50 : 500;
+export const TERM_DELAY = 100;
 
 type TerminalFlowArgs = {
     db: DB;
