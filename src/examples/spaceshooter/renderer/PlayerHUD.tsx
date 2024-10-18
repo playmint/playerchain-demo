@@ -8,9 +8,9 @@ import { DefaultMetrics } from '../../../runtime/metrics';
 import { SESSION_TIME_SECONDS, ShooterSchema } from '../../spaceshooter';
 import ReadySetGo from './Countdown';
 import EndRoundLeaderBoard from './EndRoundLeaderboard';
-import EndSessionButton from './EndSessionButton';
 import EnergyBar from './EnergyBar';
 import LeaderBoard from './LeaderBoard';
+import PlayAgainButton from './PlayAgainButton';
 import { PlayersRef, WorldRef } from './ShooterRenderer';
 
 export type PlayerInfo = Omit<PlayerData<ShooterSchema['player']>, 'input'> & {
@@ -67,7 +67,16 @@ export default memo(function PlayerHUD({
             <div></div>
             <div style={{ flexGrow: 1 }}>
                 {remaining > 0 && (
-                    <div style={{ padding: 10 }}>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            bottom: '30px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            padding: '10px',
+                            fontSize: '20px',
+                        }}
+                    >
                         {String(Math.floor(remaining / 60)).padStart(2, '0')}:
                         {String(Math.ceil(remaining % 60)).padStart(2, '0')}
                     </div>
@@ -80,14 +89,13 @@ export default memo(function PlayerHUD({
             ) : remaining === 0 ? (
                 <>
                     <EndRoundLeaderBoard players={playersRef.current} />
-                    <EndSessionButton />
+                    <PlayAgainButton />
                 </>
             ) : null}
             {remaining !== 0 && (
                 <div
                     style={{
                         display: 'flex',
-                        marginBottom: '1rem',
                         alignContent: 'center',
                         justifyContent: 'center',
                         alignItems: 'center',
@@ -96,14 +104,24 @@ export default memo(function PlayerHUD({
                     <div style={{ width: '30%' }}></div>
                     <div
                         style={{
-                            flexGrow: 1,
-                            marginRight: '1rem',
-                            marginLeft: '1rem',
+                            position: 'absolute',
+                            top: '30px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '50%',
+                            maxWidth: '300px',
                         }}
                     >
                         {player && <EnergyBar energy={player.health} />}
                     </div>
-                    <div style={{ width: '30%' }}>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            bottom: '30px',
+                            right: '30px',
+                            width: 'auto',
+                        }}
+                    >
                         <LeaderBoard
                             players={playersRef.current}
                             peerId={peerId}
