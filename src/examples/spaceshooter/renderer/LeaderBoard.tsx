@@ -1,17 +1,19 @@
+import { memo } from 'react';
 import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 import styles from './LeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 
-export interface Score {
+export type Score = {
+    id: string;
     user: string;
     score: number;
     color: string;
     animClass?: string;
     isMe?: boolean;
     lastPosition?: number;
-}
+};
 
-export default function LeaderBoard({
+export default memo(function LeaderBoard({
     players,
     peerId,
 }: {
@@ -20,6 +22,7 @@ export default function LeaderBoard({
 }) {
     const scores: Score[] = players
         .map((p) => ({
+            id: p.id,
             user: p.name,
             score: p.score,
             color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)), //'#ac75eb',
@@ -55,49 +58,21 @@ export default function LeaderBoard({
         score.lastPosition = index;
     });
 
-    let leaders: Score[];
-    let meScoreIndex = -1;
-
-    if (isMeInTop) {
-        leaders = scores.slice(0, 4);
-    } else {
-        const meScore = scores.find((score, index) => {
-            if (score.isMe) {
-                meScoreIndex = index;
-                return true;
-            }
-            return false;
-        });
-        if (meScore) {
-            leaders = [...topThree, meScore];
-        } else {
-            leaders = topThree;
-        }
-    }
-
-    const scoresBetween = meScoreIndex > 3 ? meScoreIndex - 3 : 0;
-
     return (
         <div className={styles.leaderboard}>
-            {leaders.map((leader, index) => (
+            {scores.slice(0, 4).map((leader, index) => (
                 <LdrEntry
-                    key={index + '-' + leader.user + '-' + leader.score}
+                    key={leader.id}
                     userScore={leader}
-                    position={
-                        scores.findIndex(
-                            (score) => score.user === leader.user,
-                        ) + 1
-                    }
-                    scoresBetween={
-                        !isMeInTop && index === 3 ? scoresBetween : 0
-                    }
+                    position={index + 1}
+                    scoresBetween={0}
                 />
             ))}
         </div>
     );
-}
+});
 
-function LdrEntry(props: {
+const LdrEntry = memo(function LdrEntry(props: {
     userScore: Score;
     position: number;
     scoresBetween?: number;
@@ -128,27 +103,4 @@ function LdrEntry(props: {
             </div>
         </>
     );
-}
-
-export function shadeColor(color: string, percent: number) {
-    let R = parseInt(color.substring(1, 3), 16);
-    let G = parseInt(color.substring(3, 5), 16);
-    let B = parseInt(color.substring(5, 7), 16);
-
-    R = Math.floor((R * (100 + percent)) / 100);
-    G = Math.floor((G * (100 + percent)) / 100);
-    B = Math.floor((B * (100 + percent)) / 100);
-
-    R = R < 255 ? R : 255;
-    G = G < 255 ? G : 255;
-    B = B < 255 ? B : 255;
-
-    const RR =
-        R.toString(16).length === 1 ? '0' + R.toString(16) : R.toString(16);
-    const GG =
-        G.toString(16).length === 1 ? '0' + G.toString(16) : G.toString(16);
-    const BB =
-        B.toString(16).length === 1 ? '0' + B.toString(16) : B.toString(16);
-
-    return '#' + RR + GG + BB;
-}
+});
