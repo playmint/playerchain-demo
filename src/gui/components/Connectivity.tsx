@@ -2,66 +2,63 @@ import { memo, useEffect, useState } from 'react';
 import { Metric } from '../../runtime/metrics';
 import theme from '../styles/default.module.css';
 
-const BAD_THRESHOLD = 5;
-const FATAL_THRESHOLD = 2;
+const POOR_THRESHOLD = 5;
 
-enum ConnectivityStatus {
-    OK,
-    BAD,
-    FATAL,
-}
+const STATUS_OK = {
+    color: '',
+    msg: '',
+    icon: '',
+};
+
+const STATUS_POOR = {
+    color: '#fac905',
+    msg: 'POOR NETWORK CONDITIONS',
+    icon: 'sentiment_dissatisfied',
+};
+
+const STATUS_BAD = {
+    color: '#fac905',
+    msg: 'POOR NETWORK CONDITIONS',
+    icon: 'sentiment_very_dissatisfied',
+};
 
 export default memo(function Connectivity({ metric }: { metric: Metric }) {
-    const [status, setStatus] = useState({
-        status: ConnectivityStatus.OK,
-        color: '#fac905',
-        icon: 'sentiment_dissatisfied',
-    });
+    const [status, setStatus] = useState(STATUS_OK);
 
     useEffect(() => {
         let n = 0;
-        const values = [-1, -1, -1];
+        let values = [-1, -1, 1, -1];
         let hasBeenZeroBefore = false;
-        let prevStatus = ConnectivityStatus.OK;
-        const unsubscribe = metric.subscribe((value) => {
+        let prevStatus = STATUS_OK;
+        return metric.subscribe((value) => {
             values[n % values.length] = value;
             n++;
             if (!hasBeenZeroBefore && values.every((v) => v > 0)) {
                 hasBeenZeroBefore = true;
+                values = values.slice(-2);
+                n = 0;
             }
-            const isFatal =
-                hasBeenZeroBefore &&
-                values.every((v) => v > -1 && v <= FATAL_THRESHOLD);
             const isBad =
-                isFatal ||
+                hasBeenZeroBefore && values.every((v) => v > -1 && v < 2);
+            const isPoor =
+                isBad ||
                 (hasBeenZeroBefore &&
-                    values.every((v) => v > -1 && v <= BAD_THRESHOLD));
-            const newStatus = isFatal
-                ? ConnectivityStatus.FATAL
-                : isBad
-                  ? ConnectivityStatus.BAD
-                  : ConnectivityStatus.OK;
+                    values.every((v) => v > -1 && v <= POOR_THRESHOLD));
+            const newStatus = isBad
+                ? STATUS_BAD
+                : isPoor
+                  ? STATUS_POOR
+                  : STATUS_OK;
             if (newStatus !== prevStatus) {
-                setStatus({
-                    status: newStatus,
-                    color:
-                        newStatus === ConnectivityStatus.FATAL
-                            ? '#FF0000'
-                            : '#fac905',
-                    icon:
-                        newStatus === ConnectivityStatus.FATAL
-                            ? 'sentiment_very_dissatisfied'
-                            : 'sentiment_dissatisfied',
-                });
+                setStatus(newStatus);
                 prevStatus = newStatus;
             }
         });
-        return () => unsubscribe();
     }, [metric]);
 
     return (
         <>
-            {status.status !== ConnectivityStatus.OK && (
+            {status !== STATUS_OK && (
                 <div
                     style={{
                         position: 'absolute',
@@ -86,7 +83,7 @@ export default memo(function Connectivity({ metric }: { metric: Metric }) {
                             marginLeft: '0.5rem',
                         }}
                     >
-                        connection issue
+                        {status.msg}
                     </span>
                 </div>
             )}

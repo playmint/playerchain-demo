@@ -1,6 +1,6 @@
 // const Stats = function () {
 //     let mode = 0;
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Metric } from '../../runtime/metrics';
 
 // port of MrDoob's stats.js
@@ -121,7 +121,7 @@ class Panel {
     }
 }
 
-export default function Stat({ metric }: { metric: Metric }) {
+export default memo(function Stat({ metric }: { metric: Metric }) {
     const [panel, setPanel] = useState<Panel | null>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
@@ -139,7 +139,7 @@ export default function Stat({ metric }: { metric: Metric }) {
         if (!panel) {
             return;
         }
-        metric.subscribe((value) => {
+        return metric.subscribe((value) => {
             panel.update(value, metric.max);
         });
     }, [metric, panel]);
@@ -150,4 +150,4 @@ export default function Stat({ metric }: { metric: Metric }) {
             style={{ height: '4rem', marginTop: '1rem', marginLeft: '5px' }}
         />
     );
-}
+});
