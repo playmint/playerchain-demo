@@ -1,12 +1,16 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useRef } from 'react';
+import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
 import { useClient } from '../../../gui/hooks/use-client';
 import { useDatabase } from '../../../gui/hooks/use-database';
 import { StoredChatMessage } from '../../../runtime/db';
+import { PlayerInfo } from './PlayerHUD';
 
 export default memo(function Chat({
+    players,
     peerNames,
 }: {
+    players: PlayerInfo[];
     peerNames: Record<string, string>;
 }) {
     const db = useDatabase();
@@ -67,19 +71,35 @@ export default memo(function Chat({
                 <div
                     key={i}
                     style={{
-                        padding: '0.5rem',
+                        padding: '0.25rem',
                         textAlign: 'left',
                         fontSize: '0.9rem',
+                        textShadow: '1px 1px 1px black',
                     }}
                 >
-                    {peerName(m.peer)}: {m.msg}
+                    <span
+                        style={{
+                            color: getPlayerColorCSS(
+                                players.findIndex((p) => p.id === m.peer),
+                            ),
+                        }}
+                    >
+                        {peerName(m.peer)}:&nbsp;
+                    </span>
+                    <span>{m.msg}</span>
                 </div>
             ))}
-            <form onSubmit={submit}>
+            <form onSubmit={submit} style={{ padding: 0, margin: 0 }}>
                 <input
                     ref={input}
                     type="text"
-                    style={{ background: 'transparent', color: 'white' }}
+                    style={{
+                        background: 'transparent',
+                        color: 'white',
+                        margin: 0,
+                        padding: '0.25rem',
+                        width: '100%',
+                    }}
                 />
             </form>
         </div>

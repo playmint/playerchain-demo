@@ -112,7 +112,10 @@ export default memo(function PlayerHUD({
                             left: '30px',
                         }}
                     >
-                        <Chat peerNames={peerNames} />
+                        <Chat
+                            peerNames={peerNames}
+                            players={playersRef.current}
+                        />
                     </div>
                     <div
                         style={{
