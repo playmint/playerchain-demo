@@ -1,6 +1,6 @@
 import { useGLTF } from '@react-three/drei';
 import { useMemo } from 'react';
-import { AdditiveBlending, Mesh, MeshBasicMaterial } from 'three';
+import { Mesh, MeshBasicMaterial } from 'three';
 import shipGLTF from '../assets/bullet.glb?url';
 import { assetPath } from '../utils/RenderUtils';
 
@@ -15,7 +15,9 @@ export default function BulletModel() {
                 });
 
                 targetMaterial.transparent = true;
-                targetMaterial.map.needsUpdate = true;
+                if (targetMaterial.map) {
+                    targetMaterial.map.needsUpdate = true;
+                }
                 child.material = targetMaterial;
             }
         });
