@@ -1,0 +1,39 @@
+.playAgainButton {
+    position: absolute;
+    bottom: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #00000080, rgba(7, 13, 27, 0.5));
+    border: 1px solid rgb(92, 144, 255);
+    border-radius: 42px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 1000;
+    transition: background-color 0.3s, transform 0.3s;
+    text-shadow: #1b8dff 0px 0px 10px;
+}
+
+.playAgainButton:hover {
+    background-color: #155a9c;
+}
+
+.playAgainButton:active {
+    transform: translateX(-50%) scale(0.98);
+}
+
+@media (max-width: 420px) {
+    .playAgainButton {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+}
+
+@media (max-width: 270px) {
+    .playAgainButton {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}
