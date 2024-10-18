@@ -140,7 +140,7 @@ export default memo(function Stat({ metric }: { metric: Metric }) {
             return;
         }
         return metric.subscribe((value) => {
-            panel.update(value, metric.max);
+            panel.update(Math.max(0, value), metric.max);
         });
     }, [metric, panel]);
     return (
