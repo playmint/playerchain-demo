@@ -1,6 +1,6 @@
 import { useGLTF } from '@react-three/drei';
-import React, { useMemo } from 'react';
-import { MeshBasicMaterial } from 'three';
+import { useMemo } from 'react';
+import { Mesh, MeshBasicMaterial } from 'three';
 import shipGLTF from '../assets/BaackgroundElements/BaackgroundElements.glb?url';
 import { assetPath } from '../utils/RenderUtils';
 
@@ -12,7 +12,7 @@ export function BackgroundModels(props) {
     // Preprocess the scene only once
     const processedScene = useMemo(() => {
         gltf.scene.traverse((child) => {
-            if (child.isMesh) {
+            if (child instanceof Mesh) {
                 // Set flags that won't change
                 child.castShadow = false;
                 child.receiveShadow = false;
@@ -24,7 +24,9 @@ export function BackgroundModels(props) {
                 });
 
                 targetMaterial.transparent = true;
-                targetMaterial.map.needsUpdate = true;
+                if (targetMaterial.map) {
+                    targetMaterial.map.needsUpdate = true;
+                }
                 child.material = targetMaterial;
 
                 // Set additional material properties
