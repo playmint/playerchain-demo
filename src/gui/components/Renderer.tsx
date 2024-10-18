@@ -108,14 +108,11 @@ export default memo(function Renderer({
                 interlace,
                 channelPeerIds,
                 peerId,
-                // metrics,
                 dbname,
             };
-            console.log('starting sequencer----------1', cfg);
             const seq = await new SequencerProxy(
                 Comlink.transfer(cfg, [cfg.clientPort]),
             );
-            console.log('starting sequencer----------2');
             seq.start().catch((err) => {
                 console.error('seq.start err:', err);
             });
@@ -125,17 +122,7 @@ export default memo(function Renderer({
             console.log('started sequencer');
             return seq;
         },
-        [
-            client,
-            channelId,
-            rate,
-            src,
-            peerId,
-            db,
-            channelPeerIds,
-            interlace,
-            metrics,
-        ],
+        [client, channelId, rate, src, peerId, db, channelPeerIds, interlace],
     );
 
     // configure event handlers
