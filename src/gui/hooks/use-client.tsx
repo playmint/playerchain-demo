@@ -15,6 +15,7 @@ export interface ClientContextType {
     setPeers: Client['setPeers'];
     init(cfg: ClientUserConfig): Promise<void>;
     shutdown(): Promise<void>;
+    sendChatMessage: Client['sendChatMessage'];
 }
 
 export const ClientContext = createContext<ClientContextType>(

@@ -100,7 +100,7 @@ export default memo(function ShooterCanvas({
     }
     return (
         <>
-            <Canvas resize={CANVAS_RESIZE} frameloop="demand">
+            <Canvas id="gamecanvas" resize={CANVAS_RESIZE} frameloop="demand">
                 <BackgroundModels rotation={[1.5708, 0, 0]} />
                 <StarFieldFX />
                 <FPSLimiter fps={60} />
@@ -132,6 +132,7 @@ export default memo(function ShooterCanvas({
                 playersRef={playersRef}
                 worldRef={worldRef}
                 metrics={metrics}
+                peerNames={peerNames}
             />
         </>
     );

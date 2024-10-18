@@ -7,6 +7,7 @@ export enum MessageType {
     INPUT = 2,
     KEEP_ALIVE = 3,
     SET_PEERS = 4,
+    CHAT = 5,
 }
 
 export type ChainMessageProps = {
@@ -23,6 +24,13 @@ export type KeepAliveMessage = {
     name: string;
     timestamp: number;
     sees: Uint8Array[];
+};
+
+export type ChatMessage = {
+    type: MessageType.CHAT;
+    id: string; // uuidv6
+    peer: Uint8Array;
+    msg: string;
 };
 
 export type InputMessage = Partial<ChainMessageProps> & {
@@ -45,7 +53,8 @@ export type Message =
     | InputMessage
     | SetPeersMessage
     | CreateChannelMessage
-    | KeepAliveMessage;
+    | KeepAliveMessage
+    | ChatMessage;
 
 export type ChainMessage =
     | InputMessage
@@ -62,6 +71,8 @@ export function encodeMessage(m: Message): Uint8Array {
             return encodeSetPeersMessage(m);
         case MessageType.KEEP_ALIVE:
             return encodeKeepAliveMessage(m);
+        case MessageType.CHAT:
+            return encodeChatMessage(m);
         default:
             throw new Error(`unsupported message type: ${(m as any).type}`);
     }
@@ -78,6 +89,8 @@ export function decodeMessage(b: Uint8Array | Buffer): Message {
             return decodeSetPeersMessage(props);
         case MessageType.KEEP_ALIVE:
             return decodeKeepAliveMessage(props);
+        case MessageType.CHAT:
+            return decodeChatMessage(props);
         default:
             throw new Error(`unsupported message type: ${type}`);
     }
@@ -101,6 +114,20 @@ function decodeKeepAliveMessage(props: any[]): KeepAliveMessage {
         name,
         timestamp,
         sees,
+    };
+}
+
+function encodeChatMessage(p: ChatMessage): Uint8Array {
+    return cbor.encode([MessageType.CHAT, p.peer, p.id, p.msg]);
+}
+
+function decodeChatMessage(props: any[]): ChatMessage {
+    const [peer, id, msg] = props;
+    return {
+        type: MessageType.CHAT,
+        peer,
+        id,
+        msg,
     };
 }
 

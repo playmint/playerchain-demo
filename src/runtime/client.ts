@@ -422,6 +422,9 @@ export class Client {
             // these are (weirdly) being handled in the channel
             if (m.type === MessageType.KEEP_ALIVE) {
                 continue;
+            } else if (m.type === MessageType.CHAT) {
+                // chat is handled by channel
+                continue;
             }
             messages.push(
                 toStoredChainMessage(
@@ -1060,6 +1063,14 @@ export class Client {
     send = (m: Message, opts?: EmitOpts) => {
         for (const [_, ch] of this.channels) {
             ch.send(m, opts).catch((err) => {
+                console.error('client-send-err:', err);
+            });
+        }
+    };
+
+    sendChatMessage = async (txt: string) => {
+        for (const [_, ch] of this.channels) {
+            ch.sendChatMessage(txt).catch((err) => {
                 console.error('client-send-err:', err);
             });
         }

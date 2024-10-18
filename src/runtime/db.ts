@@ -17,6 +17,13 @@ export interface SerializedState {
     state: State;
 }
 
+export interface StoredChatMessage {
+    id: string;
+    arrived: number;
+    peer: string;
+    msg: string;
+}
+
 export interface PeerInfo {
     peerId: string;
     lastSeen: number;
@@ -221,6 +228,7 @@ export type DB = Dexie & {
     settings: EntityTable<PlayerSettings, 'id'>;
     peerNames: EntityTable<PeerNames, 'peerId'>;
     tapes: EntityTable<Tape>;
+    chat: EntityTable<StoredChatMessage, 'id'>;
 };
 
 export function open(name: string): DB {
@@ -236,6 +244,7 @@ export function open(name: string): DB {
         settings: 'id',
         peerNames: 'peerId',
         tapes: '[channel+round], [channel+updated]',
+        chat: 'id, arrived',
     });
 
     return db;
