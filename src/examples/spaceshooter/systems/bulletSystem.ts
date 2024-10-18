@@ -12,7 +12,7 @@ export const BULLET_MAX_VELOCITY = 110;
 export const BULLET_LIFETIME = 26;
 export const SHIP_SHOOT_COOLOFF = 2;
 export const BULLET_HEALTH_COST = 14;
-export const BULLET_INHERIT_VELOCITY = 0.5 ; //What % velocity do they inherit from firing ship
+export const BULLET_INHERIT_VELOCITY = 1; //What % velocity do they inherit from firing ship
 
 export default system<ShooterSchema>(
     ({
@@ -58,10 +58,9 @@ export default system<ShooterSchema>(
                 entity.active[bullet] = 0;
             }
             //Destroy bullets when parent ship dies
-            else if (stats.health[entity.parent[bullet]] === 0)    {
+            else if (stats.health[entity.parent[bullet]] === 0) {
                 entity.active[bullet] = 0;
-            }
-            else {
+            } else {
                 stats.health[bullet] = Math.max(
                     Math.fround(stats.health[bullet] - deltaTime),
                     0,
@@ -109,19 +108,23 @@ export default system<ShooterSchema>(
                 }
                 stats.health[player.ship] -= BULLET_HEALTH_COST;
                 stats.shootTimer[player.ship] = SHIP_SHOOT_COOLOFF;
-                
+
                 const offsetAmount = 3;
 
-                position.x[bullet] = position.x[player.ship] + (offsetAmount * Math.cos(rotation.z[player.ship]));
-                position.y[bullet] = position.y[player.ship] + (offsetAmount * Math.sin(rotation.z[player.ship]));
+                position.x[bullet] =
+                    position.x[player.ship] +
+                    offsetAmount * Math.cos(rotation.z[player.ship]);
+                position.y[bullet] =
+                    position.y[player.ship] +
+                    offsetAmount * Math.sin(rotation.z[player.ship]);
                 rotation.z[bullet] = rotation.z[player.ship];
 
                 velocity.x[bullet] = Math.fround(
-                    (velocity.x[player.ship] * BULLET_INHERIT_VELOCITY)+
+                    velocity.x[player.ship] * BULLET_INHERIT_VELOCITY +
                         Math.cos(rotation.z[player.ship]) * BULLET_SPEED,
                 );
                 velocity.y[bullet] = Math.fround(
-                    (velocity.y[player.ship] * BULLET_INHERIT_VELOCITY) +
+                    velocity.y[player.ship] * BULLET_INHERIT_VELOCITY +
                         Math.sin(rotation.z[player.ship]) * BULLET_SPEED,
                 );
 
