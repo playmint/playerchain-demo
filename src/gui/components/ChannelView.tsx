@@ -23,7 +23,7 @@ import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
 const MAX_PLAYERS = 4;
-export const FIXED_UPDATE_RATE = 100;
+export const FIXED_UPDATE_RATE = 66;
 export const INTERLACE = 3;
 export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
 export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
@@ -137,11 +137,6 @@ export default memo(function ChannelView({
         [],
         [],
     );
-
-    // const largestDiff = peers.reduce(
-    //     (acc, peer) => Math.max(acc, peer.knownHeight - peer.validHeight),
-    //     0,
-    // );
 
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -336,8 +331,14 @@ export default memo(function ChannelView({
                                     )
                                 ) : (
                                     <span>
+                                        <br />
+                                        <br />
+                                        <br />
                                         <Spinner /> Waiting for Playerchain
                                         peers
+                                        <br />
+                                        <br />
+                                        <br />
                                     </span>
                                 ),
                                 promise: () =>
@@ -350,10 +351,23 @@ export default memo(function ChannelView({
                                     <span
                                         className={termstyles.promptTextColor}
                                     >
-                                        Start again:
+                                        Keep waiting for peers to connect or
+                                        abort:
+                                        <br />
+                                        <br />
                                     </span>
                                 ),
-                                choices: [{ text: 'Return to start', next: 1 }],
+                                choices: [
+                                    {
+                                        text: 'Keep waiting',
+                                        noop: true,
+                                        next: 0,
+                                    },
+                                    {
+                                        text: 'Abort session and start again',
+                                        next: 1,
+                                    },
+                                ],
                                 promise: () =>
                                     new Promise((resolve) => {
                                         setTimeout(resolve, TERM_DELAY);
@@ -440,7 +454,7 @@ export default memo(function ChannelView({
                     >
                         {muted ? 'volume_off' : 'volume_up'}
                     </span>
-                    <Connectivity metric={metrics.cps} />
+                    {majorityReady && <Connectivity metric={metrics.cps} />}
                 </div>
             </div>
             {details && (
