@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import { config } from 'socket:application';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
@@ -31,7 +32,11 @@ const terminalFlow = ({ db, peerId, client }: TerminalFlowArgs) => [
                 setTimeout(() => {
                     resolve(
                         <>
-                            <p>v0.0.1-dev</p>
+                            {config['meta_title'].indexOf('v:') > -1 ? (
+                                <p>v{config['meta_title'].split('v:')[1]}</p>
+                            ) : (
+                                <p>v{config['meta_version']}</p>
+                            )}
                             <br />
                         </>,
                     );
@@ -259,7 +264,6 @@ export default memo(function ChannelBoot() {
     const { peerId } = useCredentials();
     const client = useClient();
     const db = useDatabase();
-
     const flow = useMemo(
         () => terminalFlow({ db, peerId, client }),
         [client, db, peerId],
