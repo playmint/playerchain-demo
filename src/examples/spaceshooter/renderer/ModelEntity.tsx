@@ -15,7 +15,6 @@ export const ModelEntity = memo(function ModelEntity({
     playersRef: PlayersRef;
     peerId: string;
 }) {
-    console.log('ModelEntity', eid);
     switch (worldRef.current.components.model.data.type[eid]) {
         case ModelType.Ship:
             return (

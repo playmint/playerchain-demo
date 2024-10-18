@@ -174,7 +174,6 @@ export function useParticleEffect(
     const asset = useRef<ParticleEffectData | null>(null);
     const effect = useRef<ParticleEffect | null>(null);
     useAsyncEffect(async () => {
-        console.log('loading particle effect');
         const data = new ParticleEffectData(config);
         await data.prepare();
         asset.current = data;

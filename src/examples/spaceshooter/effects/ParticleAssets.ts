@@ -44,8 +44,6 @@ export class ParticleAssets {
     }
 
     async loadParticles() {
-        console.log('loading particle effects');
-
         await Promise.all(
             this.particleCollection.particleAssets.flatMap((asset) =>
                 asset.effect.particleSystems.map((s) => s.prepare()),
