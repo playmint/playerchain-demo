@@ -30,3 +30,4 @@ build
 
 # generated code
 /public/workers
+socket.ini
