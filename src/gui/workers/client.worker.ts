@@ -51,6 +51,10 @@ export async function send(msg: Message, opts?: EmitOpts) {
     return client!.send(msg, opts);
 }
 
+export async function sendChatMessage(txt: string) {
+    return client!.sendChatMessage(txt);
+}
+
 export async function createChannel(name: string) {
     return client!.createChannel(name);
 }
@@ -75,5 +79,6 @@ const exports = {
     setPeers,
     shutdown,
     enqueue,
+    sendChatMessage,
 };
 Comlink.expose(exports);

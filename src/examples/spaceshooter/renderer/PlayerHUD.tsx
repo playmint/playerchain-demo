@@ -6,6 +6,7 @@ import {
 import { PlayerData } from '../../../runtime/ecs';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import { SESSION_TIME_SECONDS, ShooterSchema } from '../../spaceshooter';
+import Chat from './Chat';
 import ReadySetGo from './Countdown';
 import EndRoundLeaderBoard from './EndRoundLeaderboard';
 import EnergyBar from './EnergyBar';
@@ -24,11 +25,13 @@ export default memo(function PlayerHUD({
     playersRef,
     worldRef,
     metrics,
+    peerNames,
 }: {
     playersRef: PlayersRef;
     peerId: string;
     worldRef: WorldRef;
     metrics?: DefaultMetrics;
+    peerNames: Record<string, string>;
 }) {
     const [remaining, setRemaining] = useState(-1);
     useEffect(() => {
@@ -101,7 +104,16 @@ export default memo(function PlayerHUD({
                         alignItems: 'center',
                     }}
                 >
-                    <div style={{ width: '30%' }}></div>
+                    <div
+                        style={{
+                            width: '30%',
+                            position: 'absolute',
+                            bottom: '30px',
+                            left: '30px',
+                        }}
+                    >
+                        <Chat peerNames={peerNames} />
+                    </div>
                     <div
                         style={{
                             position: 'absolute',

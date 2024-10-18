@@ -1,7 +1,10 @@
 import * as Comlink from 'comlink';
 import { Buffer } from 'socket:buffer';
+import { v6 as uuidv6 } from 'uuid';
 import { Client } from './client';
+import { StoredChatMessage } from './db';
 import {
+    ChatMessage,
     KeepAliveMessage,
     Message,
     MessageType,
@@ -127,6 +130,8 @@ export class Channel {
         }
         if (m.type === MessageType.KEEP_ALIVE) {
             return this.handleKeepAlive(m);
+        } else if (m.type === MessageType.CHAT) {
+            return this.handleChatMessage(m);
         } else {
             this._onMsg(m, id, this.id);
         }
@@ -183,6 +188,34 @@ export class Channel {
         };
         const opts = { ttl: 60 * 1000 };
         await this.send(msg, opts);
+    };
+
+    sendChatMessage = async (txt: string) => {
+        const msg: ChatMessage = {
+            type: MessageType.CHAT,
+            id: uuidv6(),
+            peer: this.client.id,
+            msg: txt,
+        };
+        const opts = { ttl: 60 * 1000 };
+        await this.send(msg, opts);
+        await this.send(msg, opts);
+        this.handleChatMessage(msg).catch((err) => {
+            console.error('handle-self-chat-err:', err);
+        });
+    };
+
+    handleChatMessage = async (m: ChatMessage) => {
+        const peerId = Buffer.from(m.peer).toString('hex');
+        const chat: StoredChatMessage = {
+            id: m.id,
+            peer: peerId,
+            msg: m.msg,
+            arrived: Date.now(),
+        };
+        this.client.db.chat.put(chat).catch((err) => {
+            console.error('put-chat-err:', err);
+        });
     };
 
     send = async (m: Message, opts?: EmitOpts) => {

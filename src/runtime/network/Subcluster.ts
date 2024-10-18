@@ -178,7 +178,10 @@ export class Subcluster {
             case 'msg':
                 if (this.onMsg) {
                     const m = decodeMessage(opened);
-                    if (m.type !== MessageType.KEEP_ALIVE) {
+                    if (
+                        m.type !== MessageType.KEEP_ALIVE &&
+                        m.type !== MessageType.CHAT
+                    ) {
                         // verify it
                         const [verified, id] = await this.verify(m);
                         if (!verified) {
