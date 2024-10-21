@@ -19,10 +19,16 @@ async function createCredentials(
 ): Promise<CredentialsContextType> {
     let existing = true;
     const peerSecretKey = `peerSecret/${playerIndex}`;
-    if (isProduction) {
-        localStorage.removeItem(peerSecretKey);
-    }
     let peerSecretValue = localStorage.getItem(peerSecretKey);
+    if (isProduction && peerSecretValue) {
+        const keys = await Encryption.createKeyPair(peerSecretValue);
+        const peerId = Buffer.from(keys.publicKey).toString('hex');
+        const shortId = peerId.slice(0, 8);
+        const dbname = `client/${shortId}`;
+        // reset first
+        await hardReset(dbname);
+        peerSecretValue = null;
+    }
     if (peerSecretValue === null) {
         existing = false;
         peerSecretValue = randomBytes(64).toString('base64');
