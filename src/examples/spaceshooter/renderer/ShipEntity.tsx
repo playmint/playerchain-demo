@@ -6,7 +6,7 @@ import {
     useGLTF,
 } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
     Color,
     DoubleSide,
@@ -52,6 +52,7 @@ export default memo(function ShipEntity({
     playersRef: PlayersRef;
     peerId: string;
 }) {
+    const [color, setColor] = useState<Color>();
     const getShipOwner = () =>
         Array.from(worldRef.current.players.entries()).find(
             ([_id, p]) => p.ship === eid,
@@ -88,25 +89,34 @@ export default memo(function ShipEntity({
         const sortedPlayers = [...players].sort((a, b) => a.score - b.score);
         const topPlayer = sortedPlayers[sortedPlayers.length - 1];
 
-        const color = new Color(
-            ownerId ? getPlayerColor(playerIdx) : '#ffffff',
-        );
         const group = groupRef.current;
         const ship = shipRef.current as EntityObject3D;
         if (!player) {
             return;
         }
+
+        if (playerIdx > -1 && !color) {
+            const playerColor = new Color(
+                getPlayerColor(playerIdx) ?? 0xffffff,
+            );
+            setColor(playerColor);
+        }
+
+        // color the ship
+        if (color && !(ship as any).__colored) {
+            ship.children[0].children[0].traverse((child) => {
+                if (child instanceof Mesh) {
+                    child.material.color = color;
+                    (ship as any).__colored = true;
+                }
+            });
+        }
+
         isTopPlayerRef.current =
             sortedPlayers.length > 1 &&
             player.ship === topPlayer.ship &&
             topPlayer.score > sortedPlayers[sortedPlayers.length - 2].score;
 
-        // color the ship
-        ship.children[0].children[0].traverse((child) => {
-            if (child instanceof Mesh) {
-                child.material.color = color;
-            }
-        });
         // hide ship if not active (not the whole group, just the ship)
         interpolateEntityVisibility(ship, world, eid, 24);
         // lerp ship
@@ -220,17 +230,7 @@ export default memo(function ShipEntity({
 
         // create wall sparks
         const hit = world.components.collider.data.hasCollided[eid];
-        if (
-            hit &&
-            !world.hasTag(
-                world.components.collider.data.collisionEntity[eid],
-                Tags.IsShip,
-            ) &&
-            !world.hasTag(
-                world.components.collider.data.collisionEntity[eid],
-                Tags.IsBullet,
-            )
-        ) {
+        if (hit && world.hasTag(hit, Tags.IsWall)) {
             if (sparksRef.current) {
                 const pos = new Vector3(
                     world.components.collider.data.collisionPointX[eid],
@@ -401,7 +401,7 @@ export default memo(function ShipEntity({
                 >
                     <meshBasicMaterial
                         attach="material"
-                        color="red"
+                        color={color || 'red'}
                         side={DoubleSide}
                     />
                 </Cylinder>

@@ -181,8 +181,13 @@ export function intersectCircleRectangle(
     }
 }
 
-export function NormalizeVector2(vector: Vector2): Vector2 {
-    const magnitude = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+export function NormalizeVector2(
+    vector: Vector2,
+    preCalculatedMag?: number,
+): Vector2 {
+    const magnitude =
+        preCalculatedMag ??
+        Math.sqrt(vector.x * vector.x + vector.y * vector.y);
     return {
         x: Math.fround(vector.x / magnitude),
         y: Math.fround(vector.y / magnitude),

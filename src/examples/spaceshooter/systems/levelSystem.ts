@@ -97,9 +97,6 @@ function addWall(
     collider.dX[eid] = rect.d.x;
     collider.dY[eid] = rect.d.y;
 
-    // collider.width[eid] = wall.width;
-    // collider.height[eid] = wall.height;
-
     entity.active[eid] = 1;
     return eid;
 }

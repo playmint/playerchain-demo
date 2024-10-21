@@ -76,13 +76,7 @@ export default memo(function BulletEntity({
         // run the pop effect on death
         if (hitFXRef.current) {
             const hit = world.components.collider.data.hasCollided[eid];
-            if (
-                hit &&
-                world.hasTag(
-                    world.components.collider.data.collisionEntity[eid],
-                    Tags.IsShip,
-                )
-            ) {
+            if (hit && world.hasTag(hit, Tags.IsShip)) {
                 const pos = new Vector3(
                     world.components.collider.data.collisionPointX[eid],
                     world.components.collider.data.collisionPointY[eid],

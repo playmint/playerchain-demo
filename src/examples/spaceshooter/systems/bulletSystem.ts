@@ -1,6 +1,7 @@
 import { system } from '../../../runtime/ecs';
 import {
     Input,
+    SESSION_START_SECONDS,
     SESSION_TIME_SECONDS,
     ShooterSchema,
     Tags,
@@ -8,11 +9,12 @@ import {
 } from '../../spaceshooter';
 
 export const BULLET_SPEED = 110;
-export const BULLET_MAX_VELOCITY = 110;
-export const BULLET_LIFETIME = 26;
-export const SHIP_SHOOT_COOLOFF = 2;
+export const BULLET_MAX_VELOCITY = 300;
+export const BULLET_LIFETIME = 20; // seconds
 export const BULLET_HEALTH_COST = 14;
 export const BULLET_INHERIT_VELOCITY = 1; //What % velocity do they inherit from firing ship
+export const BULLET_SHIP_OFFSET = 3;
+export const DEATH_TIMER = 2; // seconds to wait after death before respawning
 
 export default system<ShooterSchema>(
     ({
@@ -28,7 +30,8 @@ export default system<ShooterSchema>(
         deltaTime,
         t,
     }) => {
-        const end = SESSION_TIME_SECONDS / deltaTime;
+        const sessionEnd = SESSION_TIME_SECONDS / deltaTime;
+        const sessionStart = SESSION_START_SECONDS / deltaTime;
         const bullets = query(Tags.IsBullet);
 
         // check bullet collisions
@@ -38,13 +41,8 @@ export default system<ShooterSchema>(
                 continue;
             }
 
-            // CHECKME I THINK I MESSED THIS UP IN THE PORT
-            if (
-                collider.hasCollided[bullet] &&
-                hasTag(collider.collisionEntity[bullet], Tags.IsShip)
-            ) {
-                // && IsBullet[physics.collisionEntity[bullet]])
-                // stats.health[bullet] = 0;
+            const hit = collider.hasCollided[bullet];
+            if (hit && hasTag(hit, Tags.IsShip)) {
                 position.x[bullet] = collider.collisionPointX[bullet];
                 position.y[bullet] = collider.collisionPointY[bullet];
                 velocity.x[bullet] = 0;
@@ -76,25 +74,17 @@ export default system<ShooterSchema>(
             }
 
             // No shooting if either round hasn't started (round == 0) or round has ended (t > round)
-            if (t >= end) {
+            if (t >= sessionEnd) {
                 return;
-            }
-
-            // run down the shoot timer
-            if (stats.shootTimer[player.ship] > 0) {
-                stats.shootTimer[player.ship] = Math.fround(
-                    stats.shootTimer[player.ship] - deltaTime,
-                );
-            } else if (stats.shootTimer[player.ship] < 0) {
-                stats.shootTimer[player.ship] = 0;
             }
 
             // fire if can
             if (
                 entity.active[player.ship] &&
                 hasInput(player.input, Input.Fire) &&
-                stats.shootTimer[player.ship] === 0 &&
-                stats.health[player.ship] > BULLET_HEALTH_COST
+                stats.health[player.ship] > BULLET_HEALTH_COST &&
+                t < sessionEnd &&
+                t > sessionStart
             ) {
                 // find an available bullet
                 const bullet = bullets.find(
@@ -106,16 +96,13 @@ export default system<ShooterSchema>(
                     continue;
                 }
                 stats.health[player.ship] -= BULLET_HEALTH_COST;
-                stats.shootTimer[player.ship] = SHIP_SHOOT_COOLOFF;
-
-                const offsetAmount = 3;
 
                 position.x[bullet] =
                     position.x[player.ship] +
-                    offsetAmount * Math.cos(rotation.z[player.ship]);
+                    BULLET_SHIP_OFFSET * Math.cos(rotation.z[player.ship]);
                 position.y[bullet] =
                     position.y[player.ship] +
-                    offsetAmount * Math.sin(rotation.z[player.ship]);
+                    BULLET_SHIP_OFFSET * Math.sin(rotation.z[player.ship]);
                 rotation.z[bullet] = rotation.z[player.ship];
 
                 velocity.x[bullet] = Math.fround(
