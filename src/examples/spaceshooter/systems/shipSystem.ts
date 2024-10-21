@@ -16,6 +16,7 @@ export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.7);
 export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
 export const SHIP_MAX_VELOCITY = 70;
 export const BULLET_DAMAGE = 100;
+export const BULLET_BOUNCINESS = 1;
 export const SHIP_BOUNCINESS = 0.8;
 
 export default system<ShooterSchema>(
@@ -25,7 +26,6 @@ export default system<ShooterSchema>(
         players,
         addEntity,
         addTag,
-        physics,
         position,
         model,
         collider,
@@ -44,7 +44,6 @@ export default system<ShooterSchema>(
                     addEntity,
                     addTag,
                     position,
-                    physics,
                     model,
                     collider,
                     stats,
@@ -52,15 +51,10 @@ export default system<ShooterSchema>(
                 });
             }
 
-            // reset ship stats
-            stats.hasExploded[player.ship] = 0;
-            stats.hasRespawned[player.ship] = 0;
-
             // respawn ship if requested or if it's the first spawn generation
             if (
                 hasInput(player.input, Input.Respawn) ||
-                (stats.health[player.ship] === 0 &&
-                    stats.deathTimer[player.ship]) === 0 ||
+                (stats.health[player.ship] === 0 && player.deathTimer) === 0 ||
                 entity.generation[player.ship] === 0
             ) {
                 resetShip(player.ship, {
@@ -116,7 +110,6 @@ export default system<ShooterSchema>(
 function addShip({
     addEntity,
     addTag,
-    physics,
     model,
     position,
     collider,
@@ -126,7 +119,6 @@ function addShip({
     SystemArgs<ShooterSchema>,
     | 'addEntity'
     | 'addTag'
-    | 'physics'
     | 'position'
     | 'model'
     | 'collider'
@@ -138,29 +130,19 @@ function addShip({
     addTag(eid, Tags.IsSolidBody); // let physics move this entity
     model.type[eid] = ModelType.Ship;
     entity.active[eid] = 0;
-    stats.shootTimer[eid] = 0;
-    // stats.canShoot[eid] = 1;
     position.x[eid] = eid / 100;
     collider.type[eid] = ColliderType.Circle;
     collider.radius[eid] = 3.5;
-    physics.applyRotation[eid] = 0;
-    physics.drag[eid] = 0.01;
-    physics.bounciness[eid] = SHIP_BOUNCINESS;
     stats.health[eid] = 100;
-    stats.deathTimer[eid] = 200;
-    stats.hasExploded[eid] = 0;
-    stats.hasRespawned[eid] = 0;
     entity.generation[eid] = 0;
-    // stats.initialSpawn[eid] = 1;
 
-    // Pool 20 bullets:
-    for (let i = 0; i < 20; i++) {
+    // Pool bullets:
+    for (let i = 0; i < 10; i++) {
         addBullet(eid, {
             addEntity,
             addTag,
             model,
             stats,
-            physics,
             collider,
             entity,
         });
@@ -177,17 +159,10 @@ function addBullet(
         entity,
         model,
         stats,
-        physics,
         collider,
     }: Pick<
         SystemArgs<ShooterSchema>,
-        | 'addEntity'
-        | 'addTag'
-        | 'entity'
-        | 'model'
-        | 'stats'
-        | 'physics'
-        | 'collider'
+        'addEntity' | 'addTag' | 'entity' | 'model' | 'stats' | 'collider'
     >,
 ): EntityId {
     const eid = addEntity();
@@ -197,12 +172,7 @@ function addBullet(
     model.type[eid] = ModelType.Bullet;
     entity.active[eid] = 0;
     collider.type[eid] = ColliderType.Circle;
-    collider.radius[eid] = 0.8;
-    physics.applyRotation[eid] = 1;
-    physics.drag[eid] = 0;
-    physics.isTrigger[eid] = 1;
-    physics.bounciness[eid] = 1;
-    stats.damage[eid] = BULLET_DAMAGE;
+    collider.radius[eid] = 0.9;
     stats.health[eid] = 100;
     return eid;
 }
@@ -230,11 +200,7 @@ function resetShip(
 
     velocity.x[eid] = 0;
     velocity.y[eid] = 0;
-    // LastUpdated[eid] = { lastUpdated: 0 };
-    stats.shootTimer[eid] = 0;
-    // stats.canShoot[eid] = 1;
     stats.health[eid] = 100;
-    stats.hasRespawned[eid] = 1; // use generation instead?
     entity.generation[eid]++;
 }
 

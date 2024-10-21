@@ -1,15 +1,35 @@
 import { system } from '../../../runtime/ecs';
 import { ShooterSchema, Tags } from '../../spaceshooter';
+import { DEATH_TIMER } from './bulletSystem';
+import { BULLET_DAMAGE } from './shipSystem';
 
 const SCORE_HIT = 0;
 const SCORE_KILL = 100;
 const TOP_PLAYER_KILL_BONUS = 50;
 const MAX_MULTIPLIER = 5;
-const HEALTH_REGEN_PERC = 2;
-const HEALTH_REGEN_TIME = 1; // To slow down the regen, increase this number
+const HEALTH_REGEN_PERC = 3;
 
 export default system<ShooterSchema>(
     ({ query, players, entity, collider, stats, velocity, deltaTime }) => {
+        // regen ship health
+        for (const ship of query(Tags.IsShip)) {
+            // regen ship health
+            if (entity.active[ship] && stats.health[ship] < 100) {
+                stats.health[ship] = Math.min(
+                    stats.health[ship] + HEALTH_REGEN_PERC,
+                    100,
+                );
+            }
+            // tick down the death timer
+            const player = players.find((p) => p.ship === ship);
+            if (player && player.deathTimer > 0) {
+                player.deathTimer = Math.max(
+                    Math.fround(player.deathTimer - deltaTime),
+                    0,
+                );
+            }
+        }
+
         // for each thing that can give damage...
         for (const bullet of query(Tags.IsBullet)) {
             // ignore invisible bullets
@@ -21,26 +41,26 @@ export default system<ShooterSchema>(
                 continue;
             }
             // ignore if not currently colliding
-            if (!collider.hasCollided[bullet]) {
+            const hit = collider.hasCollided[bullet];
+            if (!hit) {
                 continue;
             }
-            const target = collider.collisionEntity[bullet];
-
-            // calc new health
-            const targetHealth = Math.max(
-                Math.fround(stats.health[target] - stats.damage[bullet]),
-                0,
-            );
-
-            const player = players.find((p) => p.ship === target);
 
             // ignore if target is not a player ship
+            const player = players.find((p) => p.ship === hit);
             if (!player) {
                 continue;
             }
+            console.log('BULLET HIT', player, hit);
+
+            // calc new health
+            const targetHealth = Math.max(
+                Math.fround(stats.health[hit] - BULLET_DAMAGE),
+                0,
+            );
 
             // handle taking damage
-            if (stats.health[target] != targetHealth) {
+            if (stats.health[hit] != targetHealth) {
                 // give points for hitting and kills
                 const shooter = players.find(
                     (p) => p.ship === entity.parent[bullet],
@@ -53,7 +73,7 @@ export default system<ShooterSchema>(
                         );
 
                         if (
-                            target === topPlayer.ship &&
+                            hit === topPlayer.ship &&
                             topPlayer.score > shooter.score
                         ) {
                             shooter.score += TOP_PLAYER_KILL_BONUS;
@@ -72,13 +92,10 @@ export default system<ShooterSchema>(
                         shooter.kills++;
                         player.deaths++;
                         // start the death timer
-                        stats.deathTimer[target] = 50;
-                        // mark as exploded and stop
-                        stats.hasExploded[target] = 1;
-                        // audio.play[target] = AudioClip.Explosion;
-                        velocity.x[target] = 0;
-                        velocity.y[target] = 0;
-                        entity.active[target] = 0;
+                        player.deathTimer = DEATH_TIMER;
+                        velocity.x[hit] = 0;
+                        velocity.y[hit] = 0;
+                        entity.active[hit] = 0;
                         // reset multiplier
                         player.scoreMul = 1;
                     } else {
@@ -88,31 +105,7 @@ export default system<ShooterSchema>(
             }
 
             // update health
-            stats.health[target] = targetHealth;
-        }
-
-        for (const ship of query(Tags.IsShip)) {
-            if (stats.health[ship] > 0) {
-                stats.regenTimer[ship] = Math.max(
-                    Math.fround(stats.regenTimer[ship] - deltaTime),
-                    0,
-                );
-
-                if (stats.regenTimer[ship] === 0) {
-                    stats.regenTimer[ship] = HEALTH_REGEN_TIME;
-
-                    stats.health[ship] = Math.min(
-                        stats.health[ship] + HEALTH_REGEN_PERC,
-                        100,
-                    );
-                }
-            }
-
-            // tick down the death timer
-            stats.deathTimer[ship] = Math.max(
-                Math.fround(stats.deathTimer[ship] - deltaTime),
-                0,
-            );
+            stats.health[hit] = targetHealth;
         }
     },
 );

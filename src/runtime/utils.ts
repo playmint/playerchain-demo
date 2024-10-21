@@ -1,7 +1,5 @@
 import Dexie from 'dexie';
 
-const isProduction = import.meta.env.MODE === 'production';
-
 export type AsyncFunction = (...args: any[]) => Promise<any>;
 export type CancelFunction = () => void;
 

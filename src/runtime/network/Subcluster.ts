@@ -27,7 +27,6 @@ export class Subcluster {
     localPeer: Peer;
     onMsg?: (msg: Message, id: string) => void;
     onRPC?: (msg: Buffer) => void;
-    seen: Set<string> = new Set();
 
     constructor(config: SubclusterConfig) {
         this.signingKeys = config.signingKeys;
@@ -193,14 +192,6 @@ export class Subcluster {
                         if (!m.sig) {
                             return;
                         }
-                        // if (m.type === MessageType.INPUT) {
-                        //     const sig = Buffer.from(m.sig).toString('hex');
-                        //     if (this.seen.has(sig)) {
-                        //         console.log('seen that one');
-                        //         return;
-                        //     }
-                        //     this.seen.add(sig);
-                        // }
                         this.onMsg(m, id);
                     } else {
                         this.onMsg(m, '');

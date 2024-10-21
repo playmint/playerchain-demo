@@ -70,6 +70,7 @@ export const schema = {
         scoreMul: Type.u32,
         kills: Type.u32,
         deaths: Type.u32,
+        deathTimer: Type.f32,
     },
     components: {
         entity: {
@@ -82,7 +83,6 @@ export const schema = {
             width: Type.f32,
             height: Type.f32,
             depth: Type.f32,
-            color: Type.u32,
         },
         collider: {
             type: Type.u8, // ColliderType enum
@@ -95,28 +95,15 @@ export const schema = {
             cY: Type.f32,
             dX: Type.f32,
             dY: Type.f32,
-            hasCollided: Type.u8,
-            collisionEntity: Type.eid,
+            hasCollided: Type.eid,
             collisionPointX: Type.f32,
             collisionPointY: Type.f32,
-        },
-        physics: {
-            applyRotation: Type.f32,
-            drag: Type.f32,
-            isTrigger: Type.u8,
-            bounciness: Type.f32,
         },
         position: Vec3,
         rotation: Vec3,
         velocity: Vec2,
         stats: {
-            damage: Type.u8,
             health: Type.u8,
-            shootTimer: Type.u8,
-            hasExploded: Type.u8,
-            hasRespawned: Type.u8,
-            deathTimer: Type.u8,
-            regenTimer: Type.u8,
         },
     },
 };
@@ -252,6 +239,7 @@ export class SpaceShooter implements GameModule {
                     scoreMul: 1,
                     kills: 0,
                     deaths: 0,
+                    deathTimer: 0,
                 });
             }
             p.input = data.input;
