@@ -1,4 +1,4 @@
-import { PositionalAudio, useGLTF } from '@react-three/drei';
+import { AdaptiveDpr, PositionalAudio, useGLTF } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { EntityId, World } from '../../../runtime/ecs';
@@ -100,10 +100,16 @@ export default memo(function ShooterCanvas({
     }
     return (
         <>
-            <Canvas id="gamecanvas" resize={CANVAS_RESIZE} frameloop="demand">
+            <Canvas
+                id="gamecanvas"
+                resize={CANVAS_RESIZE}
+                frameloop="demand"
+                dpr={[0.5, 2]}
+            >
                 <BackgroundModels rotation={[1.5708, 0, 0]} />
                 <StarFieldFX />
                 <FPSLimiter fps={60} />
+                <AdaptiveDpr pixelated />
                 {entities.map((eid) => (
                     <ModelEntity
                         key={eid}
