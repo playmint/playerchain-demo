@@ -145,9 +145,14 @@ export default memo(function ShipEntity({
                 camera.position.y,
                 group.position.z,
             );
-            const lineFromCameraToShip = new Line3(cameraPos, group.position);
+            const shipPos = new Vector3(
+                group.position.x,
+                group.position.y,
+                group.position.z,
+            );
+            const lineFromCameraToShip = new Line3(cameraPos, shipPos);
             const pointVec3 = new Vector3();
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 5; i++) {
                 const point = (camera as any).__frustum.planes[i].intersectLine(
                     lineFromCameraToShip,
                     pointVec3,
@@ -159,14 +164,14 @@ export default memo(function ShipEntity({
                             .clone()
                             .sub(point)
                             .normalize()
-                            .multiplyScalar(8),
+                            .multiplyScalar(3),
                     );
                     // if the point is in the frustum, set the marker position and show it
                     if ((camera as any).__frustum.containsPoint(point)) {
                         markerRef.current.visible = true;
                         markerRef.current.position.x = point.x;
                         markerRef.current.position.y = point.y;
-                        markerRef.current.position.z = group.position.z + 3;
+                        markerRef.current.position.z = point.z;
                         markerRef.current.lookAt(
                             new Vector3(
                                 group.position.x,
@@ -397,7 +402,7 @@ export default memo(function ShipEntity({
                     args={[3, 1, 2, 3]}
                     position={[0, 0, 0]}
                     rotation={[0, 0, Math.PI / 2]}
-                    scale={[0.7, 1, 1]}
+                    scale={[0.4, 0.5, 0.5]}
                 >
                     <meshBasicMaterial
                         attach="material"
