@@ -41,6 +41,8 @@ export const requiredConfirmationsFor = (size: number): number => {
     // supermarjority-ish
     // this is only manual like this so I can play with the numbers
     switch (size) {
+        case 1:
+            return 1; // only for testing
         case 2:
             return 2;
         case 3:
