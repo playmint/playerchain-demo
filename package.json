@@ -12,7 +12,7 @@
         "ios:sim": "run-s clean genconfig start:vite && ssc build --platform=ios-simulator --run",
         "start:vite": "vite build --mode=dev",
         "start:ssc": "ssc build --run",
-        "start": "run-s clean start:*",
+        "start": "run-s clean genconfig start:*",
         "build:cli": "vite build --mode=production -c cli.vite.ts",
         "build:vite": "vite build",
         "build": "run-s clean build:*",
