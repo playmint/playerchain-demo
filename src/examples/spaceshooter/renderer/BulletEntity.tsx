@@ -21,7 +21,6 @@ import {
     assetPath,
     interpolateEntityPosition,
     interpolateEntityRotation,
-    interpolateEntityVisibility,
     updateEntityGeneration,
 } from '../utils/RenderUtils';
 import BulletModel from './BulletModel';
@@ -47,15 +46,13 @@ export default memo(function BulletEntity({
         const bullet = bulletRef.current;
         // during the first few frames of bullet shooting, the bullet is not
         // alighed with the interpolated position of the ship so we hide it for
-        // a bit and snap position to make it look bit better
-        const isNewlySpawned =
-            world.components.stats.data.health[eid] > BULLET_LIFETIME - 1;
+        // a bit to let the interpolation match better, it's not perfect
+        const isMoving =
+            world.components.stats.data.health[eid] > 0 &&
+            world.components.stats.data.health[eid] < BULLET_LIFETIME - 1;
 
-        if (isNewlySpawned) {
-            bullet.visible = false;
-        } else {
-            interpolateEntityVisibility(bullet, world, eid, 0);
-        }
+        // only show bullet when it's moving
+        bullet.visible = isMoving;
 
         // track bullet
         interpolateEntityPosition(
@@ -63,7 +60,7 @@ export default memo(function BulletEntity({
             world,
             eid,
             deltaTime,
-            isNewlySpawned ? InterpolateSpeed.Snap : InterpolateSpeed.Fastest,
+            isMoving ? InterpolateSpeed.Fastest : InterpolateSpeed.Smooth,
         );
         interpolateEntityRotation(
             group,
@@ -112,7 +109,7 @@ export default memo(function BulletEntity({
                 ref={bulletRef}
                 object={model}
                 scale={0.5}
-                position={[0, 0, -1]}
+                position={[0, 0, 0]}
             />
             <PositionalAudio
                 ref={shotSfxRef}
