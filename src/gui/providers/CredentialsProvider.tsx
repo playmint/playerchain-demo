@@ -12,11 +12,16 @@ import {
 } from '../hooks/use-credentials';
 import { useSocket } from '../hooks/use-socket';
 
+const isProduction = import.meta.env.MODE === 'production';
+
 async function createCredentials(
     playerIndex: number,
 ): Promise<CredentialsContextType> {
     let existing = true;
     const peerSecretKey = `peerSecret/${playerIndex}`;
+    if (isProduction) {
+        localStorage.removeItem(peerSecretKey);
+    }
     let peerSecretValue = localStorage.getItem(peerSecretKey);
     if (peerSecretValue === null) {
         existing = false;
