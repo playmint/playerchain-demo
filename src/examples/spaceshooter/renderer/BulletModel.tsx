@@ -1,14 +1,14 @@
 import { useGLTF } from '@react-three/drei';
 import { useMemo } from 'react';
 import { Mesh, MeshBasicMaterial } from 'three';
+import blueBulletURL from '../assets/bullet_blue.glb?url';
 import purpleBulletURL from '../assets/bullet_purple.glb?url';
 import redBulletURL from '../assets/bullet_red.glb?url';
-import tealBulletURL from '../assets/bullet_teal.glb?url';
 import yellowBulletURL from '../assets/bullet_yellow.glb?url';
 import { assetPath } from '../utils/RenderUtils';
 
 const MODEL_URLS = [
-    tealBulletURL,
+    blueBulletURL,
     redBulletURL,
     purpleBulletURL,
     yellowBulletURL,
