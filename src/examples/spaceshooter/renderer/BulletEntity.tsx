@@ -1,6 +1,6 @@
 import { Clone, PositionalAudio } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { memo, useRef } from 'react';
+import { memo, useRef, useState } from 'react';
 import {
     Group,
     Object3DEventMap,
@@ -23,27 +23,37 @@ import {
     interpolateEntityRotation,
     updateEntityGeneration,
 } from '../utils/RenderUtils';
-import BulletModel from './BulletModel';
-import { WorldRef } from './ShooterRenderer';
+import useBulletModel from './BulletModel';
+import { PlayersRef, WorldRef } from './ShooterRenderer';
 
 export default memo(function BulletEntity({
     eid,
     worldRef,
+    playersRef,
 }: {
     eid: number;
     worldRef: WorldRef;
+    playersRef: PlayersRef;
 }) {
+    const [playerIndex, setPlayerIndex] = useState(0);
     const groupRef = useRef<Group>(null!);
     const bulletRef = useRef<Group<Object3DEventMap>>(null!);
     const shotSfxRef = useRef<PositionalAudioImpl>(null!);
     const hitFXRef = useRef<ShipImpactFXHandle>(null!);
     const hitSfxRef = useRef<PositionalAudioImpl>(null!);
-    const model = BulletModel();
+    const model = useBulletModel(playerIndex);
 
     useFrame((_state, deltaTime) => {
         const world = worldRef.current;
         const group = groupRef.current as EntityObject3D;
         const bullet = bulletRef.current;
+        // set the player index
+        const idx = playersRef.current.findIndex(
+            (p) => p.ship === world.components.entity.data.parent[eid],
+        );
+        if (idx !== playerIndex) {
+            setPlayerIndex(idx);
+        }
         // during the first few frames of bullet shooting, the bullet is not
         // alighed with the interpolated position of the ship so we hide it for
         // a bit to let the interpolation match better, it's not perfect

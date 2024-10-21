@@ -41,7 +41,7 @@ import { StarFieldFX } from './examples/spaceshooter/effects/FXStarfieldQuarks';
 import fxThrusterData from './examples/spaceshooter/effects/FXThruster';
 import { BackgroundModels } from './examples/spaceshooter/renderer/BackgroundModels';
 import { BufferSceneRenderer } from './examples/spaceshooter/renderer/BufferSceneRenderer';
-import BulletModel from './examples/spaceshooter/renderer/BulletModel';
+import useBulletModel from './examples/spaceshooter/renderer/BulletModel';
 import { FPSLimiter } from './examples/spaceshooter/renderer/FPSLimiter';
 import { getShakeOffset } from './examples/spaceshooter/renderer/ShakeManager';
 import WallModels from './examples/spaceshooter/renderer/WallModels';
@@ -214,7 +214,7 @@ function Particles(props: { bufferScene: Scene }) {
 }
 
 function Bullet() {
-    const [bullet] = useState(BulletModel());
+    const bullet = useBulletModel(0);
     return <Clone object={bullet} position={[60, 0, -1]} deep />;
 }
 
