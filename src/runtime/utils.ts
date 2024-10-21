@@ -1,5 +1,7 @@
 import Dexie from 'dexie';
 
+const isProduction = import.meta.env.MODE === 'production';
+
 export type AsyncFunction = (...args: any[]) => Promise<any>;
 export type CancelFunction = () => void;
 
@@ -125,11 +127,22 @@ export function peerIdTo64bitBigNum(peerId: string): bigint {
 }
 
 // wipe all the state
-export async function hardReset() {
-    localStorage.clear();
+export async function hardReset(dbname?: string) {
+    console.log('hard reset');
+    for (let i = 0, len = localStorage.length; i < len; ++i) {
+        const key = localStorage.key(i);
+        console.log('key: ', key);
+        if (key && key.startsWith('peerSecret')) {
+            console.log('removing key: ', key);
+            localStorage.removeItem(key);
+        }
+    }
     const names = await Dexie.getDatabaseNames();
-    console.log('database names: ', names);
     names.forEach(function (name) {
+        if (dbname && name !== dbname) {
+            return;
+        }
+        console.log('destroying db: ', name);
         const db = new Dexie(name);
         db.delete()
             .then(function () {
