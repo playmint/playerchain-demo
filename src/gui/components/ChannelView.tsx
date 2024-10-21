@@ -11,6 +11,7 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
+import { useSocket } from '../hooks/use-socket';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
 import { isProduction } from '../system/menu';
@@ -50,6 +51,15 @@ export default memo(function ChannelView({
         navigator.clipboard.writeText(channel.id).catch((err) => {
             console.error('clipboard write failed:', err);
         });
+    };
+
+    const socket = useSocket();
+    const openDiscord = async (socket: any) => {
+        try {
+            await socket.window.openExternal('https://discord.gg/xKFyu8JF2g');
+        } catch (error) {
+            console.error('Failed to open Discord link:', error);
+        }
     };
 
     const { muted } = useSettings();
@@ -209,6 +219,29 @@ export default memo(function ChannelView({
     ];
 
     if (channel.creator === peerId) {
+        terminalFlow.push({
+            text: (
+                <span className={termstyles.promptTextColor}>
+                    <br />
+                    No friends? Join our Discord and paste your key in the lfg
+                    channel.
+                    <br />
+                    <span
+                        className={termstyles.boldTextColor}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => openDiscord(socket)}
+                    >
+                        https://discord.com/invite/VdXWWNaqGN
+                    </span>
+                    <br />
+                </span>
+            ),
+            promise: () =>
+                new Promise((resolve) => {
+                    setTimeout(resolve, TERM_DELAY);
+                }),
+        });
+
         terminalFlow.push({
             text: (
                 <span className={termstyles.promptTextColor}>

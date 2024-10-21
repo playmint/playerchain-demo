@@ -18,6 +18,7 @@ type TerminalFlowArgs = {
     peerId: string;
     client: ClientContextType;
     playerIndex: number;
+    openDiscord: () => Promise<void>;
 };
 
 const terminalFlow = ({
@@ -25,6 +26,7 @@ const terminalFlow = ({
     peerId,
     client,
     playerIndex,
+    openDiscord,
 }: TerminalFlowArgs) => {
     const defaultPlayerNameKey = `defaultPlayerName/${playerIndex}`;
     const defaultPlayerName =
@@ -250,6 +252,32 @@ const terminalFlow = ({
         },
         {
             text: (
+                <>
+                    <br />
+                    <span className={termstyles.promptTextColor}>
+                        Looking for game? Check the lfg channel in our Discord.
+                        <br />
+                        <span
+                            className={termstyles.boldTextColor}
+                            style={{ cursor: 'pointer' }}
+                            onClick={openDiscord}
+                        >
+                            https://discord.com/invite/VdXWWNaqGN
+                        </span>
+                    </span>
+                    <br />
+                </>
+            ),
+            promise: () =>
+                new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve('');
+                    }, TERM_DELAY);
+                }),
+        },
+
+        {
+            text: (
                 <span className={termstyles.promptTextColor}>
                     <br />
                     Paste a Playerchain key to join:
@@ -294,6 +322,14 @@ const terminalFlow = ({
     ];
 };
 
+const openDiscord = async (socket: any) => {
+    try {
+        await socket.window.openExternal('https://discord.gg/xKFyu8JF2g');
+    } catch (error) {
+        console.error('Failed to open Discord link:', error);
+    }
+};
+
 export default memo(function ChannelBoot() {
     const socket = useSocket();
     const { peerId } = useCredentials();
@@ -306,6 +342,7 @@ export default memo(function ChannelBoot() {
                 peerId,
                 client,
                 playerIndex: socket!.window.index,
+                openDiscord: () => openDiscord(socket),
             }),
         [client, db, peerId, socket],
     );
