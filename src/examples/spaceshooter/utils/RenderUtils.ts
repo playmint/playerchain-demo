@@ -40,7 +40,7 @@ export function interpolate(
     a: number,
     b: number,
     deltaTime: number,
-    speed?: InterpolateSpeed,
+    speed: InterpolateSpeed = InterpolateSpeed.Quick,
     method: InterpolateMethod = InterpolateMethod.ExpDecay,
 ) {
     if (speed === InterpolateSpeed.Snap) {
