@@ -13,7 +13,6 @@ export const BULLET_MAX_VELOCITY = 300;
 export const BULLET_LIFETIME = 20; // seconds
 export const BULLET_HEALTH_COST = 14;
 export const BULLET_INHERIT_VELOCITY = 1; //What % velocity do they inherit from firing ship
-export const BULLET_SHIP_OFFSET = 3;
 export const DEATH_TIMER = 2; // seconds to wait after death before respawning
 
 export default system<ShooterSchema>(
@@ -36,8 +35,10 @@ export default system<ShooterSchema>(
 
         // check bullet collisions
         for (const bullet of bullets) {
-            // skip inactive entities
+            // inactive bullets stored in the ship
             if (!entity.active[bullet]) {
+                position.x[bullet] = position.x[entity.parent[bullet]];
+                position.y[bullet] = position.y[entity.parent[bullet]];
                 continue;
             }
 
@@ -97,12 +98,8 @@ export default system<ShooterSchema>(
                 }
                 stats.health[player.ship] -= BULLET_HEALTH_COST;
 
-                position.x[bullet] =
-                    position.x[player.ship] +
-                    BULLET_SHIP_OFFSET * Math.cos(rotation.z[player.ship]);
-                position.y[bullet] =
-                    position.y[player.ship] +
-                    BULLET_SHIP_OFFSET * Math.sin(rotation.z[player.ship]);
+                position.x[bullet] = position.x[player.ship];
+                position.y[bullet] = position.y[player.ship];
                 rotation.z[bullet] = rotation.z[player.ship];
 
                 velocity.x[bullet] = Math.fround(

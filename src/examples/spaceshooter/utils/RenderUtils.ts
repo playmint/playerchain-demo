@@ -138,7 +138,7 @@ export function interpolateEntityVisibility(
     obj: EntityObject3D,
     world: World<ShooterSchema>,
     eid: EntityId,
-    delay: number, // frames
+    delay: number = 0, // frames
 ) {
     const isActive = world.components.entity.data.active[eid];
     if (isActive && !obj.visible) {
