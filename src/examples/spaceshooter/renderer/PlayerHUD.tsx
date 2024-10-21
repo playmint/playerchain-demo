@@ -3,6 +3,7 @@ import {
     FIXED_UPDATE_RATE,
     SIM_END,
 } from '../../../gui/components/ChannelView';
+import { isMobile } from '../../../gui/system/menu';
 import { PlayerData } from '../../../runtime/ecs';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import { SESSION_TIME_SECONDS, ShooterSchema } from '../../spaceshooter';
@@ -112,10 +113,12 @@ export default memo(function PlayerHUD({
                             left: '30px',
                         }}
                     >
-                        <Chat
-                            peerNames={peerNames}
-                            players={playersRef.current}
-                        />
+                        {!isMobile && (
+                            <Chat
+                                peerNames={peerNames}
+                                players={playersRef.current}
+                            />
+                        )}
                     </div>
                     <div
                         style={{
@@ -137,10 +140,12 @@ export default memo(function PlayerHUD({
                             width: 'auto',
                         }}
                     >
-                        <LeaderBoard
-                            players={playersRef.current}
-                            peerId={peerId}
-                        />
+                        {!isMobile && (
+                            <LeaderBoard
+                                players={playersRef.current}
+                                peerId={peerId}
+                            />
+                        )}
                     </div>
                 </div>
             )}

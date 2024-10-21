@@ -9,6 +9,7 @@ import { CredentialsProvider } from './providers/CredentialsProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
 import { SettingsProvider } from './providers/SettingsProvider';
 import { SocketProvider } from './providers/SocketProvider';
+import { isMobile } from './system/menu';
 
 function fallbackRender({ error }) {
     return (
@@ -20,7 +21,7 @@ function fallbackRender({ error }) {
 }
 
 export default function App(_props: { instance: number }) {
-    const [channelPanelOpen, setChannelPanelOpen] = useState(true);
+    const [channelPanelOpen, setChannelPanelOpen] = useState(!isMobile);
     const toggleChannelPanel = useCallback(() => {
         setChannelPanelOpen((prev) => !prev);
     }, []);
@@ -37,7 +38,7 @@ export default function App(_props: { instance: number }) {
                 height: '100vh',
             }}
         >
-            <Titlebar toggleChannelPanel={toggleChannelPanel} />
+            {!isMobile && <Titlebar toggleChannelPanel={toggleChannelPanel} />}
 
             <ErrorBoundary fallbackRender={fallbackRender}>
                 <SocketProvider>
@@ -58,7 +59,9 @@ export default function App(_props: { instance: number }) {
                                             metrics={metrics}
                                         />
                                     </div>
-                                    <StatusBar metrics={metrics} />
+                                    {!isMobile && (
+                                        <StatusBar metrics={metrics} />
+                                    )}
                                 </SettingsProvider>
                             </ClientProvider>
                         </DatabaseProvider>

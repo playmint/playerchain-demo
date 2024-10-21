@@ -31,3 +31,6 @@ build
 # generated code
 /public/workers
 socket.ini
+
+# certs
+/ios_development.*

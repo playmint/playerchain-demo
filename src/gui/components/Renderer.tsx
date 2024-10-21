@@ -1,6 +1,6 @@
 import * as Comlink from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { FC, memo, useEffect, useMemo } from 'react';
+import { FC, memo, useCallback, useEffect, useMemo } from 'react';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
 import { RendererProps } from '../../runtime/game';
@@ -13,6 +13,7 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSimulation } from '../hooks/use-simulation';
+import { isMobile } from '../system/menu';
 
 export default memo(function Renderer({
     channelId,
@@ -162,6 +163,30 @@ export default memo(function Renderer({
         };
     }, [seq]);
 
+    const onKeyDown = useCallback(
+        (key: string) => {
+            if (!seq) {
+                return;
+            }
+            seq.onKeyDown(key).catch((err) => {
+                console.error('keydown-err:', err);
+            });
+        },
+        [seq],
+    );
+
+    const onKeyUp = useCallback(
+        (key: string) => {
+            if (!seq) {
+                return;
+            }
+            seq.onKeyUp(key).catch((err) => {
+                console.error('keyup-err:', err);
+            });
+        },
+        [seq],
+    );
+
     useEffect(() => {
         if (!rate) {
             return;
@@ -220,12 +245,106 @@ export default memo(function Renderer({
     }
 
     return (
-        <GameRenderer
-            mod={mod}
-            peerId={peerId}
-            peerNames={peerNames}
-            channelId={channelId}
-            metrics={metrics}
-        />
+        <>
+            <GameRenderer
+                mod={mod}
+                peerId={peerId}
+                peerNames={peerNames}
+                channelId={channelId}
+                metrics={metrics}
+            />
+            {isMobile && (
+                <span
+                    style={{
+                        touchAction: 'none',
+                        pointerEvents: 'auto',
+                        userSelect: 'none',
+                        position: 'absolute',
+                        bottom: '1rem',
+                        left: '1rem',
+                        color: 'rgba(255,255,255,0.8)',
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'inline-block',
+                            padding: '1.5rem',
+                            pointerEvents: 'auto',
+                            userSelect: 'none',
+                            background: 'rgba(0,0,0,0.5)',
+                        }}
+                        onTouchStart={(e) => {
+                            e.preventDefault();
+                            onKeyDown('ArrowLeft');
+                        }}
+                        onTouchEnd={(e) => {
+                            e.preventDefault();
+                            onKeyUp('ArrowLeft');
+                        }}
+                    >
+                        LEFT
+                    </div>
+                    <div
+                        style={{
+                            display: 'inline-block',
+                            padding: '1.5rem',
+                            pointerEvents: 'auto',
+                            userSelect: 'none',
+                            background: 'rgba(0,0,0,0.5)',
+                        }}
+                        onTouchStart={(e) => {
+                            e.preventDefault();
+                            onKeyDown('ArrowRight');
+                        }}
+                        onTouchEnd={(e) => {
+                            e.preventDefault();
+                            onKeyUp('ArrowRight');
+                        }}
+                    >
+                        RGHT
+                    </div>
+                </span>
+            )}
+            {isMobile && (
+                <span
+                    style={{
+                        touchAction: 'none',
+                        pointerEvents: 'auto',
+                        userSelect: 'none',
+                        position: 'absolute',
+                        bottom: '1rem',
+                        right: '1rem',
+                        color: 'rgba(255,255,255,0.8)',
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'inline-block',
+                            padding: '1.5rem',
+                            pointerEvents: 'auto',
+                            userSelect: 'none',
+                            background: 'rgba(0,0,0,0.5)',
+                        }}
+                        onTouchStart={() => onKeyDown('ArrowUp')}
+                        onTouchEnd={() => onKeyUp('ArrowUp')}
+                    >
+                        ACEL
+                    </div>
+                    <div
+                        style={{
+                            display: 'inline-block',
+                            padding: '1.5rem',
+                            pointerEvents: 'auto',
+                            userSelect: 'none',
+                            background: 'rgba(0,0,0,0.5)',
+                        }}
+                        onTouchStart={() => onKeyDown(' ')}
+                        onTouchEnd={() => onKeyUp(' ')}
+                    >
+                        FIRE
+                    </div>
+                </span>
+            )}
+        </>
     );
 });

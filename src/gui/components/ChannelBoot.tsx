@@ -7,6 +7,7 @@ import { ClientContextType, useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSocket } from '../hooks/use-socket';
+import theme from '../styles/default.module.css';
 import { TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
@@ -28,6 +29,9 @@ const terminalFlow = ({
     const defaultPlayerNameKey = `defaultPlayerName/${playerIndex}`;
     const defaultPlayerName =
         localStorage.getItem(defaultPlayerNameKey) || peerId.slice(0, 8);
+    const paste = () => {
+        document.execCommand('paste');
+    };
     return [
         {
             text: (
@@ -249,6 +253,13 @@ const terminalFlow = ({
                 <span className={termstyles.promptTextColor}>
                     <br />
                     Paste a Playerchain key to join:
+                    <span
+                        className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
+                        style={{ padding: '0 4px', cursor: 'pointer' }}
+                        onClick={paste}
+                    >
+                        content_paste_go
+                    </span>
                 </span>
             ),
             userInput: true,
