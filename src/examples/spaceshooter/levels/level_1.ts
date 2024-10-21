@@ -601,166 +601,6 @@ export default {
         rotation: 0.7853981633974483
       },
       {
-        position: { x: 230, y: 250 },
-        width: 20,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: 235, y: 265 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: 245, y: 270 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: 255, y: 265 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 260, y: 250 },
-        width: 20,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 255, y: 235 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: 245, y: 230 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: 235, y: 235 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -235, y: 235 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: -245, y: 230 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: -255, y: 235 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -260, y: 250 },
-        width: 20,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -255, y: 265 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -245, y: 270 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: -235, y: 265 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: -230, y: 250 },
-        width: 20,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 235, y: -235 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: 245, y: -230 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: 255, y: -235 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 260, y: -250 },
-        width: 20,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 255, y: -265 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: 245, y: -270 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: 235, y: -265 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: 230, y: -250 },
-        width: 20,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -230, y: -250 },
-        width: 20,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: -235, y: -265 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: -245, y: -270 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: -255, y: -265 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -260, y: -250 },
-        width: 20,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -255, y: -235 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -245, y: -230 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: -235, y: -235 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
         position: { x: 40, y: 240 },
         width: 20,
         rotation: 0
@@ -861,326 +701,6 @@ export default {
         rotation: -0.7853981633974483
       },
       {
-        position: { x: 150, y: 205 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: 155, y: 215 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: 165, y: 220 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: 175, y: 215 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 180, y: 205 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 175, y: 195 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: 165, y: 190 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: 155, y: 195 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -155, y: 195 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: -165, y: 190 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: -175, y: 195 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -180, y: 205 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -175, y: 215 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -165, y: 220 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: -155, y: 215 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: -150, y: 205 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 155, y: -195 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: 165, y: -190 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: 175, y: -195 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 180, y: -205 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 175, y: -215 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: 165, y: -220 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: 155, y: -215 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: 150, y: -205 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -150, y: -205 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: -155, y: -215 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: -165, y: -220 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: -175, y: -215 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -180, y: -205 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -175, y: -195 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -165, y: -190 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: -155, y: -195 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 225, y: 170 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: 235, y: 165 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 240, y: 155 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 235, y: 145 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: 225, y: 140 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: 215, y: 145 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: 210, y: 155 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: 215, y: 165 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -215, y: 165 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: -210, y: 155 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: -215, y: 145 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: -225, y: 140 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: -235, y: 145 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -240, y: 155 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -235, y: 165 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -225, y: 170 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: 215, y: -165 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: 210, y: -155 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: 215, y: -145 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: 225, y: -140 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: 235, y: -145 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 240, y: -155 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 235, y: -165 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: 225, y: -170 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: -225, y: -170 },
-        width: 10,
-        rotation: 3.141592653589793
-      },
-      {
-        position: { x: -235, y: -165 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -240, y: -155 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -235, y: -145 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -225, y: -140 },
-        width: 10,
-        rotation: 0
-      },
-      {
-        position: { x: -215, y: -145 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: -210, y: -155 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: -215, y: -165 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
         position: { x: 65, y: 140 },
         width: 50,
         rotation: 3.141592653589793
@@ -1241,86 +761,6 @@ export default {
         rotation: -1.5707963267948966
       },
       {
-        position: { x: 5, y: 15 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: 10, y: 5 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: -10, y: 5 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -5, y: 15 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: 10, y: -5 },
-        width: 10,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 5, y: -15 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
-        position: { x: -5, y: -15 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: -10, y: -5 },
-        width: 10,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: 160, y: 15 },
-        width: 30,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: 165, y: 35 },
-        width: 14.142135623730951,
-        rotation: 0.7853981633974483
-      },
-      {
-        position: { x: -165, y: 35 },
-        width: 14.142135623730951,
-        rotation: -0.7853981633974483
-      },
-      {
-        position: { x: -160, y: 15 },
-        width: 30,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: 165, y: -35 },
-        width: 14.142135623730951,
-        rotation: 2.356194490192345
-      },
-      {
-        position: { x: 160, y: -15 },
-        width: 30,
-        rotation: 1.5707963267948966
-      },
-      {
-        position: { x: -160, y: -15 },
-        width: 30,
-        rotation: -1.5707963267948966
-      },
-      {
-        position: { x: -165, y: -35 },
-        width: 14.142135623730951,
-        rotation: -2.356194490192345
-      },
-      {
         position: { x: 90, y: 100 },
         width: 20,
         rotation: 0
@@ -1379,6 +819,306 @@ export default {
         position: { x: -110, y: -80 },
         width: 20,
         rotation: 1.5707963267948966
+      },
+      {
+        position: { x: 5, y: 15 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: -5, y: 15 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: 5, y: -15 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: -5, y: -15 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: 160, y: 25 },
+        width: 10,
+        rotation: 1.5707963267948966
+      },
+      {
+        position: { x: 165, y: 35 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: -165, y: 35 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: -160, y: 25 },
+        width: 10,
+        rotation: -1.5707963267948966
+      },
+      {
+        position: { x: 165, y: -35 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: 160, y: -25 },
+        width: 10,
+        rotation: 1.5707963267948966
+      },
+      {
+        position: { x: -160, y: -25 },
+        width: 10,
+        rotation: -1.5707963267948966
+      },
+      {
+        position: { x: -165, y: -35 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: 155, y: 215 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: 165, y: 220 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: 175, y: 215 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: -175, y: 215 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: -165, y: 220 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: -155, y: 215 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: 175, y: -215 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: 165, y: -220 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: 155, y: -215 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: -155, y: -215 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: -165, y: -220 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: -175, y: -215 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: 175, y: 185 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: 165, y: 180 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: 155, y: 185 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: -155, y: 185 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: -165, y: 180 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: -175, y: 185 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: 155, y: -185 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: 165, y: -180 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: 175, y: -185 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: -175, y: -185 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: -165, y: -180 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: -155, y: -185 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: 235, y: 265 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: 245, y: 270 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: 255, y: 265 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: -255, y: 265 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: -245, y: 270 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: -235, y: 265 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: 255, y: -265 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: 245, y: -270 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: 235, y: -265 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: -235, y: -265 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: -245, y: -270 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: -255, y: -265 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: 255, y: 235 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: 245, y: 230 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: 235, y: 235 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: -235, y: 235 },
+        width: 14.142135623730951,
+        rotation: -2.356194490192345
+      },
+      {
+        position: { x: -245, y: 230 },
+        width: 10,
+        rotation: 3.141592653589793
+      },
+      {
+        position: { x: -255, y: 235 },
+        width: 14.142135623730951,
+        rotation: 2.356194490192345
+      },
+      {
+        position: { x: 235, y: -235 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: 245, y: -230 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: 255, y: -235 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
+      },
+      {
+        position: { x: -255, y: -235 },
+        width: 14.142135623730951,
+        rotation: 0.7853981633974483
+      },
+      {
+        position: { x: -245, y: -230 },
+        width: 10,
+        rotation: 0
+      },
+      {
+        position: { x: -235, y: -235 },
+        width: 14.142135623730951,
+        rotation: -0.7853981633974483
       }
     ],
     models: [
@@ -2444,166 +2184,6 @@ export default {
       },
       {
         name: "wallLarge",
-        position: { x: 230, y: 240 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 230, y: 260 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 240, y: 270 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 250, y: 270 },
-        rotation: 0
-      },
-      {
-        name: "wallLarge",
-        position: { x: 260, y: 260 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 260, y: 240 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 250, y: 230 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 240, y: 230 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -230, y: 240 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -240, y: 230 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -250, y: 230 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallLarge",
-        position: { x: -260, y: 240 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -260, y: 260 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -250, y: 270 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -240, y: 270 },
-        rotation: 0
-      },
-      {
-        name: "wallLarge",
-        position: { x: -230, y: 260 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 230, y: -240 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 240, y: -230 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 250, y: -230 },
-        rotation: 0
-      },
-      {
-        name: "wallLarge",
-        position: { x: 260, y: -240 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 260, y: -260 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 250, y: -270 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 240, y: -270 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallLarge",
-        position: { x: 230, y: -260 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallLarge",
-        position: { x: -230, y: -240 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -230, y: -260 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -240, y: -270 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -250, y: -270 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallLarge",
-        position: { x: -260, y: -260 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -260, y: -240 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -250, y: -230 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -240, y: -230 },
-        rotation: 0
-      },
-      {
-        name: "wallLarge",
         position: { x: 30, y: 240 },
         rotation: 1.5707963267948966
       },
@@ -2701,326 +2281,6 @@ export default {
         name: "wallCornerMedium",
         position: { x: -70, y: -210 },
         rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: 150, y: 200 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 150, y: 210 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 160, y: 220 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 170, y: 220 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: 180, y: 210 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 180, y: 200 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 170, y: 190 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 160, y: 190 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -150, y: 200 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -160, y: 190 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -170, y: 190 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: -180, y: 200 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -180, y: 210 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -170, y: 220 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -160, y: 220 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: -150, y: 210 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 150, y: -200 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 160, y: -190 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 170, y: -190 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: 180, y: -200 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 180, y: -210 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 170, y: -220 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 160, y: -220 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: 150, y: -210 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: -150, y: -200 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -150, y: -210 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -160, y: -220 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -170, y: -220 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: -180, y: -210 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -180, y: -200 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -170, y: -190 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -160, y: -190 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: 220, y: 170 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 230, y: 170 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: 240, y: 160 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 240, y: 150 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 230, y: 140 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 220, y: 140 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: 210, y: 150 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 210, y: 160 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -220, y: 170 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: -210, y: 160 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -210, y: 150 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -220, y: 140 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -230, y: 140 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: -240, y: 150 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -240, y: 160 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -230, y: 170 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 220, y: -170 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: 210, y: -160 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 210, y: -150 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 220, y: -140 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 230, y: -140 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: 240, y: -150 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 240, y: -160 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 230, y: -170 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallMedium",
-        position: { x: -220, y: -170 },
-        rotation: 4.71238898038469
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -230, y: -170 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: -240, y: -160 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -240, y: -150 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: -230, y: -140 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -220, y: -140 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: -210, y: -150 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -210, y: -160 },
-        rotation: -1.5707963267948966
       },
       {
         name: "wallLarge",
@@ -3123,106 +2383,6 @@ export default {
         rotation: 0
       },
       {
-        name: "wallCornerMedium",
-        position: { x: 0, y: 20 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: 10, y: 10 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: -10, y: 0 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -10, y: 10 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallMedium",
-        position: { x: 10, y: 0 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 10, y: -10 },
-        rotation: -1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 0, y: -20 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: -10, y: -10 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallLarge",
-        position: { x: 160, y: 0 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: 160, y: 20 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 160, y: 30 },
-        rotation: 1.5707963267948966
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -170, y: 40 },
-        rotation: 0
-      },
-      {
-        name: "wallLarge",
-        position: { x: -160, y: 30 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: -160, y: 10 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: 170, y: -40 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallLarge",
-        position: { x: 160, y: -30 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallMedium",
-        position: { x: 160, y: -10 },
-        rotation: 3.141592653589793
-      },
-      {
-        name: "wallLarge",
-        position: { x: -160, y: 0 },
-        rotation: 0
-      },
-      {
-        name: "wallMedium",
-        position: { x: -160, y: -20 },
-        rotation: 0
-      },
-      {
-        name: "wallCornerMedium",
-        position: { x: -160, y: -30 },
-        rotation: -1.5707963267948966
-      },
-      {
         name: "wallLarge",
         position: { x: 80, y: 100 },
         rotation: 1.5707963267948966
@@ -3281,11 +2441,311 @@ export default {
         name: "wallLarge",
         position: { x: -110, y: -90 },
         rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 0, y: 20 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -10, y: 10 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 10, y: -10 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 0, y: -20 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallMedium",
+        position: { x: 160, y: 20 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 160, y: 30 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -170, y: 40 },
+        rotation: 0
+      },
+      {
+        name: "wallMedium",
+        position: { x: -160, y: 30 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 170, y: -40 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallMedium",
+        position: { x: 160, y: -30 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallMedium",
+        position: { x: -160, y: -20 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -160, y: -30 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 150, y: 210 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 160, y: 220 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 170, y: 220 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -180, y: 210 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -170, y: 220 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -160, y: 220 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 180, y: -210 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 170, y: -220 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 160, y: -220 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -150, y: -210 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -160, y: -220 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -170, y: -220 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 180, y: 190 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 170, y: 180 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 160, y: 180 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -150, y: 190 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -160, y: 180 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -170, y: 180 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 150, y: -190 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 160, y: -180 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 170, y: -180 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -180, y: -190 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -170, y: -180 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -160, y: -180 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 230, y: 260 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 240, y: 270 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 250, y: 270 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -260, y: 260 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -250, y: 270 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -240, y: 270 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 260, y: -260 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 250, y: -270 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 240, y: -270 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -230, y: -260 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -240, y: -270 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -250, y: -270 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 260, y: 240 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 250, y: 230 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 240, y: 230 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -230, y: 240 },
+        rotation: -1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -240, y: 230 },
+        rotation: 4.71238898038469
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -250, y: 230 },
+        rotation: 3.141592653589793
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 230, y: -240 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: 240, y: -230 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: 250, y: -230 },
+        rotation: 0
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -260, y: -240 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallMedium",
+        position: { x: -250, y: -230 },
+        rotation: 1.5707963267948966
+      },
+      {
+        name: "wallCornerMedium",
+        position: { x: -240, y: -230 },
+        rotation: 0
       }
     ],
     spawnPoints: [
       
     ],
     spawnRadius: 190,
-    wallColliderWidth: 2.5
+    wallColliderWidth: 5
   };
