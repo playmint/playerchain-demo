@@ -1,11 +1,12 @@
 import {
     FunctionComponent,
     isValidElement,
+    useCallback,
     useEffect,
     useRef,
     useState,
 } from 'react';
-import { isWindows, newPlayerWindow } from '../system/menu';
+import { isMobile, isWindows, newPlayerWindow } from '../system/menu';
 import termstyles from './Terminal.module.css';
 
 const InputStyle: React.CSSProperties = {
@@ -199,6 +200,21 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
         userInput,
     ]);
 
+    const makeChoice = useCallback(
+        (choiceIdx: number) => {
+            const choice = flow[opIndex].choices![choiceIdx];
+            if (choice) {
+                setCurrentChoice(choiceIdx);
+                if (choice.noop) {
+                    return;
+                }
+                setOpIndex(opIndex + choice.next);
+                setIsOperationInProgress(false);
+            }
+        },
+        [flow, opIndex],
+    );
+
     // keyboard listener for up and down
     useEffect(() => {
         if (flow === undefined) {
@@ -235,20 +251,33 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
                     );
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
-                    const choice = flow[opIndex].choices![currentChoice];
-                    if (choice) {
-                        if (choice.noop) {
-                            return;
-                        }
-                        setOpIndex(opIndex + choice.next);
-                        setIsOperationInProgress(false);
-                    }
+                    makeChoice(currentChoice);
                 }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [flow, opIndex, currentChoice]);
+    }, [flow, opIndex, currentChoice, makeChoice]);
+
+    const handleAcceptInput = useCallback(
+        (opIndex: number) => {
+            setIsInputComplete((input) => {
+                const newInput = { ...input };
+                newInput[opIndex] = true;
+                return newInput;
+            });
+            // Add input to text line. Buffer gets flushed in the flow handler
+            setText((text) => {
+                const lastOpText = { ...text[text.length - 1] };
+                lastOpText.text = [...lastOpText.text, userInput];
+                const newText = text.slice(0, -1);
+                newText.push(lastOpText);
+                return newText;
+            });
+            setIsOperationInProgress(false);
+        },
+        [userInput],
+    );
 
     // keyboard listener for typing
     useEffect(() => {
@@ -276,25 +305,10 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
         };
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Stops the event bubbling up and the app making a noise when the keyboard isn't handled
-
             if (flow[opIndex].userInput) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    setIsInputComplete((input) => {
-                        const newInput = { ...input };
-                        newInput[opIndex] = true;
-                        return newInput;
-                    });
-                    // Add input to text line. Buffer gets flushed in the flow handler
-                    setText((text) => {
-                        const lastOpText = { ...text[text.length - 1] };
-                        lastOpText.text = [...lastOpText.text, userInput];
-                        const newText = text.slice(0, -1);
-                        newText.push(lastOpText);
-                        return newText;
-                    });
-                    setIsOperationInProgress(false);
+                    handleAcceptInput(opIndex);
                 } else if (e.key === 'Backspace') {
                     e.preventDefault();
                     setUserInput(userInput.slice(0, -1));
@@ -312,7 +326,7 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
             window.removeEventListener('paste', pasteHandler);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [flow, opIndex, userInput]);
+    }, [flow, handleAcceptInput, opIndex, userInput]);
 
     return (
         <>
@@ -339,6 +353,9 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
                                                         ? '#fff'
                                                         : '#888',
                                             }}
+                                            onClick={() =>
+                                                makeChoice(index - 1)
+                                            }
                                         >
                                             {currentChoice == index - 1
                                                 ? '❯ '
@@ -356,6 +373,17 @@ export const TerminalView: FunctionComponent<TerminalViewProps> = ({
                                             ] && (
                                                 <span style={InputStyle}>
                                                     {userInput}
+                                                    {isMobile && (
+                                                        <button
+                                                            onClick={() =>
+                                                                handleAcceptInput(
+                                                                    operationText.opIndex,
+                                                                )
+                                                            }
+                                                        >
+                                                            OK
+                                                        </button>
+                                                    )}
                                                 </span>
                                             )}
                                             {!isInputComplete[

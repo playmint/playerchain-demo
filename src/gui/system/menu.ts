@@ -3,7 +3,10 @@ import process from 'socket:process';
 import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
 
-const isMobile = /android|ios/.test(process.platform);
+export const isMobile = /android|ios/.test(process.platform);
+export const forceMenu = false;
+// export const isMobile = true;
+// export const forceMenu = true;
 export const isWindows = /win32/.test(process.platform);
 const isProduction = false; //import.meta.env.MODE === 'production';
 
@@ -188,7 +191,7 @@ export async function setSystemMenu() {
     }
     globalThis.__hasSetSystemMenu = true;
     // setup menu
-    if (!isMobile) {
+    if (forceMenu || !isMobile) {
         const menuString = toMenuString(sysMenu);
         const win = await application.getCurrentWindow();
         await application.setSystemMenu({

@@ -218,6 +218,9 @@ export default memo(function ChannelView({
             userInput: true,
             promise: (input?: string) =>
                 new Promise((resolve, reject) => {
+                    if (input === '') {
+                        input = 'go';
+                    }
                     if (!input || input.toLocaleLowerCase().trim() !== 'go') {
                         reject(
                             <span className={'errorText'}>
@@ -260,7 +263,14 @@ export default memo(function ChannelView({
     }
 
     return (
-        <div style={{ display: 'flex', flexGrow: 1 }}>
+        <div
+            style={{
+                display: 'flex',
+                flexGrow: 1,
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+            }}
+        >
             <div
                 style={{
                     flexGrow: 1,
