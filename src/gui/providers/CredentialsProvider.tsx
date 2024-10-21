@@ -11,8 +11,7 @@ import {
     CredentialsContextType,
 } from '../hooks/use-credentials';
 import { useSocket } from '../hooks/use-socket';
-
-const isProduction = import.meta.env.MODE === 'production';
+import { isProduction } from '../system/menu';
 
 async function createCredentials(
     playerIndex: number,

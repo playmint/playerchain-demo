@@ -8,7 +8,7 @@ export const forceMenu = false;
 // export const isMobile = true;
 // export const forceMenu = true;
 export const isWindows = /win32/.test(process.platform);
-const isProduction = false; //import.meta.env.MODE === 'production';
+export const isProduction = import.meta.env.MODE === 'production';
 
 interface MenuItem {
     name: string;
@@ -25,7 +25,7 @@ interface Menu {
 
 export const devMenu: Menu = {
     name: 'Dev',
-    visible: () => !isProduction,
+    visible: () => true,
     items: [
         {
             name: 'New Player',

@@ -13,6 +13,7 @@ import { useDatabase } from '../hooks/use-database';
 import { useSettings } from '../hooks/use-settings';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
+import { isProduction } from '../system/menu';
 import { TERM_DELAY } from './ChannelBoot';
 import Connectivity from './Connectivity';
 import PacketLace from './PacketLace';
@@ -229,7 +230,7 @@ export default memo(function ChannelView({
                         );
                         return;
                     }
-                    if (potentialPeers.length < 2) {
+                    if (potentialPeers.length < 2 && isProduction) {
                         reject(
                             <span className={'errorText'}>
                                 need at least 2 peers
