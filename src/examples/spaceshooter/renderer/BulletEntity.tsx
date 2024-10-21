@@ -119,7 +119,7 @@ export default memo(function BulletEntity({
                 ref={bulletRef}
                 object={model}
                 scale={0.5}
-                position={[0, 0, 0]}
+                position={[0, 0, -1]}
             />
             <PositionalAudio
                 ref={shotSfxRef}
