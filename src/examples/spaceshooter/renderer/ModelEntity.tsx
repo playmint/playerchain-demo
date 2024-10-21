@@ -26,6 +26,12 @@ export const ModelEntity = memo(function ModelEntity({
                 />
             );
         case ModelType.Bullet:
-            return <BulletEntity worldRef={worldRef} eid={eid} />;
+            return (
+                <BulletEntity
+                    worldRef={worldRef}
+                    eid={eid}
+                    playersRef={playersRef}
+                />
+            );
     }
 });
