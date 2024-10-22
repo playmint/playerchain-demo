@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Vector3 } from 'three';
 import levelData from '../levels/level_1';
 import { WallCornerMedium } from './WallCornerMedium';
+import { WallEndCap } from './WallEndCap';
 import { WallLarge } from './WallLarge';
 import { WallMedium } from './WallMedium';
 
@@ -36,6 +37,14 @@ export default memo(function WallModels() {
                     case 'wallCornerMedium':
                         return (
                             <WallCornerMedium
+                                key={index}
+                                position={position}
+                                rotation={model.rotation}
+                            />
+                        );
+                    case 'wallEndCap':
+                        return (
+                            <WallEndCap
                                 key={index}
                                 position={position}
                                 rotation={model.rotation}
