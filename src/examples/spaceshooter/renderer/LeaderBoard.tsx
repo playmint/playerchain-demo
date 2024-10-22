@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
+import { getPlayerColorUi } from '../../../gui/fixtures/player-colors';
 import styles from './LeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 
@@ -25,7 +25,7 @@ export default memo(function LeaderBoard({
             id: p.id,
             user: p.name,
             score: p.score,
-            color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)), //'#ac75eb',
+            color: getPlayerColorUi(players.findIndex((pp) => pp.id === p.id)),
             isMe: peerId === p.id,
         }))
         .sort((a, b) => b.score - a.score);

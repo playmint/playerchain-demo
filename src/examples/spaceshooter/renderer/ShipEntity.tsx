@@ -97,7 +97,7 @@ export default memo(function ShipEntity({
 
         if (playerIdx > -1 && !color) {
             const playerColor = new Color(
-                getPlayerColor(playerIdx) ?? 0xffffff,
+                getPlayerColor(playerIdx) ?? '#ffffff',
             );
             setColor(playerColor);
         }

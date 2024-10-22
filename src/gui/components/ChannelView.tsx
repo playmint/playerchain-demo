@@ -6,7 +6,7 @@ import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
 import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
-import { getPlayerColorCSS } from '../fixtures/player-colors';
+import { getPlayerColorUi } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -300,7 +300,7 @@ export default memo(function ChannelView({
                                             style={{
                                                 color:
                                                     playerIdx < MAX_PLAYERS
-                                                        ? getPlayerColorCSS(
+                                                        ? getPlayerColorUi(
                                                               playerIdx,
                                                           )
                                                         : 'grey',

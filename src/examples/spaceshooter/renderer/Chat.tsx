@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useRef } from 'react';
-import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
+import { getPlayerColorUi } from '../../../gui/fixtures/player-colors';
 import { useClient } from '../../../gui/hooks/use-client';
 import { useDatabase } from '../../../gui/hooks/use-database';
 import { StoredChatMessage } from '../../../runtime/db';
@@ -79,7 +79,7 @@ export default memo(function Chat({
                 >
                     <span
                         style={{
-                            color: getPlayerColorCSS(
+                            color: getPlayerColorUi(
                                 players.findIndex((p) => p.id === m.peer),
                             ),
                         }}
