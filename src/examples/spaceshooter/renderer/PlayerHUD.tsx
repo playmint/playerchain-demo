@@ -86,6 +86,18 @@ export default memo(function PlayerHUD({
                     </div>
                 )}
             </div>
+            <div
+                style={{
+                    width: '30%',
+                    position: 'absolute',
+                    bottom: '30px',
+                    left: '30px',
+                }}
+            >
+                {!isMobile && (
+                    <Chat peerNames={peerNames} players={playersRef.current} />
+                )}
+            </div>
             {remaining > 0 && SESSION_TIME_SECONDS - remaining < 3 ? (
                 <ReadySetGo
                     n={3 - Math.floor(SESSION_TIME_SECONDS - remaining)}
@@ -105,21 +117,6 @@ export default memo(function PlayerHUD({
                         alignItems: 'center',
                     }}
                 >
-                    <div
-                        style={{
-                            width: '30%',
-                            position: 'absolute',
-                            bottom: '30px',
-                            left: '30px',
-                        }}
-                    >
-                        {!isMobile && (
-                            <Chat
-                                peerNames={peerNames}
-                                players={playersRef.current}
-                            />
-                        )}
-                    </div>
                     <div
                         style={{
                             position: 'absolute',
