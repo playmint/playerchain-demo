@@ -95,7 +95,7 @@ export default memo(function ShooterCanvas({
     }, [nextEntities, worldRef]);
 
     if (!worldRef.current) {
-        return <div>Loading world....</div>;
+        return <></>;
     }
     return (
         <>

@@ -1,5 +1,6 @@
 import * as Comlink from 'comlink';
 import React from 'react';
+import { Loading } from '../components/Loading';
 import { useAsyncMemo } from '../hooks/use-async';
 import { ClientContext, ClientContextType } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -47,7 +48,7 @@ export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     if (!client) {
-        return <div>Loading client...</div>;
+        return <Loading />;
     }
 
     return (

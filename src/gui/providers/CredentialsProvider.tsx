@@ -4,6 +4,7 @@ import { Buffer } from 'socket:buffer';
 import { randomBytes } from 'socket:crypto';
 import { Encryption } from 'socket:network';
 import { hardReset } from '../../runtime/utils';
+import { Loading } from '../components/Loading';
 import { TerminalView } from '../components/Terminal';
 import termstyles from '../components/Terminal.module.css';
 import {
@@ -75,7 +76,7 @@ export const CredentialsProvider = ({
     }, [socket]);
 
     if (!credentials) {
-        return <div>Loading Credentials...</div>;
+        return <Loading />;
     }
 
     if (credentials.existing && !isResumed) {
