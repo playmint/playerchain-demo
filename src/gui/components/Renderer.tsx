@@ -126,43 +126,6 @@ export default memo(function Renderer({
         [client, channelId, rate, src, peerId, db, channelPeerIds, interlace],
     );
 
-    // configure event handlers
-    useEffect(() => {
-        const down = (event: any) => {
-            if (event.target.tagName === 'INPUT') {
-                return;
-            }
-            event.preventDefault();
-            if (event.repeat) {
-                return;
-            }
-            if (!seq) {
-                return;
-            }
-            seq.onKeyDown(event.key).catch((err) => {
-                console.error('keydown-err:', err);
-            });
-        };
-        const up = (event: any) => {
-            if (event.target.tagName === 'INPUT') {
-                return;
-            }
-            event.preventDefault();
-            if (!seq) {
-                return;
-            }
-            seq.onKeyUp(event.key).catch((err) => {
-                console.error('keyup-err:', err);
-            });
-        };
-        window.addEventListener('keydown', down);
-        window.addEventListener('keyup', up);
-        return () => {
-            window.removeEventListener('keydown', down);
-            window.removeEventListener('keyup', up);
-        };
-    }, [seq]);
-
     const onKeyDown = useCallback(
         (key: string) => {
             if (!seq) {
@@ -187,6 +150,33 @@ export default memo(function Renderer({
         [seq],
     );
 
+    // configure event handlers
+    useEffect(() => {
+        const down = (event: any) => {
+            if (event.target.tagName === 'INPUT') {
+                return;
+            }
+            event.preventDefault();
+            if (event.repeat) {
+                return;
+            }
+            onKeyDown(event.key);
+        };
+        const up = (event: any) => {
+            if (event.target.tagName === 'INPUT') {
+                return;
+            }
+            event.preventDefault();
+            onKeyUp(event.key);
+        };
+        window.addEventListener('keydown', down);
+        window.addEventListener('keyup', up);
+        return () => {
+            window.removeEventListener('keydown', down);
+            window.removeEventListener('keyup', up);
+        };
+    }, [onKeyDown, onKeyUp]);
+
     useEffect(() => {
         if (!rate) {
             return;
@@ -198,12 +188,18 @@ export default memo(function Renderer({
             return;
         }
         let playing = true;
+        let cueing = false;
         const timer = setInterval(() => {
             if (!playing) {
                 return;
             }
+            if (cueing) {
+                return;
+            }
+            cueing = true;
             sim.cue()
                 .then((result: SimResult | null) => {
+                    cueing = false;
                     if (!result) {
                         return;
                     }
@@ -214,6 +210,7 @@ export default memo(function Renderer({
                 .catch((err) => {
                     console.error('cue-to-err:', err);
                     metrics.sps.add(0);
+                    cueing = false;
                 });
         }, rate);
         return () => {
