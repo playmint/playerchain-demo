@@ -401,7 +401,7 @@ export class Packet {
     /**
      */
     static async encode(p): Promise<Uint8Array> {
-        p = structuredClone(p);
+        p = { ...p };
 
         const buf = Buffer.alloc(PACKET_BYTES); // buf length bust be < UDP MTU (usually ~1500)
         if (!p.message) {
