@@ -257,13 +257,24 @@ const terminalFlow = ({
                     <span className={termstyles.promptTextColor}>
                         Looking for game? Check the lfg channel in our Discord.
                         <br />
-                        <span
+                        <div
                             className={termstyles.boldTextColor}
-                            style={{ cursor: 'pointer' }}
+                            style={{
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}
                             onClick={openDiscord}
                         >
                             https://discord.com/invite/VdXWWNaqGN
-                        </span>
+                            <span
+                                className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
+                                style={{ padding: '0 4px', cursor: 'pointer' }}
+                                onClick={openDiscord}
+                            >
+                                output
+                            </span>
+                        </div>
                     </span>
                     <br />
                 </>

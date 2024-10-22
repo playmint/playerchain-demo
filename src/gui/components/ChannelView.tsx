@@ -195,6 +195,8 @@ export default memo(function ChannelView({
                         onClick={copyKeyToClipboard}
                         style={{
                             cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
                         }}
                     >
                         {channel.id}{' '}
@@ -226,13 +228,24 @@ export default memo(function ChannelView({
                     No friends? Join our Discord and paste your key in the lfg
                     channel.
                     <br />
-                    <span
+                    <div
                         className={termstyles.boldTextColor}
-                        style={{ cursor: 'pointer' }}
+                        style={{
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                        }}
                         onClick={() => openDiscord(socket)}
                     >
-                        https://discord.com/invite/VdXWWNaqGN
-                    </span>
+                        https://discord.com/invite/VdXWWNaqGN{' '}
+                        <span
+                            className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
+                            style={{ padding: '0 4px', cursor: 'pointer' }}
+                            onClick={() => openDiscord(socket)}
+                        >
+                            output
+                        </span>
+                    </div>
                     <br />
                 </span>
             ),
