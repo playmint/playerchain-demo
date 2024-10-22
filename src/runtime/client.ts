@@ -41,6 +41,24 @@ export interface ClientConfig {
     enableSync?: boolean;
 }
 
+type QueuedMessage = [Message, string, string | null];
+
+const byHeight = (a: QueuedMessage, b: QueuedMessage): number => {
+    const aHeight =
+        a[0].type === MessageType.INPUT ||
+        a[0].type === MessageType.CREATE_CHANNEL ||
+        a[0].type === MessageType.SET_PEERS
+            ? a[0].height || -1
+            : -1;
+    const bHeight =
+        b[0].type === MessageType.INPUT ||
+        b[0].type === MessageType.CREATE_CHANNEL ||
+        b[0].type === MessageType.SET_PEERS
+            ? b[0].height || -1
+            : -1;
+    return aHeight - bHeight;
+};
+
 const DEFAULT_TTL = 60 * 1000; // people's clocks are really bad, this is less of a TTL and more of an acceptable range of clock skew
 
 export class Client {
@@ -66,8 +84,9 @@ export class Client {
     looping = false;
     lastSync: number = 0;
     lastEmit: number = 0;
-    messageQueue: [Message, string, string | null][] = [];
+    messageQueue: QueuedMessage[] = [];
     commitQueue: [ChainMessage, string | null][] = [];
+    messageCache: Map<string, StoredMessage> = new Map();
 
     constructor(config: ClientConfig) {
         this.id = config.keys.publicKey;
@@ -111,6 +130,10 @@ export class Client {
             await this.joinChannel(ch.id);
         }
         this.debug('init-ready');
+    }
+
+    private async getMessage(id: string) {
+        return this.messageCache.get(id) ?? this.db.messages.get(id);
     }
 
     // commit will sign, store and broadcast the message
@@ -165,11 +188,9 @@ export class Client {
         this.send(signed, {
             ttl: DEFAULT_TTL,
         });
-        // setTimeout(() => {
-        //     this.send(signed, {
-        //         ttl: DEFAULT_TTL,
-        //     });
-        // }, 10);
+        this.send(signed, {
+            ttl: DEFAULT_TTL,
+        });
         if (typeof signed.height !== 'number') {
             throw new Error('signed-invalid-height');
         }
@@ -320,20 +341,12 @@ export class Client {
         return this.processMessages(queue);
     }
 
-    async getMessage(id: string, messages?: StoredMessage[]) {
-        const m = messages?.find((m) => m.id === id);
-        if (m) {
-            return m;
-        }
-        return this.db.messages.get(id);
-    }
-
     private onMsg = async (
         m: Message,
         id: string,
         channelId: string | null,
     ) => {
-        if (m.type === MessageType.KEEP_ALIVE) {
+        if (m.type === MessageType.KEEP_ALIVE || m.type === MessageType.CHAT) {
             return;
         } else if (m.type === MessageType.CREATE_CHANNEL) {
             await this.db.messages.put(
@@ -367,7 +380,8 @@ export class Client {
         queue: [Message, string, string | null][],
     ) => {
         const messages: StoredMessage[] = [];
-        for (const [m, id, channelId] of queue) {
+        const queueByHeight = queue.sort(byHeight);
+        for (const [m, id, channelId] of queueByHeight) {
             // ignore keep alive messages
             // these are (weirdly) being handled in the channel
             if (m.type === MessageType.KEEP_ALIVE) {
@@ -395,8 +409,8 @@ export class Client {
                             'base64',
                         );
                         const parent =
-                            (await this.getMessage(parentId, messages)) ??
-                            queue.find((q) => q[1] === parentId);
+                            messages.find((newmsg) => newmsg.id === parentId) ??
+                            (await this.getMessage(parentId));
                         if (!parent) {
                             // requeue the message and ask for the parent
                             this.enqueueMessage(m, id, channelId);
@@ -423,6 +437,7 @@ export class Client {
                         }
                     }
                     messages.push(message);
+                    this.messageCache.set(id, message);
                     continue;
                 case MessageType.CREATE_CHANNEL:
                     await this.onCreateChannel(m);
@@ -537,7 +552,7 @@ export class Client {
         }
         for (const ackId of m.acks) {
             let needsUpdate = false;
-            const acked = await this.db.messages.get(ackId);
+            const acked = await this.getMessage(ackId);
             if (!acked) {
                 this.debug('requeue-target-not-available-yet', ackId);
                 this.enqueueMessage(fromStoredChainMessage(m), id, channelId);
@@ -624,7 +639,7 @@ export class Client {
             return;
         }
         this.missingGate.set(parentId, 4);
-        const exists = await this.db.messages.get(parentId);
+        const exists = await this.getMessage(parentId);
         if (exists) {
             return;
         }
@@ -1009,7 +1024,7 @@ export class Client {
         id: string;
         gap: number;
     }): Promise<number> => {
-        const msg = await this.db.messages.get(id);
+        const msg = await this.getMessage(id);
         if (!msg) {
             return 0;
         }
