@@ -266,7 +266,7 @@ const terminalFlow = ({
                             }}
                             onClick={openDiscord}
                         >
-                            https://discord.com/invite/VdXWWNaqGN
+                            https://discord.gg/xKFyu8JF2g{' '}
                             <span
                                 className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                                 style={{ padding: '0 4px', cursor: 'pointer' }}
