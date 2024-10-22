@@ -113,7 +113,7 @@ export class Client {
             connected: 0,
         });
         // start message queue
-        this.loopTimer = setInterval(this.loop, 10);
+        this.loopTimer = setInterval(this.loop, 5);
         // setup network
         this.debug('configuring-network');
         this.net = await createSocketCluster({
@@ -346,6 +346,9 @@ export class Client {
         id: string,
         channelId: string | null,
     ) => {
+        if (this.messageCache.has(id)) {
+            return;
+        }
         if (m.type === MessageType.KEEP_ALIVE || m.type === MessageType.CHAT) {
             return;
         } else if (m.type === MessageType.CREATE_CHANNEL) {
