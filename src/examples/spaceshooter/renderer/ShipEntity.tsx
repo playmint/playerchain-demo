@@ -139,51 +139,51 @@ export default memo(function ShipEntity({
 
         // show ship marker if this ship offscreen
         markerRef.current.visible = false;
-        if (!isPeerShip && ship.visible) {
-            const cameraPos = new Vector3(
-                camera.position.x,
-                camera.position.y,
-                group.position.z,
-            );
-            const shipPos = new Vector3(
-                group.position.x,
-                group.position.y,
-                group.position.z,
-            );
-            const lineFromCameraToShip = new Line3(cameraPos, shipPos);
-            const pointVec3 = new Vector3();
-            for (let i = 0; i < 5; i++) {
-                const point = (camera as any).__frustum.planes[i].intersectLine(
-                    lineFromCameraToShip,
-                    pointVec3,
-                );
-                if (point) {
-                    // move point towards the camera x/y
-                    point.add(
-                        cameraPos
-                            .clone()
-                            .sub(point)
-                            .normalize()
-                            .multiplyScalar(3),
-                    );
-                    // if the point is in the frustum, set the marker position and show it
-                    if ((camera as any).__frustum.containsPoint(point)) {
-                        markerRef.current.visible = true;
-                        markerRef.current.position.x = point.x;
-                        markerRef.current.position.y = point.y;
-                        markerRef.current.position.z = point.z;
-                        markerRef.current.lookAt(
-                            new Vector3(
-                                group.position.x,
-                                group.position.y,
-                                markerRef.current.position.z,
-                            ),
-                        );
-                        break;
-                    }
-                }
-            }
-        }
+        // if (!isPeerShip && ship.visible) {
+        //     const cameraPos = new Vector3(
+        //         camera.position.x,
+        //         camera.position.y,
+        //         group.position.z,
+        //     );
+        //     const shipPos = new Vector3(
+        //         group.position.x,
+        //         group.position.y,
+        //         group.position.z,
+        //     );
+        //     const lineFromCameraToShip = new Line3(cameraPos, shipPos);
+        //     const pointVec3 = new Vector3();
+        //     for (let i = 0; i < 5; i++) {
+        //         const point = (camera as any).__frustum.planes[i].intersectLine(
+        //             lineFromCameraToShip,
+        //             pointVec3,
+        //         );
+        //         if (point) {
+        //             // move point towards the camera x/y
+        //             point.add(
+        //                 cameraPos
+        //                     .clone()
+        //                     .sub(point)
+        //                     .normalize()
+        //                     .multiplyScalar(3),
+        //             );
+        //             // if the point is in the frustum, set the marker position and show it
+        //             if ((camera as any).__frustum.containsPoint(point)) {
+        //                 markerRef.current.visible = true;
+        //                 markerRef.current.position.x = point.x;
+        //                 markerRef.current.position.y = point.y;
+        //                 markerRef.current.position.z = point.z;
+        //                 markerRef.current.lookAt(
+        //                     new Vector3(
+        //                         group.position.x,
+        //                         group.position.y,
+        //                         markerRef.current.position.z,
+        //                     ),
+        //                 );
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
 
         // apply ship roll if we are turning
         const shipInner = ship.children[0].children[0];

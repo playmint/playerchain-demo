@@ -197,24 +197,12 @@ export default memo(function Renderer({
         if (!mod) {
             return;
         }
-        let prevRound: number | null = null;
         let playing = true;
-        const loop = () => {
+        const timer = setInterval(() => {
             if (!playing) {
                 return;
             }
-            sim.getCurrentRoundLimit()
-                .then((round) => {
-                    if (!playing) {
-                        return null;
-                    }
-                    if (prevRound !== null && round === prevRound) {
-                        metrics.sps.add(0);
-                        return null;
-                    }
-                    prevRound = round;
-                    return sim.cue(round);
-                })
+            sim.cue()
                 .then((result: SimResult | null) => {
                     if (!result) {
                         return;
@@ -226,14 +214,13 @@ export default memo(function Renderer({
                 .catch((err) => {
                     console.error('cue-to-err:', err);
                     metrics.sps.add(0);
-                })
-                .finally(() => {
-                    loop();
                 });
-        };
-        loop();
+        }, rate);
         return () => {
             playing = false;
+            if (timer) {
+                clearInterval(timer);
+            }
         };
     }, [sim, rate, mod, metrics.sps]);
 

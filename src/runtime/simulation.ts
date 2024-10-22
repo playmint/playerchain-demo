@@ -209,7 +209,7 @@ export class Simulation {
         return diskCheckpoint;
     }
 
-    async cue(targetRound: number): Promise<SimResult | null> {
+    async cue(targetRound: number = -1): Promise<SimResult | null> {
         if (this.cueing) {
             console.warn('cue-already-in-progress');
             return null;
@@ -224,12 +224,12 @@ export class Simulation {
             this.cueing = false;
         }
     }
-    private async _cue(targetRound: number): Promise<SimResult | null> {
+    private async _cue(targetRound: number = -1): Promise<SimResult | null> {
         // find the round to process to
-        const toRound = Math.min(
-            await this.getCurrentRoundLimit(),
-            targetRound,
-        );
+        const toRound =
+            targetRound > -1
+                ? Math.min(await this.getCurrentRoundLimit(), targetRound)
+                : await this.getCurrentRoundLimit();
 
         // find the round we need to process from
         const rollbackState = await this.getRollbackState(toRound);

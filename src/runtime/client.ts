@@ -27,7 +27,6 @@ import {
     createSocketCluster,
 } from './network';
 import { PeerConfig } from './network/Peer';
-import { CancelFunction, setPeriodic } from './utils';
 
 export interface ClientKeys {
     publicKey: Uint8Array;
@@ -59,12 +58,17 @@ export class Client {
     parent: string | null = null;
     committing: boolean = false;
     channels: Map<string, Channel> = new Map();
-    threads: CancelFunction[] = [];
     verifiedHeight: Map<string, number> = new Map();
     _ready: null | Promise<void>;
     enableSync: boolean;
     missingGate: Map<string, number> = new Map();
     channelPeerIds: string[] = [];
+    loopTimer: null | any = null;
+    looping = false;
+    lastSync: number = 0;
+    lastEmit: number = 0;
+    messageQueue: [Message, string, string | null][] = [];
+    commitQueue: [ChainMessage, string | null][] = [];
 
     constructor(config: ClientConfig) {
         this.id = config.keys.publicKey;
@@ -90,6 +94,8 @@ export class Client {
         await this.db.peers.where({ connected: 1 }).modify({
             connected: 0,
         });
+        // start message queue
+        this.loopTimer = setInterval(this.loop, 10);
         // setup network
         this.debug('configuring-network');
         this.net = await createSocketCluster({
@@ -99,22 +105,6 @@ export class Client {
             config: config.config,
             // dgram: config.dgram,
         });
-        // this.net.socket.on('#disconnect', this.onPeerDisconnect);
-        this.debug('starting-head-reporter');
-        // on channel
-        if (this.enableSync) {
-            this.threads.push(
-                setPeriodic(async () => {
-                    await this.emitHeads();
-                }, 10000),
-            );
-            this.debug('starting-ch-sync');
-            this.threads.push(
-                setPeriodic(async () => {
-                    await this.sync();
-                }, 2000),
-            );
-        }
         // load any existing channels we know about
         this.debug('load-channels');
         const channels = await this.db.channels.toArray();
@@ -176,11 +166,11 @@ export class Client {
         this.send(signed, {
             ttl: DEFAULT_TTL,
         });
-        setTimeout(() => {
-            this.send(signed, {
-                ttl: DEFAULT_TTL,
-            });
-        }, 10);
+        // setTimeout(() => {
+        //     this.send(signed, {
+        //         ttl: DEFAULT_TTL,
+        //     });
+        // }, 10);
         if (typeof signed.height !== 'number') {
             throw new Error('signed-invalid-height');
         }
@@ -189,35 +179,21 @@ export class Client {
         return signed;
     }
 
-    commitQueue: [ChainMessage, string | null][] = [];
-    commitTimer: null | any = null;
     async enqueue(msg: ChainMessage, channelId: string | null) {
+        // return this.commit(msg, channelId);
         this.commitQueue.push([msg, channelId]);
-        this.dequeueCommit();
         return this.commitQueue.length;
     }
-    dequeueCommit() {
+
+    async dequeueCommit() {
         if (this.commitQueue.length === 0) {
             return;
         }
-        if (this.commitTimer) {
-            return;
+        const queue = [...this.commitQueue];
+        this.commitQueue = [];
+        for (const [msg, channelId] of queue) {
+            await this.commit(msg, channelId).catch(this.err);
         }
-        this.commitTimer = setTimeout(async () => {
-            const queue = [...this.commitQueue];
-            this.commitQueue = [];
-            for (const [msg, channelId] of queue) {
-                try {
-                    await this.commit(msg, channelId);
-                } catch (err) {
-                    console.error('enqueue-commit-error', err);
-                }
-            }
-            this.commitTimer = null;
-            if (this.commitQueue.length > 0) {
-                this.dequeueCommit();
-            }
-        }, 0);
     }
 
     // returns the signed message and the id
@@ -251,7 +227,6 @@ export class Client {
     async verify(msg: ChainMessage): Promise<[true, string] | [false, null]> {
         await _sodium.ready;
         const sodium = _sodium;
-        // return true;
         try {
             const { sig, ...unsigned } = msg;
             if (!sig) {
@@ -307,67 +282,43 @@ export class Client {
         );
     }
 
-    messageQueue: [Message, string, string | null][] = [];
-    messageTimer: null | any = null;
+    loop = () => {
+        if (!this.loopTimer) {
+            return;
+        }
+        if (this.looping) {
+            return;
+        }
+        this.looping = true;
+        this._loop()
+            .catch(this.err)
+            .finally(() => (this.looping = false));
+    };
+
+    _loop = async () => {
+        await this.dequeueCommit();
+        await this.dequeueMessage();
+        await this.sync();
+        await this.emitHeads();
+    };
+
     enqueueMessage(m: Message, id: string, channelId: string | null) {
         if (!this.messageQueue.some((q) => q[1] === id)) {
             this.messageQueue.push([m, id, channelId]);
         }
-        this.dequeueMessage();
     }
-    dequeueMessage() {
+
+    async dequeueMessage() {
         if (this.messageQueue.length === 0) {
             return;
         }
-        if (this.messageTimer) {
+        if (this.channelPeerIds.length === 0) {
+            this.debug('not ready to process messages yet');
             return;
         }
-        this.messageTimer = setTimeout(async () => {
-            if (this.channelPeerIds.length === 0) {
-                this.debug('not ready to process messages yet');
-            } else {
-                const queue = [...this.messageQueue];
-                this.messageQueue = [];
-                await this.processMessages(queue);
-            }
-            this.messageTimer = null;
-            if (this.messageQueue.length > 0) {
-                this.dequeueMessage();
-            }
-        }, 10);
-    }
-
-    ackQueue: [StoredChainMessage, string, string][] = [];
-    ackTimer: null | any = null;
-    enqueueAck(m: StoredChainMessage, id: string, channelId: string) {
-        if (!this.ackQueue.some((q) => q[1] === id)) {
-            this.ackQueue.push([m, id, channelId]);
-        }
-        this.dequeueAck();
-    }
-    dequeueAck() {
-        if (this.ackQueue.length === 0) {
-            return;
-        }
-        if (this.ackTimer) {
-            return;
-        }
-        this.ackTimer = setTimeout(async () => {
-            if (this.channelPeerIds.length === 0) {
-                this.debug('not ready to process acks yet');
-            } else {
-                const queue = [...this.ackQueue];
-                this.ackQueue = [];
-                const tapes = [];
-                for (const [m, id, channelId] of queue) {
-                    await this.updateAcks(m, id, channelId, tapes);
-                }
-            }
-            this.ackTimer = null;
-            if (this.ackQueue.length > 0) {
-                this.dequeueAck();
-            }
-        }, 100);
+        const queue = [...this.messageQueue];
+        this.messageQueue = [];
+        return this.processMessages(queue);
     }
 
     async getMessage(id: string, messages?: StoredMessage[]) {
@@ -426,14 +377,11 @@ export class Client {
                 // chat is handled by channel
                 continue;
             }
-            messages.push(
-                toStoredChainMessage(
-                    m,
-                    id,
-                    this.nextSequenceNumber(),
-                    channelId,
-                    // [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                ),
+            const message = toStoredChainMessage(
+                m,
+                id,
+                this.nextSequenceNumber(),
+                channelId,
             );
             // process it
             switch (m.type) {
@@ -447,58 +395,56 @@ export class Client {
                         const parentId = Buffer.from(m.parent).toString(
                             'base64',
                         );
-                        const parent = await this.getMessage(
-                            parentId,
-                            messages,
-                        );
+                        const parent =
+                            (await this.getMessage(parentId, messages)) ??
+                            queue.find((q) => q[1] === parentId);
                         if (!parent) {
-                            setTimeout(async () => {
-                                let gap = 0;
-                                if (typeof m.height === 'number') {
-                                    const peerId = Buffer.from(m.peer).toString(
-                                        'hex',
-                                    );
-                                    const messageAfterGap =
-                                        await this.db.messages
-                                            .where(['peer', 'height'])
-                                            .between(
-                                                [peerId, Dexie.minKey],
-                                                [peerId, m.height],
-                                            )
-                                            .last();
-                                    gap = messageAfterGap
-                                        ? m.height - 2 - messageAfterGap.height
-                                        : 0;
-                                }
-                                this.requestMissingParent(parentId, gap).catch(
-                                    (err) =>
-                                        console.error(
-                                            'quick-req-missing-parent-error',
-                                            err,
-                                        ),
+                            // requeue the message and ask for the parent
+                            this.enqueueMessage(m, id, channelId);
+                            let gap = 0;
+                            if (typeof m.height === 'number') {
+                                const peerId = Buffer.from(m.peer).toString(
+                                    'hex',
                                 );
-                            }, 0);
+                                const messageAfterGap = await this.db.messages
+                                    .where(['peer', 'height'])
+                                    .between(
+                                        [peerId, Dexie.minKey],
+                                        [peerId, m.height],
+                                    )
+                                    .last();
+                                gap = messageAfterGap
+                                    ? m.height - 2 - messageAfterGap.height
+                                    : 0;
+                            }
+                            this.requestMissingParent(parentId, gap).catch(
+                                this.err,
+                            );
+                            continue;
                         }
                     }
-                    break;
+                    messages.push(message);
+                    continue;
                 case MessageType.CREATE_CHANNEL:
                     await this.onCreateChannel(m);
-                    break;
+                    messages.push(message);
+                    continue;
                 case MessageType.SET_PEERS:
                     if (!channelId) {
                         this.debug('set-peers-missing-channel-id', m);
                         continue;
                     }
                     await this.onSetPeers(m, channelId);
-                    break;
+                    messages.push(message);
+                    continue;
                 default:
                     this.debug('unhandled-msg', m);
-                    return;
+                    continue;
             }
         }
         // write in bulk
         if (messages.length > 0) {
-            // this.debug('write-messages', messages);
+            this.debug('write-messages', messages);
             await this.db.messages.bulkPut(messages);
         }
         // process the tapes
@@ -509,7 +455,7 @@ export class Client {
             }
         }
         if (tapes.length > 0) {
-            // this.debug('write-tapes', tapes);
+            this.debug('write-tapes', tapes);
             await this.db.tapes.bulkPut(
                 tapes.map((t) => {
                     t.updated = this.nextSequenceNumber();
@@ -594,8 +540,8 @@ export class Client {
             let needsUpdate = false;
             const acked = await this.db.messages.get(ackId);
             if (!acked) {
-                this.debug('enqueuing-ack-as-target-not-available', ackId);
-                this.enqueueAck(m, id, channelId);
+                this.debug('requeue-target-not-available-yet', ackId);
+                this.enqueueMessage(fromStoredChainMessage(m), id, channelId);
                 continue;
             }
             if (acked.type !== MessageType.INPUT) {
@@ -630,6 +576,11 @@ export class Client {
             if (ackedIndex === -1) {
                 this.debug('ack-from-unknown-peer', acked.peer);
                 continue;
+            }
+            if (tape.ids[ackedIndex] !== acked.id) {
+                tape.ids[ackedIndex] = acked.id;
+                tape.inputs[ackedIndex] = acked.data;
+                needsUpdate = true;
             }
             if (!tape.acks[ackedIndex].some((a) => a === id)) {
                 tape.acks[ackedIndex].push(id);
@@ -673,7 +624,7 @@ export class Client {
         if (gate) {
             return;
         }
-        this.missingGate.set(parentId, 2);
+        this.missingGate.set(parentId, 4);
         const exists = await this.db.messages.get(parentId);
         if (exists) {
             return;
@@ -738,6 +689,10 @@ export class Client {
     }
 
     private async emitHeads() {
+        if (this.lastEmit && Date.now() - this.lastEmit < 10000) {
+            return;
+        }
+        this.lastEmit = Date.now();
         // collect all the heads
         const heads = await this.getHeads();
         for (const head of heads) {
@@ -747,64 +702,68 @@ export class Client {
         this.debug(`emit-peer-heads count=${heads.length}`);
     }
 
-    private checkChain = async (peerId: string) => {
-        this.debug(`checking-chain peer=${peerId.slice(0, 8)}`);
-        let child = await this.db.messages
-            .where(['peer', 'height'])
-            .between([peerId, Dexie.minKey], [peerId, Dexie.maxKey])
-            .last();
-        if (!child) {
-            this.debug(`no-chain-yet peer=${peerId.slice(0, 8)}`);
-            return;
-        }
-        const prevVerified = this.verifiedHeight.get(peerId) || -1;
-        const tip = child.height;
-        if (typeof tip !== 'number') {
-            throw new Error('invalid height');
-        }
-        for (;;) {
-            if (!child) {
-                throw new Error('invalid value for child');
-            }
-            if (!child.parent) {
-                this.debug(`full-chain-ok! peer=${peerId.slice(0, 8)}`);
-                this.verifiedHeight.set(peerId, tip);
-                await this.db.peers.update(peerId, {
-                    validHeight: tip,
-                });
-                return;
-            }
-            if (typeof child.height !== 'number') {
-                throw new Error('invalid height');
-            }
-            if (child.height <= prevVerified) {
-                this.debug(`updated-chain-ok! peer=${peerId.slice(0, 8)}`);
-                this.verifiedHeight.set(peerId, tip);
-                await this.db.peers.update(peerId, {
-                    validHeight: tip,
-                });
-                return;
-            }
-            const parent = await this.db.messages.get(child.parent);
-            if (!parent) {
-                const messageAfterGap = await this.db.messages
-                    .where(['peer', 'height'])
-                    .between([peerId, Dexie.minKey], [peerId, child.height])
-                    .last();
-                const gap = messageAfterGap
-                    ? child.height - 2 - messageAfterGap.height
-                    : 0;
-                this.debug(
-                    `chain-broken at=${child.height - 1} gap=${gap} peer=${peerId.slice(0, 8)}`,
-                );
-                await this.requestMissingParent(child.parent, gap);
-                return;
-            }
-            child = parent;
-        }
-    };
+    // private checkChain = async (peerId: string) => {
+    //     this.debug(`checking-chain peer=${peerId.slice(0, 8)}`);
+    //     let child = await this.db.messages
+    //         .where(['peer', 'height'])
+    //         .between([peerId, Dexie.minKey], [peerId, Dexie.maxKey])
+    //         .last();
+    //     if (!child) {
+    //         this.debug(`no-chain-yet peer=${peerId.slice(0, 8)}`);
+    //         return;
+    //     }
+    //     const prevVerified = this.verifiedHeight.get(peerId) || -1;
+    //     const tip = child.height;
+    //     if (typeof tip !== 'number') {
+    //         throw new Error('invalid height');
+    //     }
+    //     for (;;) {
+    //         if (!child) {
+    //             throw new Error('invalid value for child');
+    //         }
+    //         if (!child.parent) {
+    //             this.debug(`full-chain-ok! peer=${peerId.slice(0, 8)}`);
+    //             this.verifiedHeight.set(peerId, tip);
+    //             await this.db.peers.update(peerId, {
+    //                 validHeight: tip,
+    //             });
+    //             return;
+    //         }
+    //         if (typeof child.height !== 'number') {
+    //             throw new Error('invalid height');
+    //         }
+    //         if (child.height <= prevVerified) {
+    //             this.debug(`updated-chain-ok! peer=${peerId.slice(0, 8)}`);
+    //             this.verifiedHeight.set(peerId, tip);
+    //             await this.db.peers.update(peerId, {
+    //                 validHeight: tip,
+    //             });
+    //             return;
+    //         }
+    //         const parent = await this.db.messages.get(child.parent);
+    //         if (!parent) {
+    //             const messageAfterGap = await this.db.messages
+    //                 .where(['peer', 'height'])
+    //                 .between([peerId, Dexie.minKey], [peerId, child.height])
+    //                 .last();
+    //             const gap = messageAfterGap
+    //                 ? child.height - 2 - messageAfterGap.height
+    //                 : 0;
+    //             this.debug(
+    //                 `chain-broken at=${child.height - 1} gap=${gap} peer=${peerId.slice(0, 8)}`,
+    //             );
+    //             await this.requestMissingParent(child.parent, gap);
+    //             return;
+    //         }
+    //         child = parent;
+    //     }
+    // };
 
     private async sync() {
+        if (this.lastSync && Date.now() - this.lastSync < 1000) {
+            return;
+        }
+        this.lastSync = Date.now();
         // decement the gates
         for (const [k, v] of this.missingGate) {
             const gate = v - 1;
@@ -822,7 +781,8 @@ export class Client {
             }
             const info = await this.db.channels.get(ch.id);
             if (info) {
-                if (info.peers.length === 0) {
+                if (this.height && this.height < 50) {
+                    // INITIAL_LOCKSTEP_PERIOD
                     // emit the channel genesis message if we have it
                     const genesis = await this.db.messages
                         .where('sig')
@@ -844,12 +804,10 @@ export class Client {
                             ch.send(fromStoredChainMessage(genesis), {
                                 channels: [ch.id],
                                 ttl: DEFAULT_TTL,
-                            }).catch((err) => {
-                                console.error('emit-genesis-error', err);
-                            });
+                            }).catch(this.err);
                         }
                     }
-                    // try to find the SetPeers message
+                    // try to find and re-emit the SetPeers message
                     const setPeers = await this.db.messages
                         .where(['channel', 'type'])
                         .between(
@@ -864,17 +822,21 @@ export class Client {
                         } else {
                             this.debug('invalid-set-peers', ch.id);
                         }
+                        ch.send(fromStoredChainMessage(setPeers), {
+                            channels: [ch.id],
+                            ttl: DEFAULT_TTL,
+                        }).catch(this.err);
                     } else {
                         this.debug('no-set-peers', ch.id);
                     }
                 }
             }
             // check each channel peer chain
-            if (info?.peers) {
-                for (const peerId of info.peers) {
-                    await this.checkChain(peerId);
-                }
-            }
+            // if (info?.peers) {
+            //     for (const peerId of info.peers) {
+            //         await this.checkChain(peerId);
+            //     }
+            // }
         }
     }
 
@@ -963,8 +925,14 @@ export class Client {
     }
 
     private debug(..._args: any[]) {
-        // console.log(`[client/${this.shortId}]`, ..._args);
+        // !isProduction
+        //     ? console.log(`[client/${this.shortId}]`, ..._args)
+        //     : null;
     }
+
+    private err = (err) => {
+        console.error(err);
+    };
 
     async getHeight(): Promise<number> {
         return (
@@ -1062,25 +1030,22 @@ export class Client {
 
     send = (m: Message, opts?: EmitOpts) => {
         for (const [_, ch] of this.channels) {
-            ch.send(m, opts).catch((err) => {
-                console.error('client-send-err:', err);
-            });
+            ch.send(m, opts).catch(this.err);
         }
     };
 
     sendChatMessage = async (txt: string) => {
         for (const [_, ch] of this.channels) {
-            ch.sendChatMessage(txt).catch((err) => {
-                console.error('client-send-err:', err);
-            });
+            ch.sendChatMessage(txt).catch(this.err);
         }
     };
 
     // call this if you never want to use this instance again
     // does not delete the database
     async shutdown() {
-        for (const cancel of this.threads) {
-            cancel();
+        if (this.loopTimer) {
+            clearInterval(this.loopTimer);
+            this.loopTimer = null;
         }
         for (const ch of this.channels.values()) {
             ch.destroy();

@@ -11,7 +11,6 @@ import { GameModule, load } from './game';
 import { InputMessage, MessageType } from './messages';
 import { DefaultMetrics } from './metrics';
 import { sleep } from './timers';
-import { CancelFunction } from './utils';
 
 export interface Committer {
     commit: Client['commit'];
@@ -83,7 +82,8 @@ export class Sequencer {
     peerId: string;
     db: DB;
     lastCommitted = 0;
-    threads: CancelFunction[] = [];
+    interval: any;
+    looping = false;
 
     constructor({
         src,
@@ -111,17 +111,21 @@ export class Sequencer {
             this.interlace;
     }
 
-    private loop = async () => {
+    private loop = () => {
         if (!this.playing) {
             return;
         }
-        try {
-            await this._loop();
-        } catch (err) {
-            console.error(`seq-loop-err`, err);
-        } finally {
-            setTimeout(this.loop, this.getFuzzyFixedUpdateRate());
+        if (this.looping) {
+            return;
         }
+        this.looping = true;
+        this._loop()
+            .catch((err) => {
+                console.error('seq-loop-err', err);
+            })
+            .finally(() => {
+                this.looping = false;
+            });
     };
 
     // returns the number of commits
@@ -162,7 +166,16 @@ export class Sequencer {
                 await sleep(2);
                 continue;
             }
-            if (jumpRound !== round) {
+            if (this.prevRound !== null && jumpRound <= this.prevRound) {
+                console.log(
+                    'seq-ignore-attempt-to-jump-back',
+                    round,
+                    jumpRound,
+                    this.prevRound,
+                );
+                return 0;
+            }
+            if (jumpRound > round) {
                 round = jumpRound;
             }
             for (let i = 0; i < numCommits; i++) {
@@ -219,6 +232,9 @@ export class Sequencer {
             ourLatestRound = ourLatest.round;
         } else {
             console.log('no latest round');
+        }
+        if (this.prevRound === null) {
+            this.prevRound = ourLatestRound;
         }
         return ourLatestRound + 1;
     }
@@ -297,6 +313,7 @@ export class Sequencer {
         if (ackIds.length < requiredBlocks) {
             // console.log(
             //     `[seq/${this.peerId.slice(0, 8)}] BLOCKED NOTENOUGPREV round=${round} got=${ackIds.length} need=${requiredBlocks}`,
+            //     interlaceTape,
             // );
             return [0, null, round];
         }
@@ -341,7 +358,7 @@ export class Sequencer {
             return;
         }
         this.playing = true;
-        setTimeout(this.loop, this.getFuzzyFixedUpdateRate());
+        this.interval = setInterval(this.loop, this.fixedUpdateRate);
     }
 
     // returns a jittered fixed update rate
@@ -356,8 +373,8 @@ export class Sequencer {
 
     stop() {
         this.playing = false;
-        for (const cancel of this.threads) {
-            cancel();
+        if (this.interval) {
+            clearInterval(this.interval);
         }
     }
 

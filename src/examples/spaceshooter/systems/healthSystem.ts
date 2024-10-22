@@ -51,7 +51,6 @@ export default system<ShooterSchema>(
             if (!player) {
                 continue;
             }
-            console.log('BULLET HIT', player, hit);
 
             // calc new health
             const targetHealth = Math.max(
