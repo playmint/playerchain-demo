@@ -460,15 +460,11 @@ export class Peer {
      */
     send(
         data: Uint8Array,
+        packet: Packet,
         port: number,
         address: string,
         socket = this.socket,
     ) {
-        const packet: any = Packet.decode(data);
-        if (!packet) {
-            console.warn(`send: failed to decode packet`, data);
-            return;
-        }
         const pid = packet.packetId.toString('hex');
         socket.send(data, port, address, (err) => {
             delete this.unpublished[pid];
@@ -675,8 +671,9 @@ export class Peer {
 
         packet.hops += 1;
 
+        const data = await Packet.encode(packet);
         for (const peer of peers) {
-            this.send(await Packet.encode(packet), peer.port, peer.address);
+            this.send(data, packet, peer.port, peer.address);
         }
 
         if (this.gate.has(pid)) {
@@ -907,7 +904,7 @@ export class Peer {
             //  return false
             // }
 
-            this.send(data, peer.port, peer.address, socket);
+            this.send(data, packet, peer.port, peer.address, socket);
             if (p) {
                 p.lastRequest = Date.now();
             }
@@ -1357,13 +1354,19 @@ export class Peer {
         const packetPong = new PacketPong({ message });
         const buf = await Packet.encode(packetPong);
 
-        this.send(buf, port, address);
+        this.send(buf, packetPong, port, address);
 
         if (probeExternalPort) {
             message.port = probeExternalPort;
             const packetPong = new PacketPong({ message });
             const buf = await Packet.encode(packetPong);
-            this.send(buf, probeExternalPort, address, this.probeSocket);
+            this.send(
+                buf,
+                packetPong,
+                probeExternalPort,
+                address,
+                this.probeSocket,
+            );
         }
     }
 
@@ -1923,25 +1926,25 @@ export class Peer {
                     `<- JOIN RENDEZVOUS RECV (dest=${packet.message.requesterPeerId?.slice(0, 6)}, to=${peerAddress}:${peerPort},  via=${packet.message.rendezvousAddress}:${packet.message.rendezvousPort})`,
                 );
 
-                const data = await Packet.encode(
-                    new PacketJoin({
-                        clock: packet.clock,
-                        subclusterId: packet.subclusterId,
-                        clusterId: packet.clusterId,
-                        message: {
-                            requesterPeerId: this.peerId,
-                            natType: this.natType,
-                            address: this.address,
-                            port: this.port,
-                            rendezvousType: packet.message.natType,
-                            rendezvousRequesterPeerId:
-                                packet.message.requesterPeerId,
-                        },
-                    }),
-                );
+                const joinPacket = new PacketJoin({
+                    clock: packet.clock,
+                    subclusterId: packet.subclusterId,
+                    clusterId: packet.clusterId,
+                    message: {
+                        requesterPeerId: this.peerId,
+                        natType: this.natType,
+                        address: this.address,
+                        port: this.port,
+                        rendezvousType: packet.message.natType,
+                        rendezvousRequesterPeerId:
+                            packet.message.requesterPeerId,
+                    },
+                });
+                const data = await Packet.encode(joinPacket);
 
                 this.send(
                     data,
+                    joinPacket,
                     packet.message.rendezvousPort,
                     packet.message.rendezvousAddress,
                 );
@@ -2011,9 +2014,17 @@ export class Peer {
                 usr1: String(Date.now()),
             };
 
+            const intro1Packet = new PacketIntro({
+                ...opts,
+                message: message1,
+            });
+            const intro2Packet = new PacketIntro({
+                ...opts,
+                message: message2,
+            });
             const [intro1, intro2] = await Promise.all([
-                Packet.encode(new PacketIntro({ ...opts, message: message1 })),
-                Packet.encode(new PacketIntro({ ...opts, message: message2 })),
+                Packet.encode(intro1Packet),
+                Packet.encode(intro2Packet),
             ]);
 
             //
@@ -2029,8 +2040,13 @@ export class Peer {
 
             peer.lastRequest = Date.now();
 
-            this.send(intro2, peer.port, peer.address);
-            this.send(intro1, packet.message.port, packet.message.address);
+            this.send(intro2, intro2Packet, peer.port, peer.address);
+            this.send(
+                intro1,
+                intro1Packet,
+                packet.message.port,
+                packet.message.address,
+            );
 
             this.gate.set(
                 (Packet.decode(intro1) as any).packetId.toString('hex'),
@@ -2162,12 +2178,12 @@ export class Peer {
                     `<- DROP PROXIED NO PATH (packetId=${pid.slice(0, 6)}, clusterId=${cid.slice(0, 6)}, subclueterId=${scid.slice(0, 6)}, from=${address}:${port}, hops=${packet.hops})`,
                 );
                 // tell them to stop bothering us as we can't help proxy this
+                const noRoutePacket = new PacketNoRoute({
+                    usr1: packet.usr3,
+                });
                 this.send(
-                    await Packet.encode(
-                        new PacketNoRoute({
-                            usr1: packet.usr3,
-                        }),
-                    ),
+                    await Packet.encode(noRoutePacket),
+                    noRoutePacket,
                     port,
                     address,
                 );
@@ -2186,6 +2202,7 @@ export class Peer {
             );
             this.send(
                 await Packet.encode(packet),
+                packet,
                 recipient.port,
                 recipient.address,
             );
