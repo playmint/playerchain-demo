@@ -255,7 +255,7 @@ const terminalFlow = ({
                 <>
                     <br />
                     <span className={termstyles.promptTextColor}>
-                        Looking for game? Check the lfg channel in our Discord.
+                        Looking for game? Check the lfg channel in our Discord:
                         <br />
                         <div
                             className={termstyles.boldTextColor}
