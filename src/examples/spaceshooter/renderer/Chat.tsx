@@ -100,6 +100,7 @@ export default memo(function Chat({
                         margin: 0,
                         padding: '0.25rem',
                         width: '100%',
+                        border: 0,
                     }}
                 />
             </form>
