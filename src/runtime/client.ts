@@ -36,7 +36,6 @@ export interface ClientKeys {
 export interface ClientConfig {
     keys: ClientKeys;
     dbname: string;
-    dgram: typeof import('node:dgram');
     clusterId: Uint8Array;
     config: PeerConfig;
     enableSync?: boolean;

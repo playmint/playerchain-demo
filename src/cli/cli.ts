@@ -1,15 +1,7 @@
-import 'fake-indexeddb/auto';
-import dgram from 'node:dgram';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:node/index';
 import { CLUSTER_ID } from '../runtime/config';
-
-// using dynamic imports here to ensure that the polyfill is loaded before the dexie library
-async function imports() {
-    const Dexie = await import('dexie');
-    const { Client } = await import('../runtime/client');
-    return { Dexie, Client };
-}
+import Peer from '../runtime/network/Peer';
 
 function env(name: string): string {
     const value = process.env[name];
@@ -30,12 +22,14 @@ const SS_ADDRESS = env('SS_ADDRESS');
 const SS_SECRET = env('SS_SECRET');
 
 async function main() {
-    const { Client } = await imports();
+    process.on('SIGINT', function () {
+        console.log('shutdown');
+        process.exit();
+    });
+
     const clusterId = await Encryption.createClusterId(CLUSTER_ID);
     const keys = await Encryption.createKeyPair(SS_SECRET);
     const peerId = Buffer.from(keys.publicKey).toString('hex');
-    const shortId = peerId.slice(0, 8);
-    const dbname = `client/${shortId}`;
 
     console.log('--------------------');
     console.log('version: subfi-v0.1.0');
@@ -45,28 +39,58 @@ async function main() {
     console.log('clusterId:', CLUSTER_ID);
     console.log('--------------------');
 
-    const client = await Client.from({
-        dbname,
+    const socket = new Peer({
+        address: SS_ADDRESS,
+        port: Number(SS_PORT),
+        natType: 31,
+        indexed: true,
+        limitExempt: true,
+        signingKeys: keys,
         clusterId,
-        keys,
-        dgram,
-        config: {
-            address: SS_ADDRESS,
-            port: Number(SS_PORT),
-            natType: 31,
-            indexed: true,
-            limitExempt: true,
-            signingKeys: keys,
-            clusterId,
-        },
-        enableSync: false,
     });
-    console.log('client', client.shortId);
+
+    let ready = false;
+
+    const logState = () => {
+        console.log(`
+-----------
+peerId: ${peerId}
+peers: ${socket.peers.size}
+active: ${ready}
+${Array.from(socket.peers)
+    .map(([peerId, peer]) => `${peerId} ${peer.address}:${peer.port}`)
+    .join('\n')}
+-----------`);
+    };
+
+    socket.onReady = () => {
+        ready = true;
+        logState();
+    };
+
+    socket.onError = (err) => {
+        console.error(peerId, 'error:', err);
+    };
+
+    if (
+        import.meta.env.SS_DEBUG === 'true' ||
+        globalThis.process?.env?.SS_DEBUG === 'true'
+    ) {
+        socket.onDebug = (pid, str) => {
+            pid = pid.slice(0, 6);
+            console.log(pid, str);
+        };
+    }
+
+    setInterval(logState, 30000);
+
+    await socket.init();
+    return socket;
 }
 
 main()
-    .then(() => {
-        console.log('ok');
+    .then((peer) => {
+        console.log(peer.peerId, 'started');
     })
     .catch((err) => {
         console.error('exit err:', err);
