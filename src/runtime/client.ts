@@ -113,7 +113,7 @@ export class Client {
             connected: 0,
         });
         // start message queue
-        this.loopTimer = setInterval(this.loop, 5);
+        this.loopTimer = setInterval(this.loop, 10);
         // setup network
         this.debug('configuring-network');
         this.net = await createSocketCluster({
