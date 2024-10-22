@@ -2,6 +2,7 @@ import React, { useLayoutEffect } from 'react';
 import { useState } from 'react';
 import { DB } from '../../runtime/db';
 import database from '../../runtime/db';
+import { Loading } from '../components/Loading';
 import { useCredentials } from '../hooks/use-credentials';
 import { DatabaseContext } from '../hooks/use-database';
 
@@ -47,7 +48,7 @@ export const DatabaseProvider = ({
     // }, [client, transport]);
 
     if (!db) {
-        return <div>Loading database...</div>;
+        return <Loading />;
     }
 
     return (

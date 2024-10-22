@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useState } from 'react';
 import application from 'socket:application';
+import { Loading } from '../components/Loading';
 import { SocketContext, SocketContextType } from '../hooks/use-socket';
 
 async function getSocketContext(): Promise<SocketContextType> {
@@ -19,7 +20,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (!ctx) {
         // TODO: susense/loading
-        return <div>Loading socket...</div>;
+        return <Loading />;
     }
     return (
         <SocketContext.Provider value={ctx}>{children}</SocketContext.Provider>

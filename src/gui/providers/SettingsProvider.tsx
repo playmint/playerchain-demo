@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import React, { useEffect } from 'react';
+import { Loading } from '../components/Loading';
 import { useDatabase } from '../hooks/use-database';
 import { SettingsContext } from '../hooks/use-settings';
 
@@ -29,7 +30,7 @@ export const SettingsProvider = ({
     }, [db]);
 
     if (!settings) {
-        return <div>Loading Settings...</div>;
+        return <Loading />;
     }
 
     return (
