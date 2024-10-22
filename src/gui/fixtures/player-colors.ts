@@ -1,9 +1,13 @@
 export const PLAYER_COLORS = [
-    0x006cff, 0xc12169, 0x7044ff, 0xc77e00, 0x0093b3, 0x1d85fd, 0xf83c1e,
-    0xa059ef, 0xffd13e, 0x00b5d0, 0xffffff, 0xffffff, 0xffffff, 0xffffff,
+    '#006cff', '#c12169', '#7044ff', '#c77e00', '#0093b3',
 ];
-export const PLAYER_COLORS_CSS = PLAYER_COLORS.map((c) => `#${c.toString(16)}`);
+
+export const PLAYER_COLORS_UI = [
+    '#0096ff', '#ff348f', '#bf6cff', '#e49100', '#00c0be',
+];
+
 export const getPlayerColor = (playerIndex: number) =>
-    PLAYER_COLORS[playerIndex % PLAYER_COLORS_CSS.length];
-export const getPlayerColorCSS = (playerIndex: number) =>
-    PLAYER_COLORS_CSS[playerIndex % PLAYER_COLORS_CSS.length];
+    PLAYER_COLORS[playerIndex % PLAYER_COLORS.length];
+
+export const getPlayerColorUi = (playerIndex: number) =>
+    PLAYER_COLORS_UI[playerIndex % PLAYER_COLORS_UI.length];

@@ -1,5 +1,5 @@
 import '@fontsource-variable/recursive/full.css';
-import { getPlayerColorCSS } from '../../../gui/fixtures/player-colors';
+import { getPlayerColorUi } from '../../../gui/fixtures/player-colors';
 import styles from './EndRoundLeaderBoard.module.css';
 import { PlayerInfo } from './PlayerHUD';
 
@@ -22,7 +22,7 @@ export default function EndRoundLeaderBoard({
             score: p.score,
             kills: p.kills,
             deaths: p.deaths,
-            color: getPlayerColorCSS(players.findIndex((pp) => pp.id === p.id)),
+            color: getPlayerColorUi(players.findIndex((pp) => pp.id === p.id)),
         }))
         .sort((a, b) => b.score - a.score);
 
