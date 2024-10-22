@@ -18,7 +18,6 @@ import {
 } from './shipSystem';
 
 let collisionChecks = 0;
-let bodiesOfConcern = 0;
 
 export default system<ShooterSchema>(
     ({
@@ -33,15 +32,16 @@ export default system<ShooterSchema>(
     }) => {
         const bodies = query(Tags.IsSolidBody);
         const otherBodies = bodies.filter(
-            (eid) => !hasTag(eid, Tags.IsBullet) && entity.active[eid],
+            (eid) =>
+                !hasTag(eid, Tags.IsBullet) &&
+                !hasTag(eid, Tags.IsWall) &&
+                entity.active[eid],
         );
-        console.log('otherBodies', otherBodies.length);
-        const steps = 4; // number of times we check physics between updates
+        const steps = 2; // number of times we check physics between updates
 
         collisionChecks = 0;
-        bodiesOfConcern = 0;
 
-        console.time('physics');
+        // console.time('physics');
         // apply physics
         for (let i = 0; i < steps; i++) {
             for (const eid of bodies) {
@@ -64,8 +64,7 @@ export default system<ShooterSchema>(
                     position.x[eid],
                     position.y[eid],
                 );
-
-                bodiesOfConcern++;
+                const smallSet = [...nearbyEntities.values(), ...otherBodies];
 
                 // set position based on velocity
                 const velocityMagnitude = Math.sqrt(
@@ -103,8 +102,8 @@ export default system<ShooterSchema>(
                     collider.type[eid] === ColliderType.Circle &&
                     entity.active[eid]
                 ) {
-                    // FIXME: was changed from otherBodies to nearbyEntities
-                    for (const otherBody of nearbyEntities) {
+                    // NOTE: was changed from otherBodies to smallSet
+                    for (const otherBody of smallSet) {
                         if (eid === otherBody) {
                             // ignore self
                             continue;
@@ -147,9 +146,8 @@ export default system<ShooterSchema>(
             }
         }
 
-        console.timeEnd('physics');
-        console.log('collisionChecks', collisionChecks);
-        console.log('bodiesOfConcern', bodiesOfConcern);
+        // console.timeEnd('physics');
+        // console.log('collisionChecks', collisionChecks);
     },
 );
 
