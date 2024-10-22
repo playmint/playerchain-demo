@@ -226,7 +226,7 @@ export default memo(function ChannelView({
                 <span className={termstyles.promptTextColor}>
                     <br />
                     No friends? Join our Discord and paste your key in the lfg
-                    channel.
+                    channel:
                     <br />
                     <div
                         className={termstyles.boldTextColor}
