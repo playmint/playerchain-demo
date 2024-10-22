@@ -23,6 +23,13 @@ export type Ports = {
 //     }
 // }
 
+function getWorkerImplementation() {
+    if (import.meta.env.MODE === 'cli') {
+        eval(`globalThis.Worker = require('worker_threads').Worker`);
+    }
+    return globalThis.Worker;
+}
+
 export type SocketNetwork = {
     socket: Comlink.Remote<Peer>;
     shutdown: () => void;
@@ -31,7 +38,6 @@ export type SocketNetwork = {
 export async function createSocketCluster({
     db,
     keys,
-    // dgram,
     clusterId,
     config,
 }: {
@@ -39,7 +45,6 @@ export async function createSocketCluster({
     keys: Keys;
     clusterId: Uint8Array;
     config: PeerConfig;
-    // dgram?: typeof import('node:dgram');
 }): Promise<SocketNetwork> {
     const onShutdown: any[] = [];
     const defer = (fn: any) => {
@@ -60,6 +65,7 @@ export async function createSocketCluster({
 
     await db.network.put(info);
 
+    const Worker = getWorkerImplementation();
     const w = new Worker(
         // this worker is built seperately from the rest of the app
         // to work around issues with vite in dev mode
