@@ -10,11 +10,15 @@ import {
     reflectVector,
 } from '../utils/PhysicsUtils';
 import { BULLET_MAX_VELOCITY } from './bulletSystem';
+import { spacialMap } from './levelSystem';
 import {
     BULLET_BOUNCINESS,
     SHIP_BOUNCINESS,
     SHIP_MAX_VELOCITY,
 } from './shipSystem';
+
+let collisionChecks = 0;
+let bodiesOfConcern = 0;
 
 export default system<ShooterSchema>(
     ({
@@ -31,8 +35,13 @@ export default system<ShooterSchema>(
         const otherBodies = bodies.filter(
             (eid) => !hasTag(eid, Tags.IsBullet) && entity.active[eid],
         );
-        const steps = 1; // number of times we check physics between updates
+        console.log('otherBodies', otherBodies.length);
+        const steps = 4; // number of times we check physics between updates
 
+        collisionChecks = 0;
+        bodiesOfConcern = 0;
+
+        console.time('physics');
         // apply physics
         for (let i = 0; i < steps; i++) {
             for (const eid of bodies) {
@@ -50,6 +59,13 @@ export default system<ShooterSchema>(
                 if (!(hasTag(eid, Tags.IsBullet) || hasTag(eid, Tags.IsShip))) {
                     continue;
                 }
+
+                const nearbyEntities = spacialMap.getNearbyEntities(
+                    position.x[eid],
+                    position.y[eid],
+                );
+
+                bodiesOfConcern++;
 
                 // set position based on velocity
                 const velocityMagnitude = Math.sqrt(
@@ -87,7 +103,8 @@ export default system<ShooterSchema>(
                     collider.type[eid] === ColliderType.Circle &&
                     entity.active[eid]
                 ) {
-                    for (const otherBody of otherBodies) {
+                    // FIXME: was changed from otherBodies to nearbyEntities
+                    for (const otherBody of nearbyEntities) {
                         if (eid === otherBody) {
                             // ignore self
                             continue;
@@ -129,6 +146,10 @@ export default system<ShooterSchema>(
                 }
             }
         }
+
+        console.timeEnd('physics');
+        console.log('collisionChecks', collisionChecks);
+        console.log('bodiesOfConcern', bodiesOfConcern);
     },
 );
 
@@ -179,6 +200,7 @@ function collideCircle(
         return;
     }
 
+    collisionChecks++;
     const distance = Math.sqrt(
         (circle1.center.x - circle2.center.x) ** 2 +
             (circle1.center.y - circle2.center.y) ** 2,
@@ -238,6 +260,7 @@ function collideBox(
         'collider' | 'velocity' | 'position' | 'rotation' | 'hasTag'
     >,
 ) {
+    collisionChecks++;
     // Detect collisions with walls
     const point: Vector2 = {
         x: position.x[thisEid],
