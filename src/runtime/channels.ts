@@ -12,7 +12,6 @@ import {
 } from './messages';
 import { SocketEmitOpts } from './network';
 import { Subcluster } from './network/Subcluster';
-import { CancelFunction, setPeriodic } from './utils';
 
 export type ChannelConfig = {
     id: string;
@@ -50,11 +49,12 @@ export class Channel {
     client: Client;
     name: string = '';
     subcluster: Comlink.Remote<Subcluster>;
-    threads: CancelFunction[] = [];
     _onMsg?: (m: Message, id: string, channelId: string) => void;
     lastKnowPeers = new Map<string, PeerStatus>();
     alivePeerIds: Map<string, KeepAliveMessage> = new Map();
     peerNames: Map<string, string> = new Map();
+    loopTimer: NodeJS.Timeout | null = null;
+    looping = false;
 
     constructor({ id, client, subcluster, name, onMsg }: ChannelConfig) {
         this.id = id;
@@ -66,8 +66,20 @@ export class Channel {
         subcluster
             .set('onMsg', Comlink.proxy(this.onChannelMsg))
             .catch((err) => console.error('set-on-msg-err:', err));
-        this.threads.push(setPeriodic(this.updatePeers, 1000));
+        this.loopTimer = setInterval(this.loop, 1000);
     }
+
+    private loop = () => {
+        if (this.looping) {
+            return;
+        }
+        this.looping = true;
+        this.updatePeers()
+            .catch((err) => console.error('update-peers-err:', err))
+            .finally(() => {
+                this.looping = false;
+            });
+    };
 
     private updatePeers = async () => {
         // tell channels peers we exist
@@ -235,6 +247,9 @@ export class Channel {
     };
 
     destroy() {
-        this.threads.forEach((cancel) => cancel());
+        if (this.loopTimer) {
+            clearInterval(this.loopTimer);
+            this.loopTimer = null;
+        }
     }
 }

@@ -58,6 +58,7 @@ export default memo(function BulletEntity({
         // alighed with the interpolated position of the ship so we hide it for
         // a bit to let the interpolation match better, it's not perfect
         const isMoving =
+            !!world.components.entity.data.active[eid] &&
             world.components.stats.data.health[eid] > 0 &&
             world.components.stats.data.health[eid] < BULLET_LIFETIME - 1;
 

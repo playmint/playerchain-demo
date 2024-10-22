@@ -1,3 +1,4 @@
+import { sleep } from '../../../runtime/timers';
 import { hardReset } from '../../../runtime/utils';
 import styles from './PlayAgainButton.module.css';
 
@@ -14,8 +15,4 @@ export default function PlayAgainButton() {
             Play Again
         </button>
     );
-}
-
-function sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }

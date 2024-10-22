@@ -230,7 +230,7 @@ export class Peer {
         let cacheData;
         this.cache = new Cache(cacheData, config.siblingResolver);
         // this.cache.onEjected = (p) => this.mcast(p);
-        this.cache.onEjected = (_p) => console.log('onEject noop');
+        // this.cache.onEjected = (_p) => console.log('onEject noop');
 
         this.unpublished = {};
 
@@ -466,7 +466,7 @@ export class Peer {
     ) {
         const packet: any = Packet.decode(data);
         if (!packet) {
-            console.warn(`send: failed to decode packet`);
+            console.warn(`send: failed to decode packet`, data);
             return;
         }
         const pid = packet.packetId.toString('hex');
@@ -688,7 +688,7 @@ export class Peer {
     /**
      * The process of determining this peer's NAT behavior (firewall and dependentness)
      */
-    async requestReflection() {
+    requestReflection = async () => {
         if (this.closing || this.indexed || this.reflectionId) {
             this._onDebug('<> REFLECT ABORTED', this.reflectionId);
             return;
@@ -744,7 +744,7 @@ export class Peer {
                 this.reflectionRetry = 1;
             }
             return setTimeout(
-                () => this.requestReflection(),
+                this.requestReflection,
                 this.reflectionRetry * 256,
             );
         }
@@ -837,7 +837,7 @@ export class Peer {
                 this._onDebug(
                     'XX NAT REFLECT - STAGE2: INSUFFICENT PEERS - RETRYING',
                 );
-                return setTimeout(() => this.requestReflection(), 256);
+                return setTimeout(this.requestReflection, 256);
             }
 
             this._onDebug('-> NAT REFLECT - STAGE2: START', this.reflectionId);
@@ -874,7 +874,7 @@ export class Peer {
                 return this.requestReflection();
             }, 2048);
         }
-    }
+    };
 
     /**
      * Ping another peer
@@ -1819,22 +1819,28 @@ export class Peer {
         }
 
         if (strategy === NAT.STRATEGY_TRAVERSAL_OPEN) {
-            peer.opening = Date.now();
-
-            const portsCache = new Set<number>();
-
-            if (!this.bdpCache.length) {
-                globalThis.bdpCache = this.bdpCache = Array.from(
-                    { length: 1024 },
-                    () => getRandomPort(portsCache),
-                );
-            }
-
-            for (const port of this.bdpCache) {
-                this.send(Buffer.from([0x1]), port, packet.message.address);
-            }
-
+            console.log('XXX DEBUG: NAT STRATEGY_TRAVERSAL_OPEN DISABLED');
             return;
+            // peer.opening = Date.now();
+
+            // const portsCache = new Set<number>();
+
+            // if (!this.bdpCache.length) {
+            //     globalThis.bdpCache = this.bdpCache = Array.from(
+            //         { length: 1024 },
+            //         () => getRandomPort(portsCache),
+            //     );
+            // }
+
+            // for (const port of this.bdpCache) {
+            //     this.socket.send(
+            //         Buffer.from([0x1]),
+            //         port,
+            //         packet.message.address,
+            //     );
+            // }
+
+            // return;
         }
 
         if (strategy === NAT.STRATEGY_DIRECT_CONNECT) {

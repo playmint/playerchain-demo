@@ -9,7 +9,6 @@ import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 import { assetPath } from '../utils/RenderUtils';
 import AudioControls from './AudioControls';
 import { BackgroundModels } from './BackgroundModels';
-import { FPSLimiter } from './FPSLimiter';
 import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
 import PlayerHUD, { PlayerInfo } from './PlayerHUD';
@@ -100,15 +99,9 @@ export default memo(function ShooterCanvas({
     }
     return (
         <>
-            <Canvas
-                id="gamecanvas"
-                resize={CANVAS_RESIZE}
-                frameloop="demand"
-                dpr={[0.5, 2]}
-            >
+            <Canvas id="gamecanvas" resize={CANVAS_RESIZE} dpr={[0.5, 2]}>
                 <BackgroundModels rotation={[1.5708, 0, 0]} />
                 <StarFieldFX />
-                <FPSLimiter fps={60} />
                 <AdaptiveDpr pixelated />
                 {entities.map((eid) => (
                     <ModelEntity

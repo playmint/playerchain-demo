@@ -126,7 +126,7 @@ export type StoredMessage = StoredChainMessage & {
     // confirmations: MessageConfirmationMatrix;
 };
 
-export function fromStoredChainMessage(m: StoredMessage): ChainMessage {
+export function fromStoredChainMessage(m: StoredChainMessage): ChainMessage {
     const shared = {
         peer: Buffer.from(m.peer, 'hex'),
         parent: m.parent ? Buffer.from(m.parent, 'base64') : null,

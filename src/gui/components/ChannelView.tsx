@@ -25,7 +25,7 @@ import termstyles from './Terminal.module.css';
 
 const MAX_PLAYERS = 4;
 export const FIXED_UPDATE_RATE = 100;
-export const INTERLACE = 3;
+export const INTERLACE = 5;
 export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
 export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 
