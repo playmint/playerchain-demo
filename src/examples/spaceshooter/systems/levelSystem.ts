@@ -7,6 +7,7 @@ import {
 } from '../../spaceshooter';
 import level from '../levels/level_1';
 import { Rectangle } from '../utils/PhysicsUtils';
+import { BULLET_SPEED } from './bulletSystem';
 
 export default system<ShooterSchema>(
     ({
@@ -22,6 +23,7 @@ export default system<ShooterSchema>(
         // find or create walls for the level
         let walls = query(Tags.IsWall);
         if (walls.length === 0) {
+            console.log('wall pieces:', level.walls.length);
             walls = level.walls.map((wall) =>
                 addWall(wall, {
                     addEntity,
@@ -38,6 +40,73 @@ export default system<ShooterSchema>(
         // do something with walls...
     },
 );
+
+class Grid {
+    private cells: Map<string, Set<number>>;
+    private cellSize: number;
+
+    constructor(cellSize: number) {
+        this.cells = new Map();
+        this.cellSize = cellSize;
+    }
+
+    public getCellKey(x: number, y: number): string {
+        const cellX = Math.floor(x / this.cellSize);
+        const cellY = Math.floor(y / this.cellSize);
+        return `${cellX},${cellY}`;
+    }
+
+    public getCellRange(
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+    ): string[] {
+        const keys: string[] = [];
+        const startX = Math.floor(x1 / this.cellSize);
+        const endX = Math.floor(x2 / this.cellSize);
+        const startY = Math.floor(y1 / this.cellSize);
+        const endY = Math.floor(y2 / this.cellSize);
+
+        for (let x = startX; x <= endX; x++) {
+            for (let y = startY; y <= endY; y++) {
+                keys.push(`${x},${y}`);
+            }
+        }
+        return keys;
+    }
+
+    public addEntity(
+        entityId: number,
+        points: { x: number; y: number }[],
+    ): void {
+        const xValues = points.map((p) => p.x);
+        const yValues = points.map((p) => p.y);
+        const x1 = Math.min(...xValues);
+        const y1 = Math.min(...yValues);
+        const x2 = Math.max(...xValues);
+        const y2 = Math.max(...yValues);
+
+        const keys = this.getCellRange(x1, y1, x2, y2);
+        for (const key of keys) {
+            if (!this.cells.has(key)) {
+                this.cells.set(key, new Set());
+            }
+            this.cells.get(key)!.add(entityId);
+        }
+    }
+
+    public getNearbyEntities(x: number, y: number): Set<number> {
+        const key = this.getCellKey(x, y);
+        return this.cells.get(key) || new Set();
+    }
+
+    public clear(): void {
+        this.cells.clear();
+    }
+}
+
+export const spacialMap = new Grid(BULLET_SPEED);
 
 interface Wall {
     position: { x: number; y: number };
@@ -96,6 +165,8 @@ function addWall(
     collider.cY[eid] = rect.c.y;
     collider.dX[eid] = rect.d.x;
     collider.dY[eid] = rect.d.y;
+
+    spacialMap.addEntity(eid, [rect.a, rect.b, rect.c, rect.d]);
 
     entity.active[eid] = 1;
     return eid;
