@@ -1,7 +1,6 @@
 import { PerspectiveCamera } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { memo, useEffect } from 'react';
-import { Frustum, Matrix4 } from 'three';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import {
     EntityObject3D,
@@ -29,7 +28,6 @@ export default memo(function PlayerCam({
         if (!camera) {
             return;
         }
-        (camera as any).__frustum = new Frustum();
     }, [camera]);
 
     useFrame(({ camera }, deltaTime) => {
@@ -37,14 +35,6 @@ export default memo(function PlayerCam({
         if (metrics) {
             metrics.fps.add(1);
         }
-        // update frustum data
-        // NOTE: this is set here but used elsewhere so that we only set it once per frame
-        (camera as any).__frustum.setFromProjectionMatrix(
-            new Matrix4().multiplyMatrices(
-                camera.projectionMatrix,
-                camera.matrixWorldInverse,
-            ),
-        );
         // find the player data for viewing peerId
         const world = worldRef.current;
         const player = world.players.get(peerId);
@@ -60,7 +50,7 @@ export default memo(function PlayerCam({
         const snapiness =
             world.components.entity.data.generation[player.ship] ===
             (camera as EntityObject3D).__generation
-                ? InterpolateSpeed.Quick
+                ? InterpolateSpeed.Fastest
                 : InterpolateSpeed.Snap;
         camera.position.x = Math.max(
             Math.min(
@@ -131,7 +121,6 @@ export default memo(function PlayerCam({
                 intensity={12}
                 color={0xffffff}
             />
-            {/* <BackgroundGrid /> */}
         </>
     );
 });
