@@ -62,17 +62,11 @@ export class Subcluster {
         opts.clusterId = this.clusterId;
         opts.subclusterId = this.subclusterId;
 
-        let packets;
-
         const peers = this.peers();
+        const args = await this.pack(eventName, value, opts);
         for (const p of peers) {
-            const args = await this.pack(eventName, value, opts);
-            const result = await p.localPeer.stream(p.peerId, this, args);
-            if (!packets) {
-                packets = result;
-            }
+            await p.localPeer.stream(p.peerId, this, structuredClone(args));
         }
-        return packets;
     }
 
     async publish(eventName, value, opts: any = {}) {

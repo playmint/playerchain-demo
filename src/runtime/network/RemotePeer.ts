@@ -109,6 +109,7 @@ export class RemotePeer {
             this.localPeer.gate.set(pid, 1);
             this.localPeer.send(
                 await Packet.encode(packet),
+                packet,
                 port,
                 address,
                 this.socket,
