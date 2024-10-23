@@ -1,9 +1,10 @@
 import { memo, useMemo } from 'react';
-import { config } from 'socket:application';
+import { config as socketConfig } from 'socket:application';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
 import { sleep } from '../../runtime/timers';
+import { getVersionStringFromConfig } from '../../runtime/utils';
 import { ClientContextType, useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -49,11 +50,7 @@ const terminalFlow = ({
                 await sleep(TERM_DELAY);
                 return (
                     <>
-                        {config['meta_title'].indexOf('v:') > -1 ? (
-                            <p>v{config['meta_title'].split('v:')[1]}</p>
-                        ) : (
-                            <p>v{config['meta_version']}</p>
-                        )}
+                        <p>v{getVersionStringFromConfig(socketConfig)}</p>
                         <br />
                     </>
                 );

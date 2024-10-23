@@ -44,3 +44,9 @@ export async function hardReset(dbname?: string) {
 export function ByRandom() {
     return 0.5 - Math.random();
 }
+
+export function getVersionStringFromConfig(socketConfig: any) {
+    return socketConfig['meta_title'].indexOf('v:') > -1
+        ? socketConfig['meta_title'].split('v:')[1]
+        : socketConfig['meta_version'];
+}
