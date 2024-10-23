@@ -1,4 +1,5 @@
 import * as Comlink from 'comlink';
+import { config as socketConfig } from 'socket:application';
 import { Buffer } from 'socket:buffer';
 import { v6 as uuidv6 } from 'uuid';
 import { Client } from './client';
@@ -12,6 +13,7 @@ import {
 } from './messages';
 import { SocketEmitOpts } from './network';
 import { Subcluster } from './network/Subcluster';
+import { getVersionStringFromConfig } from './utils';
 
 export type ChannelConfig = {
     id: string;
@@ -53,6 +55,7 @@ export class Channel {
     lastKnowPeers = new Map<string, PeerStatus>();
     alivePeerIds: Map<string, KeepAliveMessage> = new Map();
     peerNames: Map<string, string> = new Map();
+    peerVersions: Map<string, string> = new Map();
     loopTimer: NodeJS.Timeout | null = null;
     looping = false;
 
@@ -172,7 +175,7 @@ export class Channel {
                 console.error('update-peer-err:', err);
             });
         if (!this.peerNames.has(peerId)) {
-            console.log('setitng peer name', peerId, m.name);
+            console.log('setting peer name', peerId, m.name);
             this.client.db.peerNames
                 .put({
                     peerId: peerId,
@@ -182,6 +185,19 @@ export class Channel {
                     console.error('update-peer-name-err:', err);
                 });
             this.peerNames.set(peerId, m.name);
+        }
+
+        if (!this.peerVersions.has(peerId)) {
+            console.log('setting peer version', peerId, m.name);
+            this.client.db.peerVesions
+                .put({
+                    peerId: peerId,
+                    version: m.version,
+                })
+                .catch((err) => {
+                    console.error('update-peer-version-err:', err);
+                });
+            this.peerVersions.set(peerId, m.version);
         }
     };
 
@@ -200,6 +216,7 @@ export class Channel {
                     ) as unknown as Uint8Array,
             ),
             name: peerName?.name || '',
+            version: getVersionStringFromConfig(socketConfig),
         };
         const opts = { ttl: 60 * 1000 };
         await this.send(msg, opts);
