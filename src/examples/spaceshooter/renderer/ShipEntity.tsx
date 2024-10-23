@@ -14,7 +14,6 @@ import {
     Mesh,
     Object3DEventMap,
     PositionalAudio as PositionalAudioImpl,
-    Vector2,
     Vector3,
 } from 'three';
 import { getPlayerColor } from '../../../gui/fixtures/player-colors';
@@ -56,7 +55,6 @@ export default memo(function ShipEntity({
         Array.from(worldRef.current.players.entries()).find(
             ([_id, p]) => p.ship === eid,
         ) || [undefined, undefined];
-    const vmagPrev = useRef<number>(null!);
     const groupRef = useRef<Group>(null!);
     const shipRef = useRef<Group<Object3DEventMap>>(null!);
     const thrustRef = useParticleEffect(groupRef, fxThrusterData, [-3.5, 0, 0]);
@@ -236,17 +234,9 @@ export default memo(function ShipEntity({
 
         // update thruster effect (if accelerating)
         if (thrustRef.current) {
-            const vmag = new Vector2(
-                world.components.velocity.data.x[eid],
-                world.components.velocity.data.y[eid],
-            ).length();
-            const accelerating =
-                world.components.entity.data.active[eid] &&
-                vmagPrev.current !== null &&
-                vmag !== vmagPrev.current;
-            vmagPrev.current = vmag;
+            const accelerating = hasInput(player.input, Input.Forward);
             if (accelerating) {
-                thrustRef.current.n = 15;
+                thrustRef.current.n = 3;
             } else if (thrustRef.current.n > 0) {
                 thrustRef.current.n -= 1;
             }
