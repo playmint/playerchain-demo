@@ -101,6 +101,9 @@ export class Channel {
             const connected = peer.connected ? 1 : 0;
             const proxy = !!peer.proxy;
             let status = this.lastKnowPeers.get(peer.peerId);
+            // console.log(
+            //     `[${this.client.shortId}] PEER=${peer.peerId.slice(0, 8)} PROXY=${peer.proxy} RTT=${peer.rtt}`,
+            // );
             if (!status) {
                 status = { connected, proxy };
                 this.lastKnowPeers.set(peer.peerId, status);
