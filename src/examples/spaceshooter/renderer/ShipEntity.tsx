@@ -11,7 +11,6 @@ import {
     Color,
     DoubleSide,
     Group,
-    Line3,
     Mesh,
     Object3DEventMap,
     PositionalAudio as PositionalAudioImpl,
@@ -30,7 +29,6 @@ import { SparksFX, SparksFXHandle } from '../effects/FXSparksQuarks';
 import fxThrusterData from '../effects/FXThruster';
 import {
     EntityObject3D,
-    InterpolateMethod,
     InterpolateSpeed,
     assetPath,
     interpolate,
