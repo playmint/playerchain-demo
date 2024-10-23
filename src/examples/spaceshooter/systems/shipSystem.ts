@@ -11,6 +11,7 @@ import {
 } from '../../spaceshooter';
 import level from '../levels/level_1';
 
+
 export const SHIP_THRUST_RATE = 70;
 export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.65);
 export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
