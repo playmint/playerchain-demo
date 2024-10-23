@@ -51,11 +51,15 @@ export class Subcluster {
     }
 
     async getPeerInfo() {
-        return this.peers().map((p) => ({
-            peerId: p.peerId,
-            connected: !!p.connected,
-            proxy: !!p.proxies.size,
-        }));
+        return this.peers().map((p) => {
+            const proxy = p.getBestProxy();
+            return {
+                peerId: p.peerId,
+                connected: !!p.connected,
+                proxy: proxy?.peerId ?? null,
+                rtt: proxy ? proxy.getAverageRTT() : p.getAverageRTT(),
+            };
+        });
     }
 
     async stream(eventName, value, opts: any = {}) {
