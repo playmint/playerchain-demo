@@ -7,7 +7,7 @@ import { ModelType, ShooterSchema } from '../../spaceshooter';
 import backgroundMusic from '../assets/BGM.mp3?url';
 import { StarFieldFX } from '../effects/FXStarfieldQuarks';
 import { assetPath } from '../utils/RenderUtils';
-import AudioControls from './AudioControls';
+import AudioControls, { MUSIC_NODE_NAME } from './AudioControls';
 import { BackgroundModels } from './BackgroundModels';
 import { ModelEntity } from './ModelEntity';
 import PlayerCam from './PlayerCam';
@@ -122,6 +122,7 @@ export default memo(function ShooterCanvas({
                     url={assetPath(backgroundMusic)}
                     distance={50000}
                     loop={true}
+                    name={MUSIC_NODE_NAME}
                 />
                 <AudioControls />
                 <WallModels />
