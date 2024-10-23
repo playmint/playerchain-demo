@@ -2,6 +2,8 @@ import { useThree } from '@react-three/fiber';
 import { useEffect } from 'react';
 import { useSettings } from '../../../gui/hooks/use-settings';
 
+export const MUSIC_NODE_NAME = 'bgm';
+
 export default function AudioControls() {
     const { muted } = useSettings();
     const scene = useThree(({ scene }) => scene);
@@ -12,9 +14,13 @@ export default function AudioControls() {
     useEffect(() => {
         scene.traverse((o: any) => {
             if (o.type === 'Audio') {
-                o.setVolume(muted ? 0 : 1);
+                if (o.name === MUSIC_NODE_NAME) {
+                    o.setVolume(muted ? 0 : 0.1);
+                } else {
+                    o.setVolume(muted ? 0 : 0.33);
+                }
             }
         });
     }, [muted, scene]);
-    return <></>;
+    return null;
 }
