@@ -8,9 +8,9 @@ import {
     hasInput,
 } from '../../spaceshooter';
 
-export const BULLET_SPEED = 110;
+export const BULLET_SPEED = 100;
 export const BULLET_MAX_VELOCITY = 300;
-export const BULLET_LIFETIME = 20; // seconds
+export const BULLET_LIFETIME = 15; // seconds
 export const BULLET_HEALTH_COST = 14;
 export const BULLET_INHERIT_VELOCITY = 1; //What % velocity do they inherit from firing ship
 export const DEATH_TIMER = 2; // seconds to wait after death before respawning
