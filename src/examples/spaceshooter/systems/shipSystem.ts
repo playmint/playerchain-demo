@@ -18,7 +18,7 @@ export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
 export const SHIP_MAX_VELOCITY = 70;
 export const BULLET_DAMAGE = 100;
 export const BULLET_BOUNCINESS = 1;
-export const SHIP_BOUNCINESS = 0.8;
+export const SHIP_BOUNCINESS = 0.75;
 
 export default system<ShooterSchema>(
     ({
