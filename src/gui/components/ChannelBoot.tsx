@@ -5,7 +5,11 @@ import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
 import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
-import { getVersionStringFromConfig } from '../../runtime/utils';
+import {
+    getVersionNumberHash,
+    getVersionStringFromConfig,
+    splitChannelCode,
+} from '../../runtime/utils';
 import { ClientContextType, useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -304,8 +308,22 @@ const terminalFlow = ({
                         reject('invalid key');
                         return;
                     }
+                    const { channelId, hostVersionHash } =
+                        splitChannelCode(input);
+                    if (!hostVersionHash) {
+                        reject('invalid key');
+                        return;
+                    }
+                    const clientVersionHash = getVersionNumberHash(
+                        getVersionStringFromConfig(socketConfig),
+                    );
+                    if (hostVersionHash !== clientVersionHash) {
+                        reject('client app version incompatible with host');
+                        return;
+                    }
+
                     client
-                        .joinChannel(input)
+                        .joinChannel(channelId)
                         .then(() => {
                             resolve('OK');
                         })
