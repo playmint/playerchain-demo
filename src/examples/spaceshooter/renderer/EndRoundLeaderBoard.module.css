@@ -158,39 +158,36 @@
     background-clip: text;
 }
 
-.countdownText {
-    position: absolute;
-    display: block;
+.countdownContainer {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100%;
+    height: 100%;
+}
+
+.countdownText,
+.countdownText2 {
+    position: absolute;
     font-family: 'Recursive', sans-serif;
     font-style: normal;
     font-weight: 900;
     font-size: 200px;
     line-height: 97px;
-    /* identical to box height */
     text-align: center;
     letter-spacing: 0.03em;
+    width: 100%;
+}
+
+.countdownText {
     color: #7c8ecd;
     text-shadow: #1b8dff 0px 0px 30px;
 }
 
 .countdownText2 {
-    position: absolute;
-    display: block;
-    width: 100%;
-    transform: translateY(-10px);
-    font-family: 'Recursive', sans-serif;
-    font-style: normal;
-    font-weight: 900;
-    font-size: 200px;
-    line-height: 97px;
-    /* identical to box height */
-    text-align: center;
-    letter-spacing: 0.03em;
-
+    transform: translateY(-4px);
     background: linear-gradient(180deg, #f2f1ff 31.32%, #caccef 80.7%), #ffffff;
     -webkit-background-clip: text;
-    /* -webkit-text-fill-color: transparent; */
     background-clip: text;
-    /* text-fill-color: transparent; */
 }
