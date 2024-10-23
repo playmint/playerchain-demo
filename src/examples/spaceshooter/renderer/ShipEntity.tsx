@@ -297,7 +297,7 @@ export default memo(function ShipEntity({
                 world.components.entity.data.generation[eid] !==
                 ship.__generation;
             if (respawned && world.components.entity.data.active[eid]) {
-                const pos = new Vector3(0, 0, 0);
+                const pos = new Vector3(0, 0, 2);
                 if (respawnRef.current) {
                     respawnRef.current.triggerSpawn(pos, shipRef.current);
                 }
