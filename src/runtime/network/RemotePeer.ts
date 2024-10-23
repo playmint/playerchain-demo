@@ -1,4 +1,3 @@
-import { ByRandom } from '../utils';
 import type Peer from './Peer';
 import { Subcluster } from './Subcluster';
 import Packet, { PacketPublish, PacketPublishProxied } from './packets';
@@ -12,6 +11,10 @@ export type RemotePeerConfig = {
     clusterId: Uint8Array;
     clock: number;
     localPeer: Peer;
+};
+
+const ByRTT = (a: RemotePeer, b: RemotePeer) => {
+    return a.getAverageRTT() - b.getAverageRTT();
 };
 
 /**
@@ -39,6 +42,7 @@ export class RemotePeer {
     localPeer: Peer;
     indexed?: boolean;
     socket?: any;
+    rtt: number[] = [];
 
     /**
      * `RemotePeer` class constructor.
@@ -57,6 +61,20 @@ export class RemotePeer {
         this.useProxy = false;
     }
 
+    getBestProxy() {
+        return this.useProxy
+            ? (Array.from(this.proxies.values()).sort(ByRTT)[0] ?? null)
+            : null;
+    }
+
+    getAverageRTT() {
+        return Math.ceil(
+            this.rtt.length > 0
+                ? this.rtt.reduce((acc, val) => acc + val, 0) / this.rtt.length
+                : 99999,
+        );
+    }
+
     async write(subcluster: Subcluster, args: any) {
         const keys = subcluster.signingKeys;
         const from = this.localPeer.peerId.slice(0, 6);
@@ -71,10 +89,8 @@ export class RemotePeer {
         args.usr4 = Buffer.from(this.localPeer.peerId, 'hex');
         args.message = this.localPeer.encryption.seal(args.message, keys);
 
-        // do we need a proxy? if so get a random proxy from the map
-        const proxy = this.useProxy
-            ? Array.from(this.proxies.values()).sort(ByRandom)[0]
-            : null;
+        // do we need a proxy? if so pick the one with the lowest RTT
+        const proxy = this.getBestProxy();
 
         if (this.useProxy && !proxy) {
             this.localPeer._onDebug(

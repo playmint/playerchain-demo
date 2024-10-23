@@ -167,6 +167,7 @@ export class Peer {
     sendTimeout?: any;
     mainLoopTimer?: any;
     keepalive: number;
+    pendingPings: Map<string, number> = new Map();
 
     dgram: typeof import('socket:dgram');
 
@@ -452,6 +453,14 @@ export class Peer {
         // if this peer has previously tried to join any clusters, multicast a
         // join messages for each into the network so we are always searching.
         await this.reconnect();
+
+        // clear out any old pending pings
+        for (const [pingId, ts] of this.pendingPings.entries()) {
+            if (Date.now() - ts > 2000) {
+                this.pendingPings.delete(pingId);
+            }
+        }
+
         return true;
     }
 
@@ -891,6 +900,12 @@ export class Peer {
         props.message.timestamp = Date.now();
         props.clusterId = this.clusterId;
 
+        if (!props.message.pingId) {
+            props.message.pingId = randomBytes(6)
+                .toString('hex')
+                .padStart(12, '0');
+        }
+
         const packet = new PacketPing(props);
         const data = await Packet.encode(packet);
 
@@ -903,6 +918,10 @@ export class Peer {
             // if (p?.reflectionId && p.reflectionId === packet.message.reflectionId) {
             //  return false
             // }
+
+            if (!withRetry) {
+                this.pendingPings.set(props.message.pingId, Date.now());
+            }
 
             this.send(data, packet, peer.port, peer.address, socket);
             if (p) {
@@ -947,7 +966,7 @@ export class Peer {
         }
 
         if (!this.port || !this.natType) {
-            console.log('-------------------noportnonat');
+            // console.log('-------------------noportnonat');
             return Comlink.proxy(subcluster);
         }
 
@@ -1391,6 +1410,14 @@ export class Peer {
         const peer = this.peers.get(responderPeerId);
         if (!peer) {
             return;
+        }
+
+        const pingSentTimestamp = this.pendingPings.get(pingId);
+        if (pingSentTimestamp) {
+            const rtt = Date.now() - pingSentTimestamp;
+            peer.rtt.unshift(rtt);
+            peer.rtt.splice(5);
+            this.pendingPings.delete(pingId);
         }
 
         if (packet.message.isConnection) {
