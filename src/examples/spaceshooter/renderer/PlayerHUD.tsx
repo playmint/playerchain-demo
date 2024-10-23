@@ -63,81 +63,106 @@ export default memo(function PlayerHUD({
                 bottom: 0,
                 right: 0,
                 color: 'white',
-                display: 'flex',
-                flexDirection: 'column',
-                textAlign: 'center',
             }}
         >
             <div></div>
-            <div style={{ flexGrow: 1 }}>
-                {remaining > 0 && (
-                    <div
-                        style={{
-                            position: 'absolute',
-                            bottom: '30px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            padding: '10px',
-                            fontSize: '20px',
-                        }}
-                    >
-                        {String(Math.floor(remaining / 60)).padStart(2, '0')}:
-                        {String(Math.ceil(remaining % 60)).padStart(2, '0')}
-                    </div>
-                )}
-            </div>
             <div
                 style={{
-                    width: '30%',
-                    position: 'absolute',
-                    bottom: '30px',
-                    left: '30px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flexWrap: 'nowrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'stretch',
+                    alignContent: 'stretch',
+                    height: '100%',
                 }}
             >
-                {!isMobile && (
-                    <Chat peerNames={peerNames} players={playersRef.current} />
-                )}
-            </div>
-            {remaining > 0 && SESSION_TIME_SECONDS - remaining < 3 ? (
-                <ReadySetGo
-                    n={3 - Math.floor(SESSION_TIME_SECONDS - remaining)}
-                />
-            ) : remaining === 0 ? (
-                <>
-                    <EndRoundLeaderBoard players={playersRef.current} />
-                    <PlayAgainButton />
-                </>
-            ) : null}
-            {remaining !== 0 && (
+                {/* Top row */}
                 <div
                     style={{
                         display: 'flex',
-                        alignContent: 'center',
+                        flexGrow: 0,
+                        flexShrink: 1,
+                        flexBasis: 'auto',
+                        alignSelf: 'auto',
+                        padding: '30px',
+                        justifyContent: 'center',
+                    }}
+                >
+                    {player && <EnergyBar energy={player.health} />}
+                </div>
+                {/* Middle */}
+                <div
+                    style={{
+                        display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
+                        height: '100%',
+                        padding: '30px',
+                    }}
+                >
+                    {remaining > 0 && SESSION_TIME_SECONDS - remaining < 3 ? (
+                        <ReadySetGo
+                            n={3 - Math.floor(SESSION_TIME_SECONDS - remaining)}
+                        />
+                    ) : remaining === 0 ? (
+                        <>
+                            <EndRoundLeaderBoard players={playersRef.current} />
+                            <PlayAgainButton />
+                        </>
+                    ) : null}
+                </div>
+                {/* Bottom row */}
+                <div
+                    style={{
+                        display: 'flex',
+                        flexGrow: 0,
+                        flexShrink: 1,
+                        flexBasis: 'auto',
+                        alignSelf: 'auto',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-end',
+                        padding: '30px',
                     }}
                 >
                     <div
                         style={{
-                            position: 'absolute',
-                            top: '30px',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: '50%',
-                            maxWidth: '300px',
-                        }}
-                    >
-                        {player && <EnergyBar energy={player.health} />}
-                    </div>
-                    <div
-                        style={{
-                            position: 'absolute',
-                            bottom: '30px',
-                            right: '30px',
-                            width: 'auto',
+                            flex: 1,
+                            maxWidth: '33%',
+                            overflowWrap: 'break-word',
                         }}
                     >
                         {!isMobile && (
+                            <Chat
+                                peerNames={peerNames}
+                                players={playersRef.current}
+                            />
+                        )}
+                    </div>
+
+                    <div
+                        style={{
+                            flex: 1,
+                            fontSize: '20px',
+                            textAlign: 'center',
+                        }}
+                    >
+                        {remaining > 0 && (
+                            <>
+                                {String(Math.floor(remaining / 60)).padStart(
+                                    2,
+                                    '0',
+                                )}
+                                :
+                                {String(Math.ceil(remaining % 60)).padStart(
+                                    2,
+                                    '0',
+                                )}
+                            </>
+                        )}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        {remaining !== 0 && !isMobile && (
                             <LeaderBoard
                                 players={playersRef.current}
                                 peerId={peerId}
@@ -145,7 +170,7 @@ export default memo(function PlayerHUD({
                         )}
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 });

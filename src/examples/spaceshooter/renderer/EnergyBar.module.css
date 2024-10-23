@@ -1,6 +1,7 @@
 .energyBar {
     position: relative;
-    width: 'fit-content';
+    width: 50%;
+    max-width: 300px;
     height: 30px;
     min-height: 20px;
     background-color: rgba(7, 13, 27, 0.5);
