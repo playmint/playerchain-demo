@@ -187,7 +187,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                   upload_url: '${{ github.event.release.upload_url }}'
-                  asset_path: './app/build/linux/${{ env.APP_NAME }}_1.0.0_amd64.deb'
+                  asset_path: './app/build/linux/${{ env.APP_NAME }}_0.0.1_amd64.deb'
                   asset_name: '${{ env.APP_NAME }}-linux-x64.deb'
                   asset_content_type: 'application/vnd.debian.binary-package'
 
