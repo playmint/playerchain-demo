@@ -1,11 +1,14 @@
-import md5 from 'md5';
 import { memo, useMemo } from 'react';
 import { config as socketConfig } from 'socket:application';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
 import { sleep } from '../../runtime/timers';
-import { getVersionStringFromConfig } from '../../runtime/utils';
+import {
+    getVersionNumberHash,
+    getVersionStringFromConfig,
+    splitChannelCode,
+} from '../../runtime/utils';
 import { ClientContextType, useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -289,14 +292,15 @@ const terminalFlow = ({
                         reject('invalid key');
                         return;
                     }
-                    const [channelId, hostVersionHash] = input.split(':');
+                    const { channelId, hostVersionHash } =
+                        splitChannelCode(input);
                     if (!hostVersionHash) {
                         reject('invalid key');
                         return;
                     }
-                    const clientVersionHash = md5(
+                    const clientVersionHash = getVersionNumberHash(
                         getVersionStringFromConfig(socketConfig),
-                    ).slice(0, 4);
+                    );
                     if (hostVersionHash !== clientVersionHash) {
                         reject('client app version incompatible with host');
                         return;
