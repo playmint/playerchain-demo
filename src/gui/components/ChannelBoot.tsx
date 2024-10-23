@@ -3,6 +3,7 @@ import { config } from 'socket:application';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
+import { sleep } from '../../runtime/timers';
 import { ClientContextType, useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -44,23 +45,19 @@ const terminalFlow = ({
                     <br />
                 </>
             ),
-            promise: () =>
-                new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve(
-                            <>
-                                {config['meta_title'].indexOf('v:') > -1 ? (
-                                    <p>
-                                        v{config['meta_title'].split('v:')[1]}
-                                    </p>
-                                ) : (
-                                    <p>v{config['meta_version']}</p>
-                                )}
-                                <br />
-                            </>,
-                        );
-                    }, TERM_DELAY);
-                }),
+            promise: async () => {
+                await sleep(TERM_DELAY);
+                return (
+                    <>
+                        {config['meta_title'].indexOf('v:') > -1 ? (
+                            <p>v{config['meta_title'].split('v:')[1]}</p>
+                        ) : (
+                            <p>v{config['meta_version']}</p>
+                        )}
+                        <br />
+                    </>
+                );
+            },
         },
         {
             text: (
@@ -71,27 +68,21 @@ const terminalFlow = ({
                     <br />
                 </>
             ),
-            promise: () =>
-                new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve(
-                            <>
-                                {BOOTSTRAP_PEERS.map((p, idx) => (
-                                    <p key={idx}>
-                                        <span
-                                            className={
-                                                termstyles.defaultTextColor
-                                            }
-                                        >
-                                            {p.peerId.slice(0, 32) + ' '}
-                                        </span>
-                                    </p>
-                                ))}
-                                <br />
-                            </>,
-                        );
-                    }, TERM_DELAY);
-                }),
+            promise: async () => {
+                await sleep(100);
+                return (
+                    <>
+                        {BOOTSTRAP_PEERS.map((p, idx) => (
+                            <p key={idx}>
+                                <span className={termstyles.defaultTextColor}>
+                                    {p.peerId.slice(0, 32) + ' '}
+                                </span>
+                            </p>
+                        ))}
+                        <br />
+                    </>
+                );
+            },
         },
         {
             text: (
@@ -102,41 +93,36 @@ const terminalFlow = ({
                     <br />
                 </>
             ),
-            promise: () =>
-                new Promise((resolve, reject) => {
-                    db.network
-                        .get(NETWORK_ID)
-                        .then((net) => {
-                            if (!net) {
-                                reject('network info not found');
-                                return;
-                            }
-                            const { peerId } = net;
-                            resolve(
-                                <>
-                                    <p>
-                                        Peer ID:{' '}
-                                        <span style={{ color: 'white' }}>
-                                            {peerId}
-                                        </span>
-                                    </p>
-                                    <p>
-                                        Public Key:{' '}
-                                        <span style={{ color: 'white' }}>
-                                            {Buffer.from(
-                                                peerId,
-                                                'hex',
-                                            ).toString('base64')}
-                                        </span>
-                                    </p>
-                                    <br />
-                                </>,
-                            );
-                        })
-                        .catch(() => {
-                            reject('unable to get network info');
-                        });
-                }),
+            promise: async () => {
+                for (;;) {
+                    await sleep(100);
+                    const net = await db.network.get(NETWORK_ID);
+                    if (!net) {
+                        continue;
+                    }
+                    const { peerId } = net;
+                    if (!peerId) {
+                        continue;
+                    }
+                    return (
+                        <>
+                            <p>
+                                Peer ID:{' '}
+                                <span style={{ color: 'white' }}>{peerId}</span>
+                            </p>
+                            <p>
+                                Public Key:{' '}
+                                <span style={{ color: 'white' }}>
+                                    {Buffer.from(peerId, 'hex').toString(
+                                        'base64',
+                                    )}
+                                </span>
+                            </p>
+                            <br />
+                        </>
+                    );
+                }
+            },
         },
         {
             text: (
@@ -147,32 +133,31 @@ const terminalFlow = ({
                     <br />
                 </>
             ),
-            promise: () =>
-                new Promise((resolve, reject) => {
-                    db.network
-                        .get(NETWORK_ID)
-                        .then((net) => {
-                            if (!net) {
-                                reject('network info not found');
-                                return;
-                            }
-                            const { natName } = net;
-                            resolve(
-                                <>
-                                    <p>
-                                        Type:{' '}
-                                        <span style={{ color: 'white' }}>
-                                            {natName}
-                                        </span>
-                                    </p>
-                                    <br />
-                                </>,
-                            );
-                        })
-                        .catch(() => {
-                            reject('unable to get network info');
-                        });
-                }),
+            promise: async () => {
+                for (;;) {
+                    await sleep(100);
+                    const net = await db.network.get(NETWORK_ID);
+                    if (!net) {
+                        continue;
+                    }
+                    const { natName } = net;
+                    if (!natName) {
+                        continue;
+                    }
+
+                    return (
+                        <>
+                            <p>
+                                Type:{' '}
+                                <span style={{ color: 'white' }}>
+                                    {natName}
+                                </span>
+                            </p>
+                            <br />
+                        </>
+                    );
+                }
+            },
         },
         {
             text: (
@@ -220,35 +205,24 @@ const terminalFlow = ({
                 { text: 'Start a Playerchain', next: 1 },
                 { text: 'Join a Playerchain', next: 2 },
             ],
-            promise: () =>
-                new Promise((resolve) => {
-                    setTimeout(resolve, TERM_DELAY);
-                }),
+            promise: async () => sleep(TERM_DELAY),
         },
         {
             text: 'Starting Playerchain...',
             next: 9999,
-            promise: () =>
-                new Promise((resolve, reject) => {
-                    if (!client) {
-                        reject('client is not ready');
-                        return;
-                    }
-                    setTimeout(() => {
-                        const rnd = (Math.random() + 1)
-                            .toString(36)
-                            .substring(7);
-                        client
-                            .createChannel(rnd)
-                            .then((ch) => {
-                                resolve('OK' + ch);
-                            })
-                            .catch((err) => {
-                                console.error('newChannel failed:', err);
-                                reject('failed to create channel');
-                            });
-                    }, TERM_DELAY);
-                }),
+            promise: async () => {
+                if (!client) {
+                    throw 'client is not ready';
+                }
+                const rnd = (Math.random() + 1).toString(36).substring(7);
+                try {
+                    await client.createChannel(rnd);
+                } catch (err) {
+                    console.error('newChannel failed:', err);
+                    throw 'failed to create channel';
+                }
+                return 'OK';
+            },
         },
         {
             text: (
@@ -279,12 +253,7 @@ const terminalFlow = ({
                     <br />
                 </>
             ),
-            promise: () =>
-                new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve('');
-                    }, TERM_DELAY);
-                }),
+            promise: async () => sleep(TERM_DELAY),
         },
 
         {
