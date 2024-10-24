@@ -89,7 +89,10 @@ export default memo(function Chat({
                     <span>{m.msg}</span>
                 </div>
             ))}
-            <form onSubmit={submit} style={{ padding: 0, margin: 0 }}>
+            <form
+                onSubmit={submit}
+                style={{ padding: 0, margin: 0, display: 'flex' }}
+            >
                 <input
                     ref={input}
                     type="text"
@@ -99,8 +102,9 @@ export default memo(function Chat({
                         color: 'white',
                         margin: 0,
                         padding: '0.25rem',
-                        width: '100%',
+                        flex: 1,
                         border: 0,
+                        boxSizing: 'border-box',
                     }}
                 />
             </form>
