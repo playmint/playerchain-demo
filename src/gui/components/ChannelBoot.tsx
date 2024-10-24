@@ -1,4 +1,3 @@
-import md5 from 'md5';
 import { memo, useMemo } from 'react';
 import { config as socketConfig } from 'socket:application';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
@@ -289,21 +288,8 @@ const terminalFlow = ({
                         reject('invalid key');
                         return;
                     }
-                    const [channelId, hostVersionHash] = input.split(':');
-                    if (!hostVersionHash) {
-                        reject('invalid key');
-                        return;
-                    }
-                    const clientVersionHash = md5(
-                        getVersionStringFromConfig(socketConfig),
-                    ).slice(0, 4);
-                    if (hostVersionHash !== clientVersionHash) {
-                        reject('client app version incompatible with host');
-                        return;
-                    }
-
                     client
-                        .joinChannel(channelId)
+                        .joinChannel(input)
                         .then(() => {
                             resolve('OK');
                         })
