@@ -1,5 +1,4 @@
 import Dexie from 'dexie';
-import md5 from 'md5';
 
 // stop vite being a nob and just let me do a dynamic import
 export async function importStatic(modulePath) {
@@ -50,25 +49,4 @@ export function getVersionStringFromConfig(socketConfig: any) {
     return socketConfig['meta_title'].indexOf('v:') > -1
         ? socketConfig['meta_title'].split('v:')[1]
         : socketConfig['meta_version'];
-}
-
-export function getVersionNumberHash(version: string) {
-    return md5(version).slice(0, 4);
-}
-
-const CHANNEL_CODE_DELIMITER = ':';
-
-export function getChannelCode(channelId: string, socketConfig: any) {
-    return (
-        channelId +
-        CHANNEL_CODE_DELIMITER +
-        getVersionNumberHash(getVersionStringFromConfig(socketConfig))
-    );
-}
-
-export function splitChannelCode(channelCode: string) {
-    const [channelId, hostVersionHash] = channelCode.split(
-        CHANNEL_CODE_DELIMITER,
-    );
-    return { channelId, hostVersionHash };
 }

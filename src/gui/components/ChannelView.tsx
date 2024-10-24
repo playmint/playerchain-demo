@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import md5 from 'md5';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { config as socketConfig } from 'socket:application';
 import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
@@ -6,7 +7,7 @@ import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
 import { sleep } from '../../runtime/timers';
-import { getChannelCode, hardReset } from '../../runtime/utils';
+import { getVersionStringFromConfig, hardReset } from '../../runtime/utils';
 import { getPlayerColorUi } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -33,6 +34,14 @@ export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
+const getChannelCode = (channelId: string) => {
+    return (
+        channelId +
+        ':' +
+        md5(getVersionStringFromConfig(socketConfig)).slice(0, 4)
+    );
+};
+
 export default memo(function ChannelView({
     channel,
     details,
@@ -50,7 +59,7 @@ export default memo(function ChannelView({
 
     const copyKeyToClipboard = () => {
         navigator.clipboard
-            .writeText(getChannelCode(channel.id, socketConfig))
+            .writeText(getChannelCode(channel.id))
             .catch((err) => {
                 console.error('clipboard write failed:', err);
             });
@@ -210,7 +219,7 @@ export default memo(function ChannelView({
                             alignItems: 'center',
                         }}
                     >
-                        {getChannelCode(channel.id, socketConfig)}{' '}
+                        {getChannelCode(channel.id)}{' '}
                         <span
                             className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                             style={{ padding: '0 4px', cursor: 'pointer' }}
