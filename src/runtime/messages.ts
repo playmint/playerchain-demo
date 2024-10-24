@@ -24,6 +24,7 @@ export type KeepAliveMessage = {
     name: string;
     timestamp: number;
     sees: Uint8Array[];
+    version: string;
 };
 
 export type ChatMessage = {
@@ -103,17 +104,19 @@ function encodeKeepAliveMessage(p: KeepAliveMessage): Uint8Array {
         p.name,
         p.timestamp,
         p.sees,
+        p.version,
     ]);
 }
 
 function decodeKeepAliveMessage(props: any[]): KeepAliveMessage {
-    const [peer, name, timestamp, sees] = props;
+    const [peer, name, timestamp, sees, version] = props;
     return {
         type: MessageType.KEEP_ALIVE,
         peer,
         name,
         timestamp,
         sees,
+        version,
     };
 }
 
