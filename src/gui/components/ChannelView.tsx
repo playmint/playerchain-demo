@@ -1,12 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { config as socketConfig } from 'socket:application';
 import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
 import { sleep } from '../../runtime/timers';
-import { getChannelCode, hardReset } from '../../runtime/utils';
+import { hardReset } from '../../runtime/utils';
 import { getPlayerColorUi } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
@@ -49,11 +48,9 @@ export default memo(function ChannelView({
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
 
     const copyKeyToClipboard = () => {
-        navigator.clipboard
-            .writeText(getChannelCode(channel.id, socketConfig))
-            .catch((err) => {
-                console.error('clipboard write failed:', err);
-            });
+        navigator.clipboard.writeText(channel.id).catch((err) => {
+            console.error('clipboard write failed:', err);
+        });
     };
 
     const socket = useSocket();
@@ -137,14 +134,6 @@ export default memo(function ChannelView({
         [],
     );
 
-    const peerVersions = useLiveQuery(
-        () => {
-            return db.peerVesions.toArray();
-        },
-        [],
-        [],
-    );
-
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const required = channel
@@ -210,7 +199,7 @@ export default memo(function ChannelView({
                             alignItems: 'center',
                         }}
                     >
-                        {getChannelCode(channel.id, socketConfig)}{' '}
+                        {channel.id}{' '}
                         <span
                             className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                             style={{ padding: '0 4px', cursor: 'pointer' }}
@@ -310,17 +299,7 @@ export default memo(function ChannelView({
                         {peerNames.find((p) => p.peerId === channel.creator)
                             ?.name || channel.creator.slice(0, 8)}
                     </span>{' '}
-                    to confirm peers.
-                    <br />
-                    Using version{' '}
-                    <span style={{ color: 'white' }}>
-                        v
-                        {
-                            peerVersions.find(
-                                (p) => p.peerId === channel.creator,
-                            )?.version
-                        }
-                    </span>{' '}
+                    to confirm peers
                 </span>
             ),
             promise: () =>

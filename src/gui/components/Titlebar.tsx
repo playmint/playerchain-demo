@@ -1,5 +1,3 @@
-import { config as socketConfig } from 'socket:application';
-import { getVersionStringFromConfig } from '../../runtime/utils';
 import theme from '../styles/default.module.css';
 import { isWindows } from '../system/menu';
 
@@ -39,9 +37,7 @@ export function Titlebar({
                     flexGrow: 1,
                 }}
             >
-                <strong>
-                    Playerchain Demo v{getVersionStringFromConfig(socketConfig)}
-                </strong>
+                <strong>Playerchain Demo</strong>
             </div>
             <div
                 style={{
