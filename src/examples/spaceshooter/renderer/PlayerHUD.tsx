@@ -83,22 +83,19 @@ export default memo(function PlayerHUD({
                         display: 'flex',
                         flexGrow: 0,
                         flexShrink: 1,
-                        flexBasis: 'auto',
-                        alignSelf: 'auto',
-                        padding: '30px',
+                        padding: '1.5rem',
                         justifyContent: 'center',
                     }}
                 >
                     {player && <EnergyBar energy={player.health} />}
                 </div>
-                {/* Middle */}
+                {/* Middle row */}
                 <div
                     style={{
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        height: '100%',
-                        padding: '30px',
+                        padding: '1.5rem',
                     }}
                 >
                     {remaining > 0 && SESSION_TIME_SECONDS - remaining < 3 ? (
@@ -118,11 +115,9 @@ export default memo(function PlayerHUD({
                         display: 'flex',
                         flexGrow: 0,
                         flexShrink: 1,
-                        flexBasis: 'auto',
-                        alignSelf: 'auto',
                         justifyContent: 'space-between',
                         alignItems: 'flex-end',
-                        padding: '30px',
+                        padding: '1.5rem',
                     }}
                 >
                     <div
@@ -143,7 +138,7 @@ export default memo(function PlayerHUD({
                     <div
                         style={{
                             flex: 1,
-                            fontSize: '20px',
+                            fontSize: '1.25rem',
                             textAlign: 'center',
                         }}
                     >
