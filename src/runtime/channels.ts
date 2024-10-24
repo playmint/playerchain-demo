@@ -1,5 +1,4 @@
 import * as Comlink from 'comlink';
-import { config as socketConfig } from 'socket:application';
 import { Buffer } from 'socket:buffer';
 import { v6 as uuidv6 } from 'uuid';
 import { Client } from './client';
@@ -13,7 +12,6 @@ import {
 } from './messages';
 import { SocketEmitOpts } from './network';
 import { Subcluster } from './network/Subcluster';
-import { getVersionStringFromConfig } from './utils';
 
 export type ChannelConfig = {
     id: string;
@@ -202,7 +200,6 @@ export class Channel {
                     ) as unknown as Uint8Array,
             ),
             name: peerName?.name || '',
-            version: getVersionStringFromConfig(socketConfig),
         };
         const opts = { ttl: 60 * 1000 };
         await this.send(msg, opts);
