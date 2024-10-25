@@ -26,7 +26,7 @@ export default function App(_props: { instance: number }) {
         setChannelPanelOpen((prev) => !prev);
     }, []);
 
-    const metrics = useMemo(() => createDefaultMetrics(66), []);
+    const metrics = useMemo(() => createDefaultMetrics(100), []);
 
     return (
         <div
