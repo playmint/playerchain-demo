@@ -4,6 +4,7 @@ import {
     useEffect,
     useImperativeHandle,
     useMemo,
+    useRef,
     useState,
 } from 'react';
 import { Object3D, Vector3 } from 'three';
@@ -38,8 +39,20 @@ export const ExplodeFX = forwardRef<ExplodeFXHandle>((_props, ref) => {
         },
     }));
 
+    const clockRef = useRef(0);
     useFrame((_state, delta) => {
+        console.time('notBeenLong');
+        const oldClock = clockRef.current;
+        clockRef.current = performance.now();
+        const notBeenLong = clockRef.current - oldClock < 100;
+        console.timeEnd('notBeenLong');
+        if (notBeenLong) {
+            return;
+        }
+
+        console.time('explode');
         batchRenderer.update(delta);
+        console.timeEnd('explode');
     });
 
     useEffect(() => {
