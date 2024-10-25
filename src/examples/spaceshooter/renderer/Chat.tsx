@@ -97,8 +97,10 @@ export default memo(function Chat({
                     ref={input}
                     type="text"
                     maxLength={64}
+                    placeholder="[Enter] to chat"
                     style={{
                         background: 'transparent',
+                        opacity: 0.6,
                         color: 'white',
                         margin: 0,
                         padding: '0.25rem',
