@@ -37,11 +37,10 @@
 
 .link {
     color: orange;
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 .link:hover {
-    text-decoration: underline;
     cursor: pointer;
 }
 
