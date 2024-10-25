@@ -54,7 +54,7 @@ const terminalFlow = ({
                 await sleep(TERM_DELAY);
                 return (
                     <>
-                        <p>v{getVersionStringFromConfig(socketConfig)}</p>
+                        <p>{getVersionStringFromConfig(socketConfig)}</p>
                         <br />
                     </>
                 );

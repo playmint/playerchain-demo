@@ -40,7 +40,7 @@ export function Titlebar({
                 }}
             >
                 <strong>
-                    Playerchain Demo v{getVersionStringFromConfig(socketConfig)}
+                    Playerchain Demo {getVersionStringFromConfig(socketConfig)}
                 </strong>
             </div>
             <div
