@@ -10,7 +10,6 @@ import { getPlayerColorUi } from '../fixtures/player-colors';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
-import { useSettings } from '../hooks/use-settings';
 import { useSocket } from '../hooks/use-socket';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
@@ -19,6 +18,7 @@ import { TERM_DELAY } from './ChannelBoot';
 import Connectivity from './Connectivity';
 import PacketLace from './PacketLace';
 import Renderer from './Renderer';
+import Settings from './Settings';
 import { Spinner } from './Spinner';
 import Stat from './Stat';
 import { Operation, TerminalView } from './Terminal';
@@ -45,6 +45,7 @@ export default memo(function ChannelView({
     const { peerId } = useCredentials();
     const db = useDatabase();
     const client = useClient();
+    const [showSettings, setShowSettings] = useState(false);
     const [showConnectedPeers, setShowConnectedPeers] = useState(false);
 
     const copyKeyToClipboard = () => {
@@ -61,13 +62,6 @@ export default memo(function ChannelView({
             console.error('Failed to open Discord link:', error);
         }
     };
-
-    const { muted } = useSettings();
-    const toggleMuted = useCallback(() => {
-        db.settings
-            .update(1, { muted: !muted })
-            .catch((err) => console.error('togglemutederr', err));
-    }, [db, muted]);
 
     // get channel data
     const channelPeers = useMemo(
@@ -459,6 +453,9 @@ export default memo(function ChannelView({
                         />
                     </SimulationProvider>
                 )}
+                {showSettings && (
+                    <Settings onClose={setShowSettings.bind(null, false)} />
+                )}
                 <div
                     style={{
                         position: 'absolute',
@@ -478,10 +475,10 @@ export default memo(function ChannelView({
                             right: '1rem',
                             color: '#d9d9d9',
                         }}
-                        onClick={toggleMuted}
+                        onClick={setShowSettings.bind(null, !showSettings)}
                         className={theme.materialSymbolsOutlined}
                     >
-                        {muted ? 'volume_off' : 'volume_up'}
+                        settings
                     </span>
                     {majorityReady && <Connectivity metric={metrics.cps} />}
                 </div>

@@ -20,9 +20,24 @@ export const SettingsProvider = ({
             .count()
             .then((count) => {
                 if (count == 0) {
+                    const defaultMusicVolume =
+                        localStorage.getItem('defaultMusicVolume');
+                    const defaultSfxVolume =
+                        localStorage.getItem('defaultSfxVolume');
                     return db.settings.add({
                         id: 1,
-                        muted: import.meta.env.MODE !== 'production',
+                        musicVolume:
+                            defaultMusicVolume !== null
+                                ? parseFloat(defaultMusicVolume)
+                                : import.meta.env.MODE !== 'production'
+                                  ? 0.1
+                                  : 0.1,
+                        sfxVolume:
+                            defaultSfxVolume !== null
+                                ? parseFloat(defaultSfxVolume)
+                                : import.meta.env.MODE !== 'production'
+                                  ? 0.2
+                                  : 0.2,
                     });
                 }
             })
