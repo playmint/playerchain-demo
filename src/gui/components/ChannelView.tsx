@@ -302,7 +302,7 @@ export default memo(function ChannelView({
                         {peerNames.find((p) => p.peerId === channel.creator)
                             ?.name || channel.creator.slice(0, 8)}
                     </span>{' '}
-                    to confirm peers.
+                    to confirm peers
                 </span>
             ),
             promise: () =>
