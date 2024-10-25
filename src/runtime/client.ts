@@ -798,7 +798,7 @@ export class Client {
             }
             const info = await this.db.channels.get(ch.id);
             if (info) {
-                if (this.height && this.height < 50) {
+                if (this.height && this.height < 200) {
                     // INITIAL_LOCKSTEP_PERIOD
                     // emit the channel genesis message if we have it
                     const genesis = await this.db.messages
@@ -827,10 +827,7 @@ export class Client {
                     // try to find and re-emit the SetPeers message
                     const setPeers = await this.db.messages
                         .where(['channel', 'type'])
-                        .between(
-                            [ch.id, MessageType.SET_PEERS],
-                            [ch.id, MessageType.SET_PEERS],
-                        )
+                        .equals([ch.id, MessageType.SET_PEERS])
                         .last();
                     if (setPeers) {
                         const msg = fromStoredChainMessage(setPeers);
