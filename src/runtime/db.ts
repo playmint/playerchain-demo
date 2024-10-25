@@ -71,7 +71,8 @@ export type NetworkInfo = {
 // should probably be part of the Game interface somehow
 export type PlayerSettings = {
     id: 1;
-    muted?: boolean;
+    musicVolume: number;
+    sfxVolume: number;
 };
 
 export type PeerNames = {

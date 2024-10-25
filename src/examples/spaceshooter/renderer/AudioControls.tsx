@@ -5,7 +5,7 @@ import { useSettings } from '../../../gui/hooks/use-settings';
 export const MUSIC_NODE_NAME = 'bgm';
 
 export default function AudioControls() {
-    const { muted } = useSettings();
+    const { musicVolume, sfxVolume } = useSettings();
     const scene = useThree(({ scene }) => scene);
 
     // HELP! ... there MUST be a better way to do this
@@ -15,12 +15,12 @@ export default function AudioControls() {
         scene.traverse((o: any) => {
             if (o.type === 'Audio') {
                 if (o.name === MUSIC_NODE_NAME) {
-                    o.setVolume(muted ? 0 : 0.1);
+                    o.setVolume(musicVolume);
                 } else {
-                    o.setVolume(muted ? 0 : 0.33);
+                    o.setVolume(sfxVolume);
                 }
             }
         });
-    }, [muted, scene]);
+    }, [musicVolume, scene, sfxVolume]);
     return null;
 }
