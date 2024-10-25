@@ -261,35 +261,29 @@ const terminalFlow = ({
             text: (
                 <span className={termstyles.promptTextColor}>
                     <br />
-                    Paste a Playerchain key to join:
+                    Paste a Playerchain key to join, or{' '}
+                    <span
+                        className={termstyles.link}
+                        onClick={async () => {
+                            try {
+                                await hardReset();
+                                window.location.reload();
+                            } catch (err) {
+                                console.error('hardReset failed:', err);
+                            }
+                        }}
+                    >
+                        go back
+                    </span>
                     <span
                         className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                         style={{ padding: '0 4px', cursor: 'pointer' }}
                         onClick={paste}
                     >
-                        content_paste_go{' '}
+                        {' '}
+                        content_paste_go
                     </span>
-                    <span
-                        className={termstyles.link}
-                        onClick={() => {
-                            new Promise<void>((resolve, reject) => {
-                                hardReset()
-                                    .then(() => sleep(1000))
-                                    .then(() => {
-                                        window.location.reload();
-                                        resolve();
-                                    })
-                                    .catch((err) => {
-                                        alert(`hard-reset-fail: ${err}`);
-                                        reject(err);
-                                    });
-                            }).catch((err) => {
-                                console.error('Promise handling error:', err);
-                            });
-                        }}
-                    >
-                        (or go back)
-                    </span>
+                    :
                 </span>
             ),
             userInput: true,
