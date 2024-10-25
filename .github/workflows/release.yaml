@@ -184,7 +184,7 @@ jobs:
                   pnpm install
                   pnpm release:linux
                   ls build/**/*
-                  mv ./app/build/linux/*.deb ./app/build/linux/${{ env.APP_NAME }}-linux-x64.deb
+                  mv build/linux/*.deb build/linux/${{ env.APP_NAME }}-linux-x64.deb
             - name: Upload Release Asset
               uses: actions/upload-release-asset@v1
               env:
