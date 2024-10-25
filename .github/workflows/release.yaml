@@ -96,6 +96,7 @@ jobs:
               env:
                   APPLE_ID: ${{ secrets.APPLE_ID }}
                   APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+                  VERSION: '${{ github.ref_name }}'
               run: |
                   ssc --version
                   pnpm install
@@ -176,6 +177,8 @@ jobs:
                   path: './app'
             - name: build app
               working-directory: './app'
+              env:
+                  VERSION: '${{ github.ref_name }}'
               run: |
                   ssc --version
                   pnpm install
@@ -245,6 +248,8 @@ jobs:
             #       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
             # - name: build app
             #   working-directory: './app'
+            #   env:
+            #       VERSION: '${{ github.ref_name }}'
             #   run: |
             #       ssc --version
             #       pnpm install
