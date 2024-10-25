@@ -4,6 +4,7 @@ import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
 import { sleep } from '../../runtime/timers';
+import { hardReset } from '../../runtime/utils';
 import { ClientContextType, useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
@@ -266,7 +267,28 @@ const terminalFlow = ({
                         style={{ padding: '0 4px', cursor: 'pointer' }}
                         onClick={paste}
                     >
-                        content_paste_go
+                        content_paste_go{' '}
+                    </span>
+                    <span
+                        className={termstyles.link}
+                        onClick={() => {
+                            new Promise<void>((resolve, reject) => {
+                                hardReset()
+                                    .then(() => sleep(1000))
+                                    .then(() => {
+                                        window.location.reload();
+                                        resolve();
+                                    })
+                                    .catch((err) => {
+                                        alert(`hard-reset-fail: ${err}`);
+                                        reject(err);
+                                    });
+                            }).catch((err) => {
+                                console.error('Promise handling error:', err);
+                            });
+                        }}
+                    >
+                        (or go back)
                     </span>
                 </span>
             ),

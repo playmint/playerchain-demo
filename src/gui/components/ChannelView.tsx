@@ -253,7 +253,28 @@ export default memo(function ChannelView({
             text: (
                 <span className={termstyles.promptTextColor}>
                     <br />
-                    Wait for peers to connect then type &quot;go&quot; to start:
+                    Wait for peers to connect then type &quot;go&quot; to start:{' '}
+                    <span
+                        className={termstyles.link}
+                        onClick={() => {
+                            new Promise<void>((resolve, reject) => {
+                                hardReset()
+                                    .then(() => sleep(1000))
+                                    .then(() => {
+                                        window.location.reload();
+                                        resolve();
+                                    })
+                                    .catch((err) => {
+                                        alert(`hard-reset-fail: ${err}`);
+                                        reject(err);
+                                    });
+                            }).catch((err) => {
+                                console.error('Promise handling error:', err);
+                            });
+                        }}
+                    >
+                        (or go back)
+                    </span>
                 </span>
             ),
             userInput: true,
