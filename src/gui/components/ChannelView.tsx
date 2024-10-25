@@ -131,14 +131,6 @@ export default memo(function ChannelView({
         [],
     );
 
-    const peerVersions = useLiveQuery(
-        () => {
-            return db.peerVesions.toArray();
-        },
-        [],
-        [],
-    );
-
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const required = channel
@@ -319,17 +311,7 @@ export default memo(function ChannelView({
                         {peerNames.find((p) => p.peerId === channel.creator)
                             ?.name || channel.creator.slice(0, 8)}
                     </span>{' '}
-                    to confirm peers.
-                    <br />
-                    Using version{' '}
-                    <span style={{ color: 'white' }}>
-                        v
-                        {
-                            peerVersions.find(
-                                (p) => p.peerId === channel.creator,
-                            )?.version
-                        }
-                    </span>{' '}
+                    to confirm peers
                 </span>
             ),
             promise: () =>

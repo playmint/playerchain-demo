@@ -75,14 +75,9 @@ export type PlayerSettings = {
     sfxVolume: number;
 };
 
-export type PeerName = {
+export type PeerNames = {
     peerId: string;
     name: string;
-};
-
-export type PeerVersions = {
-    peerId: string;
-    version: string;
 };
 
 export type MessageConfirmationMatrix = [
@@ -232,8 +227,7 @@ export type DB = Dexie & {
     peers: EntityTable<PeerInfo, 'peerId'>;
     network: EntityTable<NetworkInfo, 'id'>;
     settings: EntityTable<PlayerSettings, 'id'>;
-    peerNames: EntityTable<PeerName, 'peerId'>;
-    peerVesions: EntityTable<PeerVersions, 'peerId'>;
+    peerNames: EntityTable<PeerNames, 'peerId'>;
     tapes: EntityTable<Tape>;
     chat: EntityTable<StoredChatMessage, 'id'>;
 };
@@ -250,7 +244,6 @@ export function open(name: string): DB {
         network: 'id',
         settings: 'id',
         peerNames: 'peerId',
-        peerVesions: 'peerId',
         tapes: '[channel+round], [channel+updated]',
         chat: 'id, arrived',
     });
