@@ -234,7 +234,8 @@ export default memo(function ShipEntity({
 
         // update thruster effect (if accelerating)
         if (thrustRef.current) {
-            const accelerating = hasInput(player.input, Input.Forward);
+            const accelerating =
+                ship.visible && hasInput(player.input, Input.Forward);
             if (accelerating) {
                 thrustRef.current.n = 3;
             } else if (thrustRef.current.n > 0) {
