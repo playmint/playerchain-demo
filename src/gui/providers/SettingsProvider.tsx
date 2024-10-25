@@ -13,7 +13,7 @@ export const SettingsProvider = ({
     const settings = useLiveQuery(() => {
         return db.settings.get(1);
     }, []);
-    console.log('settings render');
+    console.log('settings render. settings:', settings);
 
     useEffect(() => {
         db.settings
@@ -42,7 +42,7 @@ export const SettingsProvider = ({
                 }
             })
             .catch((err) => console.error('settings-add-err:', err));
-    }, [db]);
+    }, [db, settings]);
 
     if (!settings) {
         return <Loading />;
