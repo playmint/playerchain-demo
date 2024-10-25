@@ -30,13 +30,13 @@ export const SettingsProvider = ({
                             defaultMusicVolume !== null
                                 ? parseFloat(defaultMusicVolume)
                                 : import.meta.env.MODE !== 'production'
-                                  ? 0.1
+                                  ? 0
                                   : 0.1,
                         sfxVolume:
                             defaultSfxVolume !== null
                                 ? parseFloat(defaultSfxVolume)
                                 : import.meta.env.MODE !== 'production'
-                                  ? 0.2
+                                  ? 0.1
                                   : 0.2,
                     });
                 }
