@@ -49,7 +49,7 @@ export default memo(function PlayerHUD({
                 metrics?.cps.disable();
             }
             setRemaining(remainingSeconds);
-        }, 1000);
+        }, 500);
         return () => clearInterval(timer);
     }, [worldRef, metrics]);
 
