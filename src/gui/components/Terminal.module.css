@@ -35,6 +35,16 @@
     color: orange;
 }
 
+.link {
+    color: orange;
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .accentTextColor {
     color: orange;
 }
