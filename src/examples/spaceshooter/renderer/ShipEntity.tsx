@@ -270,6 +270,9 @@ export default memo(function ShipEntity({
             if (exploding) {
                 const pos = groupRef.current.position.clone();
                 if (explosionRef.current) {
+                    if (labelRef.current) {
+                        labelRef.current.style.opacity = '0';
+                    }
                     explosionRef.current.triggerExplosion(pos);
                 }
                 // make noise too
@@ -288,6 +291,9 @@ export default memo(function ShipEntity({
                 const pos = new Vector3(0, 0, 2);
                 if (respawnRef.current) {
                     respawnRef.current.triggerSpawn(pos, shipRef.current);
+                    if (labelRef.current) {
+                        labelRef.current.style.opacity = '1';
+                    }
                 }
             }
         }
@@ -305,20 +311,7 @@ export default memo(function ShipEntity({
             });
         }
 
-        // show hide label
-        // TODO: wrap Html in a Group so can hide with three... this is messy
-        if (
-            labelRef.current &&
-            world.components.entity.data.active[eid] &&
-            labelRef.current.style.display !== 'block'
-        ) {
-            labelRef.current.style.display = 'block';
-        } else if (
-            !world.components.entity.data.active[eid] &&
-            labelRef.current.style.display !== 'none'
-        ) {
-            labelRef.current.style.display = 'none';
-        }
+        // update label
         if (labelRef.current) {
             const label =
                 `${isTopPlayerRef.current ? '👑' : ''}` +
@@ -358,6 +351,7 @@ export default memo(function ShipEntity({
                         pointerEvents: 'none',
                         userSelect: 'none',
                         textAlign: 'center',
+                        transition: 'opacity 1s',
                     }}
                     position={[3, 5, 0]}
                 ></Html>
