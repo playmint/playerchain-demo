@@ -33,9 +33,17 @@ export const SpawnFX = forwardRef<SpawnFXHandle>((_props, ref) => {
         },
     }));
 
-    useFrame((_state, delta) => {
+    let lastUpdateTime = performance.now();
+    const fpsInterval = 1000 / 60;
+    
+    useFrame((_state, _) => {
         if (activeSpawns > 0) {
-            batchRenderer.update(delta);
+            const now = performance.now();
+            const elapsed = now - lastUpdateTime;
+            if (elapsed >= fpsInterval) {
+                batchRenderer.update(elapsed / 1000);
+                lastUpdateTime = now;
+            }
         }
     });
 
