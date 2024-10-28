@@ -1,12 +1,21 @@
 import * as Comlink from 'comlink';
-import React from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import React, { useEffect } from 'react';
+import { NETWORK_ID } from '../../runtime/config';
 import { Loading } from '../components/Loading';
 import { useAsyncMemo } from '../hooks/use-async';
 import { ClientContext, ClientContextType } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
+import { useDatabase } from '../hooks/use-database';
 
 export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
+    const [resetCount, setResetCount] = React.useState(0);
+    const [isReady, setIsReady] = React.useState(false);
     const { keys, dbname } = useCredentials();
+    const db = useDatabase();
+    const network = useLiveQuery(() => {
+        return db.network.get(NETWORK_ID);
+    }, []);
 
     console.log('client provider render');
 
@@ -44,10 +53,28 @@ export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
             console.log(`${dbname} worker ready`);
             return c;
         },
-        [keys, dbname],
+        [keys, dbname, resetCount],
     );
 
+    useEffect(() => {
+        if (isReady && !network) {
+            console.log(
+                'Network settings missing after client init! Resetting client...',
+            );
+            setIsReady(false);
+            setResetCount((prev) => prev + 1);
+            return;
+        }
+        if (client && network) {
+            setIsReady(true);
+        }
+    }, [client, isReady, network]);
+
     if (!client) {
+        return <Loading />;
+    }
+
+    if (!network) {
         return <Loading />;
     }
 
