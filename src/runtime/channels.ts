@@ -31,7 +31,7 @@ export interface ChannelInfo {
 
 export type PeerStatus = {
     connected: number;
-    proxy: boolean;
+    proxy: string | null;
 };
 
 export interface EmitOpts extends SocketEmitOpts {
@@ -92,14 +92,14 @@ export class Channel {
                 // this.onPeerLeave(peerId);
                 await this.updatePeer(peerId, {
                     connected: 0,
-                    proxy: false,
+                    proxy: null,
                 });
             }
         }
         // check for added peers
         for (const peer of peers) {
             const connected = peer.connected ? 1 : 0;
-            const proxy = !!peer.proxy;
+            const proxy = peer.proxy ? peer.proxy : null;
             let status = this.lastKnowPeers.get(peer.peerId);
             // console.log(
             //     `[${this.client.shortId}] PEER=${peer.peerId.slice(0, 8)} PROXY=${peer.proxy} RTT=${peer.rtt}`,

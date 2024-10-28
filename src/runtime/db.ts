@@ -32,7 +32,7 @@ export interface PeerInfo {
     validHeight: number;
     knownHeight: number;
     channels: string[];
-    proxy: boolean | null; // if true, then messages are bouncing off someone else
+    proxy: string | null; // if true, then messages are bouncing off someone else
     sees: string[]; // list of peers this peer has told us it knows about
 }
 
