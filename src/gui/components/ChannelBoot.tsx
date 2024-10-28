@@ -230,11 +230,11 @@ const terminalFlow = ({
             text: (
                 <>
                     <br />
-                    <span className={termstyles.promptTextColor}>
-                        Looking for game? Check the lfg channel in our Discord:
+                    <span>
+                        Looking for a game? Check the #lfg channel in our
+                        discord for public games:
                         <br />
                         <div
-                            className={termstyles.boldTextColor}
                             style={{
                                 cursor: 'pointer',
                                 display: 'flex',

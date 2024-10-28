@@ -185,9 +185,14 @@ export default memo(function ChannelView({
         },
         {
             text: (
-                <span className={termstyles.promptTextColor}>
+                <span>
                     <br />
-                    Share this key with others to connect (click to copy):
+                    <span>This game works best with 4 players.</span>
+                    <br />
+                    <br />
+                    <span className={termstyles.promptTextColor}>
+                        Share this key with others to connect (click to copy):
+                    </span>
                     <div
                         className={termstyles.boldTextColor}
                         onClick={copyKeyToClipboard}
@@ -221,13 +226,12 @@ export default memo(function ChannelView({
     if (channel.creator === peerId) {
         terminalFlow.push({
             text: (
-                <span className={termstyles.promptTextColor}>
+                <span>
                     <br />
-                    No friends? Join our Discord and paste your key in the lfg
-                    channel:
+                    Looking for a group? Join our Discord and paste your key in
+                    the #lfg channel:
                     <br />
                     <div
-                        className={termstyles.boldTextColor}
                         style={{
                             cursor: 'pointer',
                             display: 'flex',
@@ -313,6 +317,22 @@ export default memo(function ChannelView({
                             ?.name || channel.creator.slice(0, 8)}
                     </span>{' '}
                     to confirm peers
+                    <br />
+                    <br />
+                    If you would like to start you own game,{' '}
+                    <span
+                        className={termstyles.link}
+                        onClick={async () => {
+                            try {
+                                await hardReset();
+                                window.location.reload();
+                            } catch (err) {
+                                console.error('hardReset failed:', err);
+                            }
+                        }}
+                    >
+                        click here to go back
+                    </span>
                 </span>
             ),
             promise: () =>
