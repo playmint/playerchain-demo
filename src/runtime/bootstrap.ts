@@ -60,3 +60,17 @@ export const BOOTSTRAP_PEERS = [
         indexed: true,
     },
 ].sort(() => Math.random() - 0.5);
+
+// debug helper for checking if one of the boostrap peers is proxying for us
+export function getProxyName(peerId: string): string {
+    for (const peer of BOOTSTRAP_PEERS) {
+        if (peer.peerId === peerId) {
+            if (peer.address === northEurope) {
+                return 'NorthEurope';
+            } else if (peer.address === southEastAsia) {
+                return 'SouthEastAsia';
+            }
+        }
+    }
+    return `Peer ${peerId.slice(0, 8)}`;
+}

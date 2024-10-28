@@ -56,7 +56,7 @@ export class Subcluster {
             return {
                 peerId: p.peerId,
                 connected: !!p.connected,
-                proxy: proxy?.peerId ?? null,
+                proxy: proxy?.peerId ? proxy.peerId : null,
                 rtt: proxy ? proxy.getAverageRTT() : p.getAverageRTT(),
             };
         });

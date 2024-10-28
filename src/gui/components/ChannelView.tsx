@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { config as socketConfig } from 'socket:application';
 import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
+import { getProxyName } from '../../runtime/bootstrap';
 import { ChannelInfo } from '../../runtime/channels';
 import { PeerInfo } from '../../runtime/db';
 import { DefaultMetrics } from '../../runtime/metrics';
@@ -594,9 +595,11 @@ function PeerStatus({
         }
     }
     const green = '#339129';
+    const tooltip = `last seen: ${lastSeen}ms ago\nconnected: ${info?.connected ? 'yes' : 'no'}\nproxy: ${info?.proxy ? getProxyName(info.proxy) : 'none'}`;
 
     return (
         <div
+            title={tooltip}
             style={{
                 display: 'flex',
                 flexDirection: 'row',
