@@ -36,24 +36,6 @@ export const devMenu: Menu = {
             name: '---',
         },
         {
-            name: 'View Test Runner',
-            shortcut: '1',
-            handler: newTestRunnerWindow,
-        },
-        {
-            name: '---',
-        },
-        {
-            name: 'Rebuild state',
-            shortcut: '2',
-            handler: async () => {
-                const w = window as any;
-                if (w.db) {
-                    await w.db.state.clear();
-                }
-            },
-        },
-        {
             name: 'Hard Reset!',
             shortcut: '3',
             handler: async () => {
@@ -141,21 +123,6 @@ export async function newPlayerWindow() {
         height: 768,
         minWidth: 640,
         minHeight: 480,
-    });
-}
-
-async function newTestRunnerWindow() {
-    const windows = await application.getWindows();
-    const maxIndex = Math.max(...windows.values().map((w) => w.index));
-    await application.createWindow({
-        index: maxIndex + 1,
-        closable: true,
-        path: '/src/tests/tests.html',
-        titlebarStyle: 'hidden',
-        width: 500,
-        height: 700,
-        minWidth: 500,
-        minHeight: 700,
     });
 }
 
