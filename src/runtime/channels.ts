@@ -242,7 +242,6 @@ export class Channel {
         // const ourPeerIds = ourPeers.map((p) => p.peerId);
         const subclusterPeers = await this.subcluster.getPeerInfo();
         if (subclusterPeers.length === 0) {
-            console.log(`${this.client.shortId} USING CRAPPY SEND`);
             return this.subcluster.publish(evt, buf, opts);
         } else {
             return this.subcluster.stream(evt, buf, opts);
