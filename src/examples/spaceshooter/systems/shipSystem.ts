@@ -15,7 +15,7 @@ import level from '../levels/level_1';
 export const SHIP_THRUST_RATE = 70;
 export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.65);
 export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
-export const SHIP_MAX_VELOCITY = 70;
+export const SHIP_MAX_VELOCITY = 50;
 export const BULLET_DAMAGE = 100;
 export const BULLET_BOUNCINESS = 1;
 export const SHIP_BOUNCINESS = 0.75;
