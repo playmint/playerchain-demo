@@ -4,7 +4,6 @@ import {
     useEffect,
     useImperativeHandle,
     useMemo,
-    useRef,
     useState,
 } from 'react';
 import { Object3D, Vector3 } from 'three';
@@ -20,39 +19,36 @@ export interface ExplodeFXHandle {
 export const ExplodeFX = forwardRef<ExplodeFXHandle>((_props, ref) => {
     const batchRenderer = useMemo(() => new BatchedRenderer(), []);
     const [effect, setEffect] = useState<Object3D>();
+    const [activeExplosions, setActiveExplosions] = useState(0);
     const scene = useThree((state) => state.scene);
 
     useImperativeHandle(ref, () => ({
         triggerExplosion(pos: Vector3) {
-            if (!effect) {
-                return;
-            }
+            if (!effect) {return;}
+
             effect.position.copy(pos);
             QuarksUtil.restart(effect);
+
+            setActiveExplosions((count) => count + 1);
+
+            setTimeout(() => {
+                setActiveExplosions((count) => Math.max(0, count - 1));
+            }, 3500); // match or greater than particle effect duration
+
             addShake({
-                intensity: 300, // Adjust as needed
+                intensity: 300,
                 frequency: 40,
                 position: pos,
-                decay: 700, // Rate at which the shake reduces
-                duration: 1, // How long the shake lasts
+                decay: 700,
+                duration: 1,
             });
         },
     }));
 
-    const clockRef = useRef(0);
     useFrame((_state, delta) => {
-        console.time('notBeenLong');
-        const oldClock = clockRef.current;
-        clockRef.current = performance.now();
-        const notBeenLong = clockRef.current - oldClock < 100;
-        console.timeEnd('notBeenLong');
-        if (notBeenLong) {
-            return;
+        if (activeExplosions > 0) {
+            batchRenderer.update(delta);
         }
-
-        console.time('explode');
-        batchRenderer.update(delta);
-        console.timeEnd('explode');
     });
 
     useEffect(() => {
