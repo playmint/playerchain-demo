@@ -119,7 +119,7 @@ export default memo(function ChannelView({
 
         const selectedPeers = sortedPeers.slice(0, MAX_PLAYERS);
 
-        client.setPeers(channel.id, selectedPeers).catch((err) => {
+        client.setPeers(channel.id, selectedPeers, INTERLACE).catch((err) => {
             console.error('acceptPeers:', err);
         });
     }, [client, channel.id, peerId, peers, channel?.creator]);

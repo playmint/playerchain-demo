@@ -27,6 +27,7 @@ export interface ChannelInfo {
     name: string;
     creator: string; // peer id of the creator
     peers: string[];
+    interlace: number;
 }
 
 export type PeerStatus = {
