@@ -109,6 +109,7 @@ export type StoredInputMessage = StoredChainMessageProps & {
 export type StoredSetPeersMessage = StoredChainMessageProps & {
     type: MessageType.SET_PEERS;
     peers: string[];
+    interlace: number;
 };
 
 export type StoredCreateChannelMessage = StoredChainMessageProps & {
@@ -154,6 +155,7 @@ export function fromStoredChainMessage(m: StoredChainMessage): ChainMessage {
                 type: MessageType.SET_PEERS,
                 ...shared,
                 peers: m.peers.map((p) => Buffer.from(p, 'base64')),
+                interlace: m.interlace,
             };
     }
 }
@@ -206,6 +208,7 @@ export function toStoredChainMessage(
                 type: MessageType.SET_PEERS,
                 ...shared,
                 peers: m.peers.map((p) => Buffer.from(p).toString('base64')),
+                interlace: m.interlace,
             };
     }
 }
@@ -216,8 +219,9 @@ export type Tape = {
     inputs: number[]; // inputs indexed by peer index
     ids: string[]; // list of message ids indexed by peer index
     acks: string[][]; // list of messages ids that ack the input at the peer index
-    final: boolean;
+    confirmed: boolean[];
     updated: number;
+    predicted: boolean;
 };
 
 export type DB = Dexie & {

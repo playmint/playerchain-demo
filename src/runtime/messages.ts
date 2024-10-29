@@ -11,6 +11,7 @@ export enum MessageType {
 }
 
 export type ChainMessageProps = {
+    // id: Uint8Array;
     peer: Uint8Array;
     parent: Uint8Array | null;
     acks: Uint8Array[];
@@ -42,6 +43,7 @@ export type InputMessage = Partial<ChainMessageProps> & {
 export type SetPeersMessage = Partial<ChainMessageProps> & {
     type: MessageType.SET_PEERS;
     peers: Uint8Array[];
+    interlace: number;
 };
 
 export type CreateChannelMessage = Partial<ChainMessageProps> & {
@@ -189,6 +191,7 @@ function encodeSetPeersMessage(m: SetPeersMessage): Uint8Array {
     return cbor.encode([
         MessageType.SET_PEERS,
         m.peers,
+        m.interlace,
         m.peer,
         m.parent,
         m.acks,
@@ -198,10 +201,11 @@ function encodeSetPeersMessage(m: SetPeersMessage): Uint8Array {
 }
 
 function decodeSetPeersMessage(props: any[]): SetPeersMessage {
-    const [peers, peer, parent, acks, height, sig] = props;
+    const [peers, interlace, peer, parent, acks, height, sig] = props;
     return {
         type: MessageType.SET_PEERS,
         peers,
+        interlace,
         peer,
         parent,
         acks,
