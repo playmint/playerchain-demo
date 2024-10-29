@@ -4,6 +4,7 @@ import Dexie from 'dexie';
 import _sodium from 'libsodium-wrappers';
 import { Buffer } from 'socket:buffer';
 import { Encryption } from 'socket:latica';
+import { isProduction } from '../gui/system/menu';
 import { Channel, ChannelInfo, EmitOpts } from './channels';
 import database, {
     DB,
@@ -27,6 +28,7 @@ import {
     createSocketCluster,
 } from './network';
 import { PeerConfig } from './network/Peer';
+import { requiredConfirmationsFor } from './sequencer';
 
 export interface ClientKeys {
     publicKey: Uint8Array;
@@ -80,6 +82,7 @@ export class Client {
     enableSync: boolean;
     missingGate: Map<string, number> = new Map();
     channelPeerIds: string[] = [];
+    interlace?: number;
     loopTimer: null | any = null;
     looping = false;
     lastSync: number = 0;
@@ -178,7 +181,7 @@ export class Client {
             ...msg,
             peer: this.id,
             height: this.height,
-            acks: msg.acks ?? [], // TODO: ask consensus system what to do
+            acks: msg.acks ?? [],
             parent: this.parent
                 ? (Buffer.from(this.parent, 'base64') as unknown as Uint8Array)
                 : null,
@@ -461,7 +464,6 @@ export class Client {
         }
         // write in bulk
         if (messages.length > 0) {
-            this.debug('write-messages', messages);
             await this.db.messages.bulkPut(messages);
         }
         // process the tapes
@@ -471,8 +473,9 @@ export class Client {
                 await this.processTapes(m, m.id, m.channel, tapes);
             }
         }
+        // process the confirmations
+        await this.processConfirmations(tapes);
         if (tapes.length > 0) {
-            this.debug('write-tapes', tapes);
             await this.db.tapes.bulkPut(
                 tapes.map((t) => {
                     t.updated = this.nextSequenceNumber();
@@ -481,6 +484,74 @@ export class Client {
             );
         }
     };
+
+    async processConfirmations(tapes: Tape[]) {
+        if (this.channelPeerIds.length === 0) {
+            this.debug('channel-peers-not-set-yet');
+            return;
+        }
+        if (this.interlace === undefined) {
+            this.debug('interlace-not-set-yet');
+            return;
+        }
+        const interlace = this.interlace;
+        const requiredAcknowledgements =
+            requiredConfirmationsFor(interlace) - 1;
+        for (const tape of tapes) {
+            const tapeThatAcksTheAcker =
+                tapes.find((t) => t.round === tape.round + interlace) ||
+                (await this.db.tapes
+                    .where(['channel', 'round'])
+                    .equals([tape.channel, tape.round + interlace])
+                    .first());
+            if (!tapeThatAcksTheAcker) {
+                // too early to process confirmations
+                continue;
+            }
+            // fetch the tape that messages in this tape should be acking
+            const ackedTape =
+                tapes.find((t) => t.round === tape.round - interlace) ||
+                (await this.db.tapes
+                    .where(['channel', 'round'])
+                    .equals([tape.channel, tape.round - interlace])
+                    .first());
+            if (!ackedTape) {
+                this.debug('missing-acked-tape', tape.round - interlace);
+                continue;
+            }
+            // for each acked message in the ackedTape
+            let ackedTapeUpdated = false;
+            for (const [msgIndex, acks] of ackedTape.acks.entries()) {
+                // check that either the msg is acknowledged by a supermajority
+                // OR at least one of the acks is itself well-acked by a
+                // supermajarity.
+                const isConfirmed =
+                    acks.length >= requiredAcknowledgements ||
+                    acks.some((ackId) => {
+                        // find the acked message index in the child tape
+                        const ackerIndex = tape.ids.indexOf(ackId);
+                        if (ackerIndex === -1) {
+                            return false;
+                        }
+                        return (
+                            tape.acks[ackerIndex].length >=
+                            requiredAcknowledgements
+                        );
+                    });
+                if (isConfirmed !== ackedTape.confirmed[msgIndex]) {
+                    ackedTape.confirmed[msgIndex] = isConfirmed;
+                    ackedTapeUpdated = true;
+                }
+            }
+            if (ackedTape.predicted) {
+                ackedTape.predicted = false;
+                ackedTapeUpdated = true;
+            }
+            if (ackedTapeUpdated && !tapes.some((t) => t === ackedTape)) {
+                tapes.push(ackedTape);
+            }
+        }
+    }
 
     async processTapes(
         m: StoredChainMessage,
@@ -515,8 +586,11 @@ export class Client {
                 acks: new Array(this.channelPeerIds.length)
                     .fill(null)
                     .map(() => []),
-                final: false,
+                confirmed: new Array(this.channelPeerIds.length)
+                    .fill(null)
+                    .map(() => false),
                 updated: 0,
+                predicted: true,
             };
             needsUpdate = true;
         }
@@ -584,8 +658,11 @@ export class Client {
                     acks: new Array(this.channelPeerIds.length)
                         .fill(null)
                         .map(() => []),
-                    final: false,
+                    confirmed: new Array(this.channelPeerIds.length)
+                        .fill(null)
+                        .map(() => false),
                     updated: 0,
+                    predicted: true,
                 };
                 needsUpdate = true;
             }
@@ -617,6 +694,7 @@ export class Client {
             return;
         }
         // if channel peers has changed update it
+        this.interlace = msg.interlace;
         this.channelPeerIds = msg.peers
             .map((p) => Buffer.from(p).toString('hex'))
             .sort((a, b) => (a < b ? -1 : 1));
@@ -628,6 +706,7 @@ export class Client {
         ) {
             await this.db.channels.update(channel.id, {
                 peers: this.channelPeerIds,
+                interlace: msg.interlace,
             });
         }
     }
@@ -861,13 +940,21 @@ export class Client {
             const signingKeys = await Encryption.createKeyPair(sharedKey);
             const subclusterId = signingKeys.publicKey;
             const scid = Buffer.from(subclusterId).toString('base64');
-            info = { id, name: '', peers: [], creator: '', scid };
+            info = {
+                id,
+                name: '',
+                peers: [],
+                creator: '',
+                scid,
+                interlace: -1,
+            };
             await this.db.channels.put(info);
         }
         if (this.channelPeerIds.length !== info.peers.length) {
             this.channelPeerIds = info.peers
                 .map((p) => Buffer.from(p).toString('hex'))
                 .sort((a, b) => (a < b ? -1 : 1));
+            this.interlace = info.interlace;
         }
         return info;
     }
@@ -927,9 +1014,10 @@ export class Client {
         return channelId;
     }
 
-    async setPeers(channelId: string, peers: string[]) {
+    async setPeers(channelId: string, peers: string[], interlace: number) {
         const msg: SetPeersMessage = {
             type: MessageType.SET_PEERS,
+            interlace,
             peers: peers
                 .sort()
                 .map((p) => Buffer.from(p, 'hex') as unknown as Uint8Array),
@@ -939,9 +1027,9 @@ export class Client {
     }
 
     private debug(..._args: any[]) {
-        // !isProduction
-        //     ? console.log(`[client/${this.shortId}]`, ..._args)
-        //     : null;
+        !isProduction
+            ? console.log(`[client/${this.shortId}]`, ..._args)
+            : null;
     }
 
     private err = (err) => {

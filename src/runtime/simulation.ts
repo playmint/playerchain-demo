@@ -176,8 +176,8 @@ export class Simulation {
                     startFromRound = tape.round - 1;
                 }
             });
-        // always fetch enough to recalculate the wave
-        startFromRound = Math.max(startFromRound - 1, 1); // FIXME: this need to fetch interlace*2 rounds, removed while working on 4xplayer
+        // always fetch enough to recalculate the confirmations
+        startFromRound = Math.max(startFromRound, 1);
         // find the closest state to satisfy startFromRound
         // if we're already at the round we need, return it
         if (latestState.round === startFromRound) {
@@ -277,37 +277,23 @@ export class Simulation {
             round = {
                 round: tape.round,
                 updated: tape.updated,
-                inputs: tape.inputs.map((input, i) => ({
-                    id: this.channelPeerIds[i],
-                    input: input > 0 ? input : 0,
-                })),
+                inputs: tape.inputs.map((input, i) => {
+                    let validatedInput = input > -1 ? input : 0;
+                    if (!tape.predicted && !tape.confirmed[i]) {
+                        // console.log(`DROP INPUT round=${tape.round} id=${i}`);
+                        validatedInput = 0;
+                    }
+                    return {
+                        id: this.channelPeerIds[i],
+                        input: validatedInput,
+                    };
+                }),
             };
             prevRound = tape.round;
             roundData.push(round);
             if (tape.updated > round.updated) {
                 round.updated = tape.updated;
             }
-            // if round is at or after the finalization point, then
-            // we need to check if the message is accepted or rejected
-            // const offsetFromFinalization = latestRound - m.round;
-            // const needsFinalization =
-            //     offsetFromFinalization > this.interlace * 2;
-            // let accepted = true;
-            // // is well acked?
-            // // TODO: reduce this number to supermajority
-            // const requiredConfirmations = 0;
-            // if (
-            //     needsFinalization &&
-            //     m.confirmations[requiredConfirmations] < requiredConfirmations
-            // ) {
-            //     console.log(
-            //         `DROP INPUT needed=${requiredConfirmations} got=${m.confirmations[requiredConfirmations]} all=${m.confirmations}`,
-            //     );
-            //     accepted = false;
-            // }
-            // inp.input = accepted && m.type == MessageType.INPUT ? m.data : 0;
-
-            // round.unconfirmed = !needsFinalization;
         }
         // apply the messages on top of the state
         let runs = 0;
