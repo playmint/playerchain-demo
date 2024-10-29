@@ -9,8 +9,8 @@ import {
 } from '../../spaceshooter';
 
 
-export const BULLET_SPEED = 88;
-export const BULLET_MAX_VELOCITY = 290;
+export const BULLET_SPEED = 85;
+export const BULLET_MAX_VELOCITY = 275;
 export const BULLET_LIFETIME = 20; // seconds
 export const BULLET_HEALTH_COST = 13;
 export const BULLET_INHERIT_VELOCITY = 1; //What % velocity do they inherit from firing ship
