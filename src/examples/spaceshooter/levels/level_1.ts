@@ -2707,5 +2707,5 @@ export default {
     
   ],
   spawnRadius: 210,
-  wallColliderWidth: 3
+  wallColliderWidth: 8
 };
