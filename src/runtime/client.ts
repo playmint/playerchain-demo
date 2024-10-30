@@ -533,10 +533,7 @@ export class Client {
                         if (ackerIndex === -1) {
                             return false;
                         }
-                        return (
-                            tape.acks[ackerIndex].length >=
-                            requiredAcknowledgements
-                        );
+                        return tape.acks[ackerIndex].length >= 1;
                     });
                 if (isConfirmed !== ackedTape.confirmed[msgIndex]) {
                     ackedTape.confirmed[msgIndex] = isConfirmed;
