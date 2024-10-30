@@ -29,6 +29,21 @@ export function reflectVector(velocity: Vector2, normal: Vector2): Vector2 {
     };
 }
 
+export function perpendicularVector(
+    velocity: Vector2,
+    normal: Vector2,
+): Vector2 {
+    const dotProduct = velocity.x * normal.x + velocity.y * normal.y;
+    const projection = {
+        x: dotProduct * normal.x,
+        y: dotProduct * normal.y,
+    };
+    return {
+        x: Math.fround(velocity.x - projection.x),
+        y: Math.fround(velocity.y - projection.y),
+    };
+}
+
 function crossProduct(p1: Vector2, p2: Vector2): number {
     return Math.fround(p1.x * p2.y - p1.y * p2.x);
 }

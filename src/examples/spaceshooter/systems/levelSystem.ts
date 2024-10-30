@@ -151,7 +151,7 @@ function addWall(
     const rect = convertToRectangle(
         wall.position.x,
         wall.position.y,
-        wall.width + 1,
+        wall.width + 0.1,
         level.wallColliderWidth,
         wall.rotation,
     );

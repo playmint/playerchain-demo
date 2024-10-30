@@ -7,17 +7,12 @@ import {
     Rectangle,
     Vector2,
     intersectCircleRectangle,
+    perpendicularVector,
     reflectVector,
 } from '../utils/PhysicsUtils';
 import { BULLET_MAX_VELOCITY } from './bulletSystem';
 import { spacialMap } from './levelSystem';
-import {
-    BULLET_BOUNCINESS,
-    SHIP_BOUNCINESS,
-    SHIP_MAX_VELOCITY,
-} from './shipSystem';
-
-let collisionChecks = 0;
+import { SHIP_MAX_VELOCITY } from './shipSystem';
 
 export default system<ShooterSchema>(
     ({
@@ -37,9 +32,7 @@ export default system<ShooterSchema>(
                 !hasTag(eid, Tags.IsWall) &&
                 entity.active[eid],
         );
-        const steps = 2; // number of times we check physics between updates
-
-        collisionChecks = 0;
+        const steps = 1; // number of times we check physics between updates
 
         // console.time('physics');
         // apply physics
@@ -138,6 +131,7 @@ export default system<ShooterSchema>(
                                 position,
                                 rotation,
                                 collider,
+                                entity,
                                 hasTag,
                             });
                         }
@@ -198,7 +192,6 @@ function collideCircle(
         return;
     }
 
-    collisionChecks++;
     const distance = Math.sqrt(
         (circle1.center.x - circle2.center.x) ** 2 +
             (circle1.center.y - circle2.center.y) ** 2,
@@ -252,13 +245,13 @@ function collideBox(
         position,
         rotation,
         collider,
+        entity,
         hasTag,
     }: Pick<
         SystemArgs<ShooterSchema>,
-        'collider' | 'velocity' | 'position' | 'rotation' | 'hasTag'
+        'collider' | 'velocity' | 'position' | 'rotation' | 'hasTag' | 'entity'
     >,
 ) {
-    collisionChecks++;
     // Detect collisions with walls
     const point: Vector2 = {
         x: position.x[thisEid],
@@ -296,15 +289,16 @@ function collideBox(
         y: velocity.y[thisEid],
     });
     if (collision.collision) {
-        const reflectedvelocity = reflectVector(vel, collision.normal);
-
-        const bounciness = hasTag(thisEid, Tags.IsBullet)
-            ? BULLET_BOUNCINESS
-            : hasTag(thisEid, Tags.IsShip)
-              ? SHIP_BOUNCINESS
-              : 0;
-        velocity.x[thisEid] = Math.fround(reflectedvelocity.x * bounciness);
-        velocity.y[thisEid] = Math.fround(reflectedvelocity.y * bounciness);
+        if (hasTag(thisEid, Tags.IsBullet)) {
+            // const newVel = reflectVector(vel, collision.normal);
+            velocity.x[thisEid] = 0;
+            velocity.y[thisEid] = 0;
+        } else if (hasTag(thisEid, Tags.IsShip)) {
+            const bounce = reflectVector(vel, collision.normal);
+            const slide = perpendicularVector(vel, collision.normal);
+            velocity.x[thisEid] = Math.fround(slide.x + bounce.x * 0.33);
+            velocity.y[thisEid] = Math.fround(slide.y + bounce.y * 0.33);
+        }
 
         position.x[thisEid] = Math.fround(
             collision.point.x + collision.normal.x * circle.radius,

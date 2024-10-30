@@ -11,14 +11,14 @@ import {
 } from '../../spaceshooter';
 import level from '../levels/level_1';
 
-
-export const SHIP_THRUST_RATE = 73;
-export const SHIP_ROTATION_RATE = Math.fround(Math.PI / 0.75);
+export const SHIP_THRUST_RATE = 145;
+export const SHIP_ROTATION_RATE_TAP = 2;
+export const SHIP_ROTATION_RATE_SPIN = 6;
+export const SHIP_ROTATION_TAP_THRESHOLD = 2;
 export const SHIP_RESPAWN_RADIUS = level.spawnRadius;
-export const SHIP_MAX_VELOCITY = 70;
+export const SHIP_MAX_VELOCITY = 80;
 export const BULLET_DAMAGE = 100;
 export const BULLET_BOUNCINESS = 1;
-export const SHIP_BOUNCINESS = 0.85;
 
 export default system<ShooterSchema>(
     ({
@@ -82,15 +82,33 @@ export default system<ShooterSchema>(
                       : 0;
 
                 // apply ship rotation
+                if (
+                    player.spinTimer > 0 &&
+                    !hasInput(player.input, Input.Left) &&
+                    !hasInput(player.input, Input.Right)
+                ) {
+                    player.spinTimer -= 1;
+                }
+                const rotationRate =
+                    player.spinTimer < SHIP_ROTATION_TAP_THRESHOLD
+                        ? SHIP_ROTATION_RATE_TAP
+                        : SHIP_ROTATION_RATE_SPIN;
                 if (hasInput(player.input, Input.Left)) {
                     rotation.z[player.ship] = Math.fround(
-                        rotation.z[player.ship] +
-                            SHIP_ROTATION_RATE * deltaTime,
+                        rotation.z[player.ship] + rotationRate * deltaTime,
                     );
-                } else if (hasInput(player.input, Input.Right)) {
+                    player.spinTimer = Math.min(
+                        player.spinTimer + 1,
+                        SHIP_ROTATION_TAP_THRESHOLD,
+                    );
+                }
+                if (hasInput(player.input, Input.Right)) {
                     rotation.z[player.ship] = Math.fround(
-                        rotation.z[player.ship] -
-                            SHIP_ROTATION_RATE * deltaTime,
+                        rotation.z[player.ship] - rotationRate * deltaTime,
+                    );
+                    player.spinTimer = Math.min(
+                        player.spinTimer + 1,
+                        SHIP_ROTATION_TAP_THRESHOLD,
                     );
                 }
 
@@ -138,7 +156,7 @@ function addShip({
     entity.generation[eid] = 0;
 
     // Pool bullets:
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 6; i++) {
         addBullet(eid, {
             addEntity,
             addTag,

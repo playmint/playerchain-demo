@@ -21,7 +21,7 @@ function fallbackRender({ error }) {
 }
 
 export default function App(_props: { instance: number }) {
-    const [channelPanelOpen, setChannelPanelOpen] = useState(!isMobile);
+    const [channelPanelOpen, setChannelPanelOpen] = useState(false);
     const toggleChannelPanel = useCallback(() => {
         setChannelPanelOpen((prev) => !prev);
     }, []);

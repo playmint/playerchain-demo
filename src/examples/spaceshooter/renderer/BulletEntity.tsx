@@ -60,7 +60,7 @@ export default memo(function BulletEntity({
         const isMoving =
             !!world.components.entity.data.active[eid] &&
             world.components.stats.data.health[eid] > 0 &&
-            world.components.stats.data.health[eid] < BULLET_LIFETIME - 1;
+            world.components.stats.data.health[eid] < BULLET_LIFETIME - 2;
 
         // only show bullet when it's moving
         bullet.visible = isMoving;
@@ -71,7 +71,7 @@ export default memo(function BulletEntity({
             world,
             eid,
             deltaTime,
-            isMoving ? InterpolateSpeed.Fastest : InterpolateSpeed.Smooth,
+            isMoving ? InterpolateSpeed.Fastest : InterpolateSpeed.Quick,
         );
         interpolateEntityRotation(
             group,

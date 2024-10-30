@@ -7,7 +7,7 @@ const SCORE_HIT = 0;
 const SCORE_KILL = 100;
 const TOP_PLAYER_KILL_BONUS = 50;
 const MAX_MULTIPLIER = 5;
-const HEALTH_REGEN_PERC = 3;
+const HEALTH_REGEN_PERC = 1;
 
 export default system<ShooterSchema>(
     ({ query, players, entity, collider, stats, velocity, deltaTime }) => {

@@ -130,7 +130,7 @@ export default memo(function ShipEntity({
             world,
             eid,
             deltaTime,
-            InterpolateSpeed.Quick,
+            InterpolateSpeed.Fastest,
         );
         const rotationDiff = ship.rotation.z - rotationBefore;
 
@@ -154,7 +154,7 @@ export default memo(function ShipEntity({
                     .clone()
                     .sub(shipPos)
                     .normalize()
-                    .multiplyScalar(14),
+                    .multiplyScalar(34),
             );
             // if the point is in the frustum, set the marker position and show it
             markerRef.current.visible = true;

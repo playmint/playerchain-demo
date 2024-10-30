@@ -71,6 +71,8 @@ export const schema = {
         kills: Type.u32,
         deaths: Type.u32,
         deathTimer: Type.f32,
+        shootTimer: Type.f32,
+        spinTimer: Type.f32,
     },
     components: {
         entity: {
@@ -240,6 +242,8 @@ export class SpaceShooter implements GameModule {
                     kills: 0,
                     deaths: 0,
                     deathTimer: 0,
+                    shootTimer: 0,
+                    spinTimer: 0,
                 });
             }
             p.input = data.input;

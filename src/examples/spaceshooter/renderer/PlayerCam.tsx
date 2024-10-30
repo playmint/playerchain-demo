@@ -11,7 +11,7 @@ import {
 import { getShakeOffset } from './ShakeManager';
 import { WorldRef } from './ShooterRenderer';
 
-const CAM_INITIAL_ZOOM = 140;
+const CAM_INITIAL_ZOOM = 100;
 
 // camera and scene setup for following a player's ship
 export default memo(function PlayerCam({
@@ -50,7 +50,7 @@ export default memo(function PlayerCam({
         const snapiness =
             world.components.entity.data.generation[player.ship] ===
             (camera as EntityObject3D).__generation
-                ? InterpolateSpeed.Fastest
+                ? InterpolateSpeed.Smooth
                 : InterpolateSpeed.Snap;
         camera.position.x = Math.max(
             Math.min(
@@ -85,7 +85,7 @@ export default memo(function PlayerCam({
                 world.components.velocity.data.y[player.ship] *
                     world.components.velocity.data.y[player.ship],
         );
-        const zoom = CAM_INITIAL_ZOOM + vmag;
+        const zoom = CAM_INITIAL_ZOOM + vmag * 2;
         camera.position.z = interpolate(
             camera.position.z,
             zoom,

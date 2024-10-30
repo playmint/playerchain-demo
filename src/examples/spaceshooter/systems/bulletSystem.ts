@@ -8,12 +8,12 @@ import {
     hasInput,
 } from '../../spaceshooter';
 
-
-export const BULLET_SPEED = 85;
-export const BULLET_MAX_VELOCITY = 275;
-export const BULLET_LIFETIME = 20; // seconds
-export const BULLET_HEALTH_COST = 13;
+export const BULLET_SPEED = 120;
+export const BULLET_MAX_VELOCITY = 300;
+export const BULLET_LIFETIME = 40; // seconds
+export const BULLET_HEALTH_COST = 10;
 export const BULLET_INHERIT_VELOCITY = 1; //What % velocity do they inherit from firing ship
+export const BULLET_COOLDOWN = 3; // ticks
 
 export const DEATH_TIMER = 2; // seconds to wait after death before respawning
 
@@ -76,6 +76,11 @@ export default system<ShooterSchema>(
                 return;
             }
 
+            // tick down the shoot timer
+            if (player.shootTimer > 0) {
+                player.shootTimer = player.shootTimer - 1;
+            }
+
             // No shooting if either round hasn't started (round == 0) or round has ended (t > round)
             if (t >= sessionEnd) {
                 return;
@@ -87,7 +92,8 @@ export default system<ShooterSchema>(
                 hasInput(player.input, Input.Fire) &&
                 stats.health[player.ship] > BULLET_HEALTH_COST &&
                 t < sessionEnd &&
-                t > sessionStart
+                t > sessionStart &&
+                player.shootTimer === 0
             ) {
                 // find an available bullet
                 const bullet = bullets.find(
@@ -98,19 +104,23 @@ export default system<ShooterSchema>(
                 if (!bullet) {
                     continue;
                 }
+                player.shootTimer = BULLET_COOLDOWN;
                 stats.health[player.ship] -= BULLET_HEALTH_COST;
 
                 position.x[bullet] = position.x[player.ship];
                 position.y[bullet] = position.y[player.ship];
                 rotation.z[bullet] = rotation.z[player.ship];
 
+                const jitter = (bullet % 2) * 0.05 - 0.05;
                 velocity.x[bullet] = Math.fround(
                     velocity.x[player.ship] * BULLET_INHERIT_VELOCITY +
-                        Math.cos(rotation.z[player.ship]) * BULLET_SPEED,
+                        Math.cos(rotation.z[player.ship] + jitter) *
+                            BULLET_SPEED,
                 );
                 velocity.y[bullet] = Math.fround(
                     velocity.y[player.ship] * BULLET_INHERIT_VELOCITY +
-                        Math.sin(rotation.z[player.ship]) * BULLET_SPEED,
+                        Math.sin(rotation.z[player.ship] + jitter) *
+                            BULLET_SPEED,
                 );
 
                 stats.health[bullet] = BULLET_LIFETIME; // Bullet "health" is lifetime of bullet before disappearing

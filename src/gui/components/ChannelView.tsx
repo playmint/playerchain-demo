@@ -27,7 +27,7 @@ import { Operation, TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
 const MAX_PLAYERS = 4;
-export const FIXED_UPDATE_RATE = 100;
+export const FIXED_UPDATE_RATE = 30;
 export const INTERLACE = 4;
 export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
 export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
