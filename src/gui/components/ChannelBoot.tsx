@@ -1,5 +1,4 @@
 import { memo, useMemo } from 'react';
-import { config as socketConfig } from 'socket:application';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
@@ -7,7 +6,7 @@ import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
 import {
     getVersionNumberHash,
-    getVersionStringFromConfig,
+    getVersionString,
     splitChannelCode,
 } from '../../runtime/utils';
 import { ClientContextType, useClient } from '../hooks/use-client';
@@ -55,7 +54,7 @@ const terminalFlow = ({
                 await sleep(TERM_DELAY);
                 return (
                     <>
-                        <p>{getVersionStringFromConfig(socketConfig)}</p>
+                        <p>{getVersionString()}</p>
                         <br />
                     </>
                 );
@@ -314,9 +313,8 @@ const terminalFlow = ({
                         reject('invalid key');
                         return;
                     }
-                    const clientVersionHash = getVersionNumberHash(
-                        getVersionStringFromConfig(socketConfig),
-                    );
+                    const clientVersionHash =
+                        getVersionNumberHash(getVersionString());
                     if (hostVersionHash !== clientVersionHash) {
                         reject('client app version incompatible with host');
                         return;
