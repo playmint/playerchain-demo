@@ -46,10 +46,8 @@ export function ByRandom() {
     return 0.5 - Math.random();
 }
 
-export function getVersionStringFromConfig(socketConfig: any) {
-    return socketConfig['meta_title'].indexOf('v:') > -1
-        ? socketConfig['meta_title'].split('v:')[1]
-        : socketConfig['meta_version'];
+export function getVersionString() {
+    return import.meta.env.SS_VERSION || 'dev';
 }
 
 export function getVersionNumberHash(version: string) {
@@ -58,11 +56,11 @@ export function getVersionNumberHash(version: string) {
 
 const CHANNEL_CODE_DELIMITER = ':';
 
-export function getChannelCode(channelId: string, socketConfig: any) {
+export function getChannelCode(channelId: string) {
     return (
         channelId +
         CHANNEL_CODE_DELIMITER +
-        getVersionNumberHash(getVersionStringFromConfig(socketConfig))
+        getVersionNumberHash(getVersionString())
     );
 }
 

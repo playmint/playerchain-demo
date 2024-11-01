@@ -1,6 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { config as socketConfig } from 'socket:application';
 import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
 import { getProxyName } from '../../runtime/bootstrap';
 import { ChannelInfo } from '../../runtime/channels';
@@ -52,7 +51,7 @@ export default memo(function ChannelView({
 
     const copyKeyToClipboard = () => {
         navigator.clipboard
-            .writeText(getChannelCode(channel.id, socketConfig))
+            .writeText(getChannelCode(channel.id))
             .catch((err) => {
                 console.error('clipboard write failed:', err);
             });
@@ -202,7 +201,7 @@ export default memo(function ChannelView({
                             alignItems: 'center',
                         }}
                     >
-                        {getChannelCode(channel.id, socketConfig)}{' '}
+                        {getChannelCode(channel.id)}{' '}
                         <span
                             className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                             style={{ padding: '0 4px', cursor: 'pointer' }}

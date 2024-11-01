@@ -96,7 +96,7 @@ jobs:
               env:
                   APPLE_ID: ${{ secrets.APPLE_ID }}
                   APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-                  VERSION: '${{ github.ref_name }}'
+                  SS_VERSION: '${{ github.ref_name }}'
               run: |
                   ssc --version
                   pnpm install
@@ -178,7 +178,7 @@ jobs:
             - name: build app
               working-directory: './app'
               env:
-                  VERSION: '${{ github.ref_name }}'
+                  SS_VERSION: '${{ github.ref_name }}'
               run: |
                   ssc --version
                   pnpm install
@@ -250,7 +250,7 @@ jobs:
             # - name: build app
             #   working-directory: './app'
             #   env:
-            #       VERSION: '${{ github.ref_name }}'
+            #       SS_VERSION: '${{ github.ref_name }}'
             #   run: |
             #       ssc --version
             #       pnpm install
