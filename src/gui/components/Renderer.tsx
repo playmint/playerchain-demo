@@ -2,6 +2,7 @@ import * as Comlink from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FC, memo, useCallback, useEffect, useMemo } from 'react';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
+import HackerHouseRenderer from '../../examples/hackerhouse/renderer/HackerHouseRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
 import { RendererProps } from '../../runtime/game';
 import { DefaultMetrics } from '../../runtime/metrics';
@@ -39,6 +40,8 @@ export default memo(function Renderer({
             return CubesRenderer;
         } else if (/Shoot/.test(mod?.constructor.name || '')) {
             return ShooterRenderer;
+        } else if (/Hack/.test(mod?.constructor.name || '')) {
+            return HackerHouseRenderer;
         }
     }, [mod]);
 

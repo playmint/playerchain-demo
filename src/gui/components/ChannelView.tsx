@@ -32,7 +32,7 @@ export const INTERLACE = 4;
 export const SIM_INPUT_DELAY = 0; // number of ticks to avoid
 export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 
-const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
+const src = '/examples/hackerhouse.js'; // not a real src yet see runtime/game.ts
 
 export default memo(function ChannelView({
     channel,

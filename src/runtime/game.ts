@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import { Cubes } from '../examples/cubes';
 import { SpaceShooter } from '../examples/spaceshooter';
+import { HackerHouse } from '../examples/hackerhouse';
 import { DefaultMetrics } from './metrics';
 import { importStatic } from './utils';
 
@@ -45,6 +46,9 @@ export interface GameModule {
 export async function load(src: string): Promise<GameModule> {
     if (src.includes('spaceshooter')) {
         return new SpaceShooter();
+    }
+    else if (src.includes('hackerhouse')) {
+        return new HackerHouse();
     } else if (src.includes('cubes')) {
         return new Cubes();
     } else {
