@@ -401,7 +401,7 @@ export default memo(function ChannelView({
                             </div>
                         )}
                         <QRCodeSVG
-                            value={getChannelCode(channel.id, socketConfig)}
+                            value={getChannelCode(channel.id)}
                             marginSize={4}
                             fgColor="#222"
                             style={{
@@ -409,6 +409,7 @@ export default memo(function ChannelView({
                                 bottom: '1rem',
                                 right: '1rem',
                             }}
+                            onClick={copyKeyToClipboard}
                         />
                     </>
                 ) : !majorityReady || !selfIsInTheClub ? (
