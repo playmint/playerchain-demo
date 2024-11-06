@@ -6,7 +6,7 @@
     font-size: 0.93rem;
     padding: 1rem;
     flex-grow: 1;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .carat {
