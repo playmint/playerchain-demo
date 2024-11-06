@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import { QRCodeSVG } from 'qrcode.react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
 import { getProxyName } from '../../runtime/bootstrap';
@@ -14,7 +15,7 @@ import { useDatabase } from '../hooks/use-database';
 import { useSocket } from '../hooks/use-socket';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
-import { isProduction } from '../system/menu';
+import { isMobile, isProduction } from '../system/menu';
 import { TERM_DELAY } from './ChannelBoot';
 import Connectivity from './Connectivity';
 import PacketLace from './PacketLace';
@@ -184,7 +185,7 @@ export default memo(function ChannelView({
         },
         {
             text: (
-                <span>
+                <div>
                     <br />
                     <span>This game works best with 4 players.</span>
                     <br />
@@ -192,13 +193,14 @@ export default memo(function ChannelView({
                     <span className={termstyles.promptTextColor}>
                         Share this key with others to connect (click to copy):
                     </span>
-                    <div
+                    <span
                         className={termstyles.boldTextColor}
                         onClick={copyKeyToClipboard}
                         style={{
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
+                            overflowWrap: 'anywhere',
                         }}
                     >
                         {getChannelCode(channel.id)}{' '}
@@ -209,8 +211,8 @@ export default memo(function ChannelView({
                         >
                             content_copy
                         </span>
-                    </div>
-                </span>
+                    </span>
+                </div>
             ),
             promise: () =>
                 new Promise((resolve) => {
@@ -292,7 +294,11 @@ export default memo(function ChannelView({
                         );
                         return;
                     }
-                    if (potentialPeers.length < 2 && isProduction) {
+                    if (
+                        potentialPeers.length < 2 &&
+                        isProduction &&
+                        !isMobile
+                    ) {
                         reject(
                             <span className={'errorText'}>
                                 need at least 2 peers
@@ -366,10 +372,12 @@ export default memo(function ChannelView({
                             minWait={1000}
                             nextOpWait={500}
                             startIndex={0}
-                            style={{ height: '50vh' }}
                         />
                         {showConnectedPeers && (
-                            <div className={termstyles.terminal}>
+                            <div
+                                className={termstyles.terminal}
+                                style={{ minHeight: '10rem' }}
+                            >
                                 <p>Connected peers:</p>
                                 <ul>
                                     {potentialPeers.map((pid, playerIdx) => (
@@ -392,6 +400,16 @@ export default memo(function ChannelView({
                                 </ul>
                             </div>
                         )}
+                        <QRCodeSVG
+                            value={getChannelCode(channel.id, socketConfig)}
+                            marginSize={4}
+                            fgColor="#222"
+                            style={{
+                                position: 'absolute',
+                                bottom: '1rem',
+                                right: '1rem',
+                            }}
+                        />
                     </>
                 ) : !majorityReady || !selfIsInTheClub ? (
                     <TerminalView
