@@ -31,6 +31,8 @@ _Playerchains are a way for players to have full control of their own responsive
 
 :white_check_mark: &nbsp; Playerchains remove reliance on anyone outside your game’s group.
 
+Read more about why we think playerchains are cool [here](https://5p0rt5beard.substack.com/p/why-we-need-playerchains)
+
 <br />
 
 ## How do Playerchains work?
@@ -54,6 +56,8 @@ _Playerchains are a way for players to have full control of their own responsive
 :earth_africa: &nbsp; This global lattice, with a plurality of partial views, opens up new possibilities for connecting worlds.
 
 :speech_balloon: &nbsp; If you have comments or feedback, we'd love to hear from you! Come speak to us [in discord](https://discord.com/invite/VdXWWNaqGN)
+
+You can take a closer look at the architecture [here](https://5p0rt5beard.substack.com/p/playerchain-architecture)
 
 <br />
 
