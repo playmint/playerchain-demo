@@ -34,6 +34,7 @@ socket.ini
 
 # certs
 /ios_development.*
+/ios_distribution.*
 
 # This .gitignore file should be placed at the root of your Unity project directory
 #
