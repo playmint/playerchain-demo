@@ -372,6 +372,7 @@ export default memo(function ChannelView({
                             minWait={1000}
                             nextOpWait={500}
                             startIndex={0}
+                            style={{ paddingRight: isMobile ? '59pt' : '0' }}
                         />
                         {showConnectedPeers && (
                             <div
@@ -407,7 +408,8 @@ export default memo(function ChannelView({
                             style={{
                                 position: 'absolute',
                                 bottom: '1rem',
-                                right: '1rem',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
                             }}
                             onClick={copyKeyToClipboard}
                         />
