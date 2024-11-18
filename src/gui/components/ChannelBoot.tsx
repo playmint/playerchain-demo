@@ -14,6 +14,7 @@ import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSocket } from '../hooks/use-socket';
 import theme from '../styles/default.module.css';
+import { isMobile } from '../system/menu';
 import { TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
@@ -371,6 +372,7 @@ export default memo(function ChannelBoot() {
                 minWait={TERM_DELAY}
                 nextOpWait={TERM_DELAY}
                 startIndex={0}
+                style={{ paddingRight: isMobile ? '59pt' : '0' }}
             />
         </div>
     );
