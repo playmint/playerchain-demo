@@ -1,4 +1,5 @@
-import { memo, useMemo } from 'react';
+import QrScanner from 'qr-scanner';
+import { FunctionComponent, memo, useEffect, useMemo, useRef } from 'react';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
@@ -340,6 +341,81 @@ const openDiscord = async (socket: any) => {
     }
 };
 
+export const QRScannerModel: FunctionComponent = () => {
+    const videoElmRef = useRef<HTMLVideoElement | null>(null);
+
+    useEffect(() => {
+        let cleanupFunction: (() => void) | null = null;
+
+        const initializeQrScanner = async () => {
+            if (!videoElmRef.current) {
+                return;
+            }
+
+            const hasCamera = await QrScanner.hasCamera();
+            if (!hasCamera) {
+                console.error('No camera found');
+                return;
+            }
+
+            const qrScanner = new QrScanner(
+                videoElmRef.current,
+                (result) => console.log('decoded qr code:', result),
+                {
+                    /* your options or returnDetailedScanResult: true if you're not specifying any other options */
+                },
+            );
+
+            try {
+                await qrScanner.start();
+            } catch (err) {
+                console.error('qrScanner.start failed:', err);
+                return;
+            }
+
+            cleanupFunction = () => {
+                qrScanner.stop();
+            };
+        };
+
+        initializeQrScanner().catch((err) => {
+            console.error('initializeQrScanner failed:', err);
+            return;
+        });
+
+        return () => {
+            if (cleanupFunction) {
+                cleanupFunction();
+            }
+        };
+    }, [videoElmRef]);
+
+    return (
+        <div
+            style={{
+                position: 'absolute',
+                width: '50%',
+                height: '50%',
+                backgroundColor: 'red',
+            }}
+        >
+            <p>scan QR code</p>
+            <video
+                ref={videoElmRef}
+                style={{
+                    position: 'absolute',
+                    width: '10rem',
+                    height: '10rem',
+                    bottom: '1rem',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'black',
+                }}
+            ></video>
+        </div>
+    );
+};
+
 export default memo(function ChannelBoot() {
     const socket = useSocket();
     const { peerId } = useCredentials();
@@ -374,6 +450,7 @@ export default memo(function ChannelBoot() {
                 startIndex={0}
                 style={{ paddingRight: isMobile ? '59pt' : '0' }}
             />
+            <QRScannerModel />
         </div>
     );
 });
