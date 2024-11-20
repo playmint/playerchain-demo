@@ -1,6 +1,9 @@
 import * as Comlink from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FC, memo, useCallback, useEffect, useMemo } from 'react';
+import crosshair from '../../assets/symbols/crosshair.svg';
+import turnArrow from '../../assets/symbols/redo_turn_right_arrow.svg';
+import forwardArrow from '../../assets/symbols/up_arrow.svg';
 import CubesRenderer from '../../examples/cubes/CubesRenderer';
 import ShooterRenderer from '../../examples/spaceshooter/renderer/ShooterRenderer';
 import { RendererProps } from '../../runtime/game';
@@ -14,6 +17,7 @@ import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSimulation } from '../hooks/use-simulation';
 import { isMobile } from '../system/menu';
+import Joystick from './Joystick';
 
 export default memo(function Renderer({
     channelId,
@@ -237,57 +241,87 @@ export default memo(function Renderer({
                 channelId={channelId}
                 metrics={metrics}
             />
+
             {isMobile && (
-                <span
-                    style={{
-                        touchAction: 'none',
-                        pointerEvents: 'auto',
-                        userSelect: 'none',
-                        position: 'absolute',
-                        bottom: '1rem',
-                        left: '1rem',
-                        color: 'rgba(255,255,255,0.8)',
-                    }}
-                >
-                    <div
+                <>
+                    <Joystick
+                        onKeyUpCallback={onKeyUp}
+                        onKeyDownCallback={onKeyDown}
+                    />
+                    <span
                         style={{
-                            display: 'inline-block',
-                            padding: '1.5rem',
+                            touchAction: 'none',
                             pointerEvents: 'auto',
                             userSelect: 'none',
-                            background: 'rgba(0,0,0,0.5)',
-                        }}
-                        onTouchStart={(e) => {
-                            e.preventDefault();
-                            onKeyDown('ArrowLeft');
-                        }}
-                        onTouchEnd={(e) => {
-                            e.preventDefault();
-                            onKeyUp('ArrowLeft');
+                            position: 'absolute',
+                            bottom: '1rem',
+                            left: '1rem',
+                            color: 'rgba(255,255,255,0.8)',
                         }}
                     >
-                        LEFT
-                    </div>
-                    <div
-                        style={{
-                            display: 'inline-block',
-                            padding: '1.5rem',
-                            pointerEvents: 'auto',
-                            userSelect: 'none',
-                            background: 'rgba(0,0,0,0.5)',
-                        }}
-                        onTouchStart={(e) => {
-                            e.preventDefault();
-                            onKeyDown('ArrowRight');
-                        }}
-                        onTouchEnd={(e) => {
-                            e.preventDefault();
-                            onKeyUp('ArrowRight');
-                        }}
-                    >
-                        RGHT
-                    </div>
-                </span>
+                        <div
+                            style={{
+                                display: 'inline-block',
+                                padding: '1.5rem',
+                                pointerEvents: 'auto',
+                                userSelect: 'none',
+                                background: 'rgba(0,0,0,0.5)',
+                                borderRadius: '50%',
+                            }}
+                            onTouchStart={(e) => {
+                                e.preventDefault();
+                                onKeyDown('ArrowLeft');
+                            }}
+                            onTouchEnd={(e) => {
+                                e.preventDefault();
+                                onKeyUp('ArrowLeft');
+                            }}
+                        >
+                            <img
+                                src={turnArrow}
+                                style={{
+                                    filter: 'invert(100%) sepia(0%) saturate(0%) hue-rotate(321deg) brightness(101%) contrast(100%)',
+                                    width: '75px',
+                                    height: '75px',
+                                    WebkitTouchCallout: 'none',
+                                    WebkitUserSelect: 'none',
+                                    transform: 'scale(-1, 1)',
+                                }}
+                                draggable={false}
+                            />
+                        </div>
+                        <div
+                            style={{
+                                display: 'inline-block',
+                                padding: '1.5rem',
+                                pointerEvents: 'auto',
+                                userSelect: 'none',
+                                background: 'rgba(0,0,0,0.5)',
+                                borderRadius: '50%',
+                            }}
+                            onTouchStart={(e) => {
+                                e.preventDefault();
+                                onKeyDown('ArrowRight');
+                            }}
+                            onTouchEnd={(e) => {
+                                e.preventDefault();
+                                onKeyUp('ArrowRight');
+                            }}
+                        >
+                            <img
+                                src={turnArrow}
+                                style={{
+                                    filter: 'invert(100%) sepia(0%) saturate(0%) hue-rotate(321deg) brightness(101%) contrast(100%)',
+                                    width: '75px',
+                                    height: '75px',
+                                    WebkitTouchCallout: 'none',
+                                    WebkitUserSelect: 'none',
+                                }}
+                                draggable={false}
+                            />
+                        </div>
+                    </span>
+                </>
             )}
             {isMobile && (
                 <span
@@ -308,11 +342,22 @@ export default memo(function Renderer({
                             pointerEvents: 'auto',
                             userSelect: 'none',
                             background: 'rgba(0,0,0,0.5)',
+                            borderRadius: '50%',
                         }}
                         onTouchStart={() => onKeyDown('ArrowUp')}
                         onTouchEnd={() => onKeyUp('ArrowUp')}
                     >
-                        ACEL
+                        <img
+                            src={forwardArrow}
+                            style={{
+                                filter: 'invert(100%) sepia(0%) saturate(0%) hue-rotate(321deg) brightness(101%) contrast(100%)',
+                                width: '75px',
+                                height: '75px',
+                                WebkitTouchCallout: 'none',
+                                WebkitUserSelect: 'none',
+                            }}
+                            draggable={false}
+                        />
                     </div>
                     <div
                         style={{
@@ -321,11 +366,22 @@ export default memo(function Renderer({
                             pointerEvents: 'auto',
                             userSelect: 'none',
                             background: 'rgba(0,0,0,0.5)',
+                            borderRadius: '50%',
                         }}
                         onTouchStart={() => onKeyDown(' ')}
                         onTouchEnd={() => onKeyUp(' ')}
                     >
-                        FIRE
+                        <img
+                            src={crosshair}
+                            style={{
+                                filter: 'invert(100%) sepia(0%) saturate(0%) hue-rotate(321deg) brightness(101%) contrast(100%)',
+                                width: '75px',
+                                height: '75px',
+                                WebkitTouchCallout: 'none',
+                                WebkitUserSelect: 'none',
+                            }}
+                            draggable={false}
+                        />
                     </div>
                 </span>
             )}
