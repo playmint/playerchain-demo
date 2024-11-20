@@ -1,0 +1,31 @@
+.mainContainer {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+}
+
+.backgroundImage {
+    pointer-events: none;
+    position: absolute;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.startBtn {
+    position: absolute;
+    display: 5rem;
+    justify-content: center;
+    align-items: center;
+    left: 50%;
+    bottom: 5rem;
+    transform: translateX(-50%);
+
+    background: white;
+    color: #bf6cff;
+    padding: 5vh 10vh;
+    border-radius: 1rem;
+    font-weight: bold;
+    font-size: 5vh;
+    box-shadow: 0 0.6vh 0rem #bf6cff;
+}

@@ -124,6 +124,17 @@ export default memo(function ChannelView({
         });
     }, [client, channel.id, peerId, peers, channel?.creator]);
 
+    useEffect(() => {
+        if (!isMobile) {
+            return;
+        }
+
+        if (potentialPeers.length < 1) {
+            return;
+        }
+        acceptPeers();
+    });
+
     const peerNames = useLiveQuery(
         () => {
             return db.peerNames.toArray();
