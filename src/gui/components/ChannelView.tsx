@@ -124,16 +124,23 @@ export default memo(function ChannelView({
         });
     }, [client, channel.id, peerId, peers, channel?.creator]);
 
+    const [hasAcceptedPeers, setHasAcceptedPeers] = useState(false);
+
     useEffect(() => {
         if (!isMobile) {
+            return;
+        }
+
+        if (hasAcceptedPeers) {
             return;
         }
 
         if (potentialPeers.length < 1) {
             return;
         }
+        setHasAcceptedPeers(true);
         acceptPeers();
-    });
+    }, [acceptPeers, hasAcceptedPeers, potentialPeers]);
 
     const peerNames = useLiveQuery(
         () => {
