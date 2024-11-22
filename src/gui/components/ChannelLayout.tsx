@@ -2,10 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { memo } from 'react';
 import { DefaultMetrics } from '../../runtime/metrics';
 import { useDatabase } from '../hooks/use-database';
-import { isMobile } from '../system/menu';
 import ChannelBoot from './ChannelBoot';
 import ChannelView from './ChannelView';
-import { MobileBoot } from './MobileBoot';
 
 export default memo(function ChannelLayout({
     channelPanelOpen,
@@ -30,8 +28,6 @@ export default memo(function ChannelLayout({
             channel={channel}
             metrics={metrics}
         />
-    ) : isMobile ? (
-        <MobileBoot />
     ) : (
         <ChannelBoot />
     );

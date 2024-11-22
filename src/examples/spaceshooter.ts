@@ -241,17 +241,6 @@ export class SpaceShooter implements GameModule {
                     deaths: 0,
                     deathTimer: 0,
                 });
-
-                // HACK: for single player mode, spawn in a dummy ship
-                this.world.addPlayer('Dummy', {
-                    input: 0,
-                    ship: 0,
-                    score: 0,
-                    scoreMul: 1,
-                    kills: 0,
-                    deaths: 0,
-                    deathTimer: 0,
-                });
             }
             p.input = data.input;
         }
