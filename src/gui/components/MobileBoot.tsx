@@ -1,16 +1,31 @@
-import { FunctionComponent, useCallback } from 'react';
+import { FunctionComponent, useCallback, useState } from 'react';
 import backgroundImage from '../../assets/img/start-background.png';
 import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSocket } from '../hooks/use-socket';
-import bootstyles from './MobileBoot.module.css';
+import styles from './MobileBoot.module.css';
+
+interface PlayersReadyProps {
+    readyPlayers: number;
+}
+
+const PlayersReady: FunctionComponent<PlayersReadyProps> = ({
+    readyPlayers,
+}) => {
+    return (
+        <div className={styles.playersReady}>
+            {readyPlayers} / 4 players ready
+        </div>
+    );
+};
 
 export const MobileBoot: FunctionComponent = () => {
     const socket = useSocket();
     const { peerId } = useCredentials();
     const client = useClient();
     const db = useDatabase();
+    const [readyPlayers, setReadyPlayers] = useState(0);
 
     const onStartClick = useCallback(() => {
         if (!socket) {
@@ -37,10 +52,17 @@ export const MobileBoot: FunctionComponent = () => {
     }, [client, db.peerNames, peerId, socket]);
 
     return (
-        <div className={bootstyles.mainContainer}>
-            <img src={backgroundImage} className={bootstyles.backgroundImage} />
-            <div className={bootstyles.startBtn} onClick={onStartClick}>
-                Start
+        <div className={styles.mainContainer}>
+            <img src={backgroundImage} className={styles.backgroundImage} />
+            <div className={styles.container}>
+                <div className={styles.title}>SpaceShooter</div>
+                <PlayersReady readyPlayers={readyPlayers} />
+                <div className={styles.startBtn} onClick={onStartClick}>
+                    Start Game
+                </div>
+                <div className={styles.infoText}>
+                    min 2 players, best with 4
+                </div>
             </div>
         </div>
     );
