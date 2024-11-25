@@ -49,10 +49,10 @@
 }
 
 .titleText {
-    font-size: 2rem;
+    font-size: 1.5rem;
     color: #ffffff;
-    margin-top: 10px;
-    margin-bottom: auto;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
 }
 
 .playersReady {
@@ -65,7 +65,7 @@
     opacity: 0.6;
     font-size: 1rem;
     color: #ffffff;
-    margin-top: 5px;
+    margin-top: 12px;
 }
 
 .bottomSection {
