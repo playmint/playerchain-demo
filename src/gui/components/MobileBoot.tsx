@@ -55,7 +55,9 @@ export const MobileBoot: FunctionComponent = () => {
         <div className={styles.mainContainer}>
             <img src={backgroundImage} className={styles.backgroundImage} />
             <div className={styles.container}>
-                <div className={styles.title}>SpaceShooter</div>
+                <div className={styles.titleText}>
+                    Playerchain Space Shooter
+                </div>
                 <PlayersReady readyPlayers={readyPlayers} />
                 <div className={styles.startBtn} onClick={onStartClick}>
                     Start Game
