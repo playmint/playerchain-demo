@@ -63,7 +63,8 @@ export const MobileBoot: FunctionComponent = () => {
                     Start Game
                 </div>
                 <div className={styles.infoText}>
-                    min 2 players, best with 4
+                    Two players required to start. For the best experience, wait
+                    for four!
                 </div>
             </div>
         </div>
