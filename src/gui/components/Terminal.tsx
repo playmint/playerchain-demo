@@ -6,9 +6,10 @@ import {
     useRef,
     useState,
 } from 'react';
-import { isMobile, isWindows, newPlayerWindow } from '../system/menu';
+import platform from 'runtime:platform';
 import termstyles from './Terminal.module.css';
 
+const { isMobile, isWindows, newPlayerWindow } = platform;
 const InputStyle: React.CSSProperties = {
     color: 'white',
 };

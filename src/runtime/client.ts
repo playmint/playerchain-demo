@@ -2,9 +2,8 @@ import * as cbor from 'cbor-x';
 import * as Comlink from 'comlink';
 import Dexie from 'dexie';
 import _sodium from 'libsodium-wrappers';
+import platform from 'runtime:platform';
 import { Buffer } from 'socket:buffer';
-import { Encryption } from 'socket:latica';
-import { isProduction } from '../gui/system/menu';
 import { Channel, ChannelInfo, EmitOpts } from './channels';
 import database, {
     DB,
@@ -28,6 +27,7 @@ import {
     createSocketCluster,
 } from './network';
 import { PeerConfig } from './network/Peer';
+import { Encryption } from './network/encryption';
 import { requiredConfirmationsFor } from './sequencer';
 
 export interface ClientKeys {
@@ -1024,7 +1024,7 @@ export class Client {
     }
 
     private debug(..._args: any[]) {
-        !isProduction
+        !platform.isProduction
             ? console.log(`[client/${this.shortId}]`, ..._args)
             : null;
     }

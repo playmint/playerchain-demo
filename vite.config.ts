@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react-swc';
+import path from 'node:path';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import externalize from 'vite-plugin-externalize-dependencies';
@@ -13,6 +14,15 @@ export default defineConfig({
         }),
     ],
     envPrefix: 'SS',
+
+    resolve: {
+        alias: {
+            'runtime:platform': path.resolve(
+                __dirname,
+                'src/runtime/platform/socket.ts',
+            ),
+        },
+    },
     build: {
         outDir: 'dist',
         target: 'esnext',
@@ -22,7 +32,6 @@ export default defineConfig({
             external: externals,
             input: {
                 main: resolve(__dirname, 'index.html'),
-                test: resolve(__dirname, 'src/tests/tests.html'),
                 diorama: resolve(__dirname, 'src/diorama.html'),
             },
         },

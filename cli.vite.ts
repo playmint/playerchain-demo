@@ -56,10 +56,10 @@ export default defineConfig({
         alias: {
             'socket:dgram': 'node:dgram',
             'socket:buffer': path.join(SOCKET_HOME_API, 'buffer.js'),
-            'socket:node/index': path.join(SOCKET_HOME_API, 'node/index.js'),
-            'socket:latica': path.join(SOCKET_HOME_API, 'latica/index.js'),
-            'socket:crypto': path.join(SOCKET_HOME_API, 'crypto.js'),
-            'socket:util': path.join(SOCKET_HOME_API, 'util.js'),
+            'runtime:platform': path.resolve(
+                __dirname,
+                'src/runtime/platform/node.ts',
+            ),
         },
     },
     build: {

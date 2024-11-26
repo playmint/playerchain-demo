@@ -1,10 +1,13 @@
 import _sodium from 'libsodium-wrappers';
 import Buffer from 'socket:buffer';
-import { isArrayLike, isBufferLike } from 'socket:util';
+import { isArrayLike, isBufferLike } from '../utils';
 import { sha256 } from './packets.js';
 
+export const webcrypto =
+    (globalThis as any).crypto?.webcrypto ?? globalThis.crypto;
+
 await _sodium.ready;
-const sodium = _sodium;
+export const sodium = _sodium;
 
 /**
  * Class for handling encryption and key management.
@@ -319,4 +322,12 @@ function toUint8Array(buffer) {
     }
 
     return new Uint8Array(0);
+}
+
+export function randomBytes(size) {
+    return sodium.randombytes_buf(size);
+}
+
+export async function createDigest(algorithm, buf) {
+    return Buffer.from(await webcrypto.subtle.digest(algorithm, buf));
 }

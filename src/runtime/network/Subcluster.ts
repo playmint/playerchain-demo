@@ -1,7 +1,7 @@
 import _sodium from 'libsodium-wrappers';
 import { Buffer } from 'socket:buffer';
-import { isBufferLike } from 'socket:util';
 import { ChainMessage, Message, MessageType, decodeMessage } from '../messages';
+import { isBufferLike } from '../utils';
 import type Peer from './Peer';
 import type { Keys } from './Peer';
 import { Encryption } from './encryption';

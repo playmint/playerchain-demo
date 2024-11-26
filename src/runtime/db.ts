@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { Buffer } from 'socket:buffer';
 import { ChannelInfo } from './channels';
 import { ChainMessage, MessageType } from './messages';
 import type { State } from './simulation';

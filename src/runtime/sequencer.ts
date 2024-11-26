@@ -2,6 +2,7 @@
 // it is constantly attempting to write a block with
 import * as Comlink from 'comlink';
 import Dexie from 'dexie';
+import { Buffer } from 'socket:buffer';
 import { MathUtils } from 'three';
 import { SESSION_TIME_SECONDS } from '../examples/spaceshooter';
 import type { ClientContextType } from '../gui/hooks/use-client';

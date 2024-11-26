@@ -27,7 +27,10 @@
         "allowJs": true,
         "experimentalDecorators": true,
         "allowSyntheticDefaultImports": true,
-        "plugins": [{ "name": "typescript-plugin-css-modules" }]
+        "plugins": [{ "name": "typescript-plugin-css-modules" }],
+        "paths": {
+            "runtime:platform": ["./src/runtime/platform.ts"]
+        }
     },
     "include": [
         "./eslint.config.mjs",

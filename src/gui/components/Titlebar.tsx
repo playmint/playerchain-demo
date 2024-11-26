@@ -1,6 +1,6 @@
+import platform from 'runtime:platform';
 import { getVersionString } from '../../runtime/utils';
 import theme from '../styles/default.module.css';
-import { isWindows } from '../system/menu';
 
 export function Titlebar({
     toggleChannelPanel,
@@ -32,7 +32,7 @@ export function Titlebar({
             <div
                 className={theme.windowDrag}
                 style={{
-                    display: isWindows ? 'none' : 'flex',
+                    display: platform.isWindows ? 'none' : 'flex',
                     justifyContent: 'center',
                     gap: '1rem',
                     flexGrow: 1,

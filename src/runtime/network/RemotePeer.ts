@@ -1,3 +1,4 @@
+import { Buffer } from 'socket:buffer';
 import type Peer from './Peer';
 import { Subcluster } from './Subcluster';
 import Packet, { PacketPublish, PacketPublishProxied } from './packets';

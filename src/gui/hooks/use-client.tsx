@@ -1,10 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { Client, ClientConfig } from '../../runtime/client';
 
-export type ClientUserConfig = Omit<
-    ClientConfig,
-    'clusterId' | 'dgram' | 'config'
->;
+export type ClientUserConfig = Omit<ClientConfig, 'config' | 'clusterId'>;
 
 export interface ClientContextType {
     commit: Client['commit'];

@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { QRCodeSVG } from 'qrcode.react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import platform from 'runtime:platform';
 import { SESSION_TIME_SECONDS } from '../../examples/spaceshooter';
 import { getProxyName } from '../../runtime/bootstrap';
 import { ChannelInfo } from '../../runtime/channels';
@@ -15,7 +16,6 @@ import { useDatabase } from '../hooks/use-database';
 import { useSocket } from '../hooks/use-socket';
 import SimulationProvider from '../providers/SimulationProvider';
 import theme from '../styles/default.module.css';
-import { isMobile, isProduction } from '../system/menu';
 import { TERM_DELAY } from './ChannelBoot';
 import Connectivity from './Connectivity';
 import PacketLace from './PacketLace';
@@ -59,9 +59,12 @@ export default memo(function ChannelView({
     };
 
     const socket = useSocket();
-    const openDiscord = async (socket: any) => {
+    const openDiscord = async () => {
+        if (!socket) {
+            return;
+        }
         try {
-            await socket.window.openExternal('https://discord.gg/xKFyu8JF2g');
+            await socket.openExternal('https://discord.gg/xKFyu8JF2g');
         } catch (error) {
             console.error('Failed to open Discord link:', error);
         }
@@ -256,13 +259,13 @@ export default memo(function ChannelView({
                             display: 'flex',
                             alignItems: 'center',
                         }}
-                        onClick={() => openDiscord(socket)}
+                        onClick={openDiscord}
                     >
                         https://discord.gg/xKFyu8JF2g{' '}
                         <span
                             className={`${theme.materialSymbolsOutlined} ${termstyles.promptTextColor}`}
                             style={{ padding: '0 4px', cursor: 'pointer' }}
-                            onClick={() => openDiscord(socket)}
+                            onClick={openDiscord}
                         >
                             output
                         </span>
@@ -314,8 +317,8 @@ export default memo(function ChannelView({
                     }
                     if (
                         potentialPeers.length < 2 &&
-                        isProduction &&
-                        !isMobile
+                        platform.isProduction &&
+                        !platform.isMobile
                     ) {
                         reject(
                             <span className={'errorText'}>
@@ -390,7 +393,9 @@ export default memo(function ChannelView({
                             minWait={1000}
                             nextOpWait={500}
                             startIndex={0}
-                            style={{ paddingRight: isMobile ? '59pt' : '0' }}
+                            style={{
+                                paddingRight: platform.isMobile ? '59pt' : '0',
+                            }}
                         />
                         {showConnectedPeers && (
                             <div

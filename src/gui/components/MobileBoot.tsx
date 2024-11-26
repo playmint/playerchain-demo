@@ -18,7 +18,7 @@ export const MobileBoot: FunctionComponent = () => {
         }
 
         // Set name to peerId
-        const playerIndex = socket.window.index;
+        const playerIndex = socket.windowIndex;
         const defaultPlayerNameKey = `defaultPlayerName/${playerIndex}`;
         const defaultPlayerName = peerId.slice(0, 8);
         localStorage.setItem(defaultPlayerNameKey, defaultPlayerName);

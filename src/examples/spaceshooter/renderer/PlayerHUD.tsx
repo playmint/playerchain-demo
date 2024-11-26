@@ -1,9 +1,9 @@
 import { memo, useEffect, useState } from 'react';
+import platform from 'runtime:platform';
 import {
     FIXED_UPDATE_RATE,
     SIM_END,
 } from '../../../gui/components/ChannelView';
-import { isMobile } from '../../../gui/system/menu';
 import { PlayerData } from '../../../runtime/ecs';
 import { DefaultMetrics } from '../../../runtime/metrics';
 import { SESSION_TIME_SECONDS, ShooterSchema } from '../../spaceshooter';
@@ -127,7 +127,7 @@ export default memo(function PlayerHUD({
                             overflowWrap: 'break-word',
                         }}
                     >
-                        {!isMobile && (
+                        {!platform.isMobile && (
                             <Chat
                                 peerNames={peerNames}
                                 players={playersRef.current}
@@ -157,7 +157,7 @@ export default memo(function PlayerHUD({
                         )}
                     </div>
                     <div style={{ flex: 1 }}>
-                        {remaining !== 0 && !isMobile && (
+                        {remaining !== 0 && !platform.isMobile && (
                             <LeaderBoard
                                 players={playersRef.current}
                                 peerId={peerId}

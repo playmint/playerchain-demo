@@ -1,7 +1,7 @@
 import { Buffer } from 'socket:buffer';
-import { randomBytes } from 'socket:crypto';
-import { isBufferLike } from 'socket:util';
+import { isBufferLike } from '../utils';
 import Peer, { Cache, NAT } from './Peer';
+import { randomBytes } from './encryption';
 
 /**
  * Hash function factory.
@@ -153,7 +153,7 @@ for (const spec of Object.values(PACKET_SPEC)) {
 /**
  * The size in bytes of the total packet frame and message.
  */
-export const PACKET_BYTES = FRAME_BYTES + MESSAGE_BYTES;
+export const PACKET_BYTES = () => FRAME_BYTES + MESSAGE_BYTES;
 
 /**
  * The maximum distance that a packet can be replicated.
@@ -238,7 +238,7 @@ export const decode = (buf: Buffer) => {
         return null;
     }
 
-    buf = buf.slice(MAGIC_BYTES);
+    buf = Buffer.from(buf).slice(MAGIC_BYTES);
 
     const o = {};
     let offset = 0;
@@ -249,6 +249,11 @@ export const decode = (buf: Buffer) => {
         try {
             if (spec.encoding === 'number') {
                 const method = getMethod('read', spec.bytes, spec.signed);
+                if (!buf[method]) {
+                    throw new Error(
+                        `invalid buf[method] ${method} for ${buf?.constructor}`,
+                    );
+                }
                 o[k] = buf[method](offset);
                 offset += spec.bytes;
                 continue;
@@ -403,7 +408,7 @@ export class Packet {
     static async encode(p): Promise<Uint8Array> {
         p = { ...p };
 
-        const buf = Buffer.alloc(PACKET_BYTES); // buf length bust be < UDP MTU (usually ~1500)
+        const buf = Buffer.alloc(PACKET_BYTES()); // buf length bust be < UDP MTU (usually ~1500)
         if (!p.message) {
             return Buffer.concat([buf]);
         }

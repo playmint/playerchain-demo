@@ -1,11 +1,14 @@
 import React, { useLayoutEffect, useState } from 'react';
-import application from 'socket:application';
+import platform from 'runtime:platform';
 import { Loading } from '../components/Loading';
 import { SocketContext, SocketContextType } from '../hooks/use-socket';
 
 async function getSocketContext(): Promise<SocketContextType> {
-    const window = await application.getCurrentWindow();
-    return { window };
+    const windowIndex = await platform.getCurrentWindowIndex();
+    return {
+        windowIndex,
+        openExternal: platform.openExternal,
+    };
 }
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {

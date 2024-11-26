@@ -17228,16 +17228,16 @@ declare module "socket:service-worker/init" {
     const _default: any;
     export default _default;
 }
-declare function isTypedArray(object: any): boolean;
-declare function isTypedArray(object: any): boolean;
-declare function isArrayBuffer(object: any): object is ArrayBuffer;
-declare function isArrayBuffer(object: any): object is ArrayBuffer;
-declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
-declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
-declare const Uint8ArrayPrototype: Uint8Array;
-declare const TypedArrayPrototype: any;
-declare const TypedArray: any;
-declare const ports: any[];
+// declare function isTypedArray(object: any): boolean;
+// declare function isTypedArray(object: any): boolean;
+// declare function isArrayBuffer(object: any): object is ArrayBuffer;
+// declare function isArrayBuffer(object: any): object is ArrayBuffer;
+// declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
+// declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
+// declare const Uint8ArrayPrototype: Uint8Array;
+// declare const TypedArrayPrototype: any;
+// declare const TypedArray: any;
+// declare const ports: any[];
 
 declare module "socket:service-worker/storage" {
     /**
@@ -17767,15 +17767,15 @@ declare module "socket:test/harness" {
 declare module "socket:vm/init" {
     export {};
 }
-declare function isTypedArray(object: any): boolean;
-declare function isTypedArray(object: any): boolean;
-declare function isArrayBuffer(object: any): object is ArrayBuffer;
-declare function isArrayBuffer(object: any): object is ArrayBuffer;
-declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
-declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
-declare const Uint8ArrayPrototype: Uint8Array;
-declare const TypedArrayPrototype: any;
-declare const TypedArray: any;
+// declare function isTypedArray(object: any): boolean;
+// declare function isTypedArray(object: any): boolean;
+// declare function isArrayBuffer(object: any): object is ArrayBuffer;
+// declare function isArrayBuffer(object: any): object is ArrayBuffer;
+// declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
+// declare function findMessageTransfers(transfers: any, object: any, options?: any): any;
+// declare const Uint8ArrayPrototype: Uint8Array;
+// // declare const TypedArrayPrototype: any;
+// declare const TypedArray: any;
 declare class Client extends EventTarget {
     constructor(id: any, port: any);
     id: any;

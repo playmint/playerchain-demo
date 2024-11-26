@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import md5 from 'md5';
+import { Buffer } from 'socket:buffer';
 
 // stop vite being a nob and just let me do a dynamic import
 export async function importStatic(modulePath) {
@@ -69,4 +70,41 @@ export function splitChannelCode(channelCode: string) {
         CHANNEL_CODE_DELIMITER,
     );
     return { channelId, hostVersionHash };
+}
+
+const TypedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
+const TypedArray = TypedArrayPrototype.constructor;
+
+export function isArrayBuffer(object) {
+    return object !== null && object instanceof ArrayBuffer;
+}
+
+export function isBufferLike(object) {
+    return (
+        isArrayBuffer(object) || isTypedArray(object) || Buffer.isBuffer(object)
+    );
+}
+
+export function isTypedArray(input) {
+    return input instanceof TypedArray;
+}
+
+export function toBuffer(object, encoding = undefined) {
+    if (Buffer.isBuffer(object)) {
+        return object;
+    } else if (isTypedArray(object)) {
+        return Buffer.from(object.buffer);
+    } else if (typeof object?.toBuffer === 'function') {
+        return toBuffer(object.toBuffer(), encoding);
+    }
+
+    return Buffer.from(object, encoding);
+}
+
+export function isArrayLike(input) {
+    return (
+        (Array.isArray(input) || isTypedArray(input)) &&
+        input !== TypedArrayPrototype &&
+        input !== Buffer.prototype
+    );
 }
