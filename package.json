@@ -76,6 +76,7 @@
         "@types/ws": "^8.5.13",
         "@typescript-eslint/eslint-plugin": "^7.15.0",
         "@typescript-eslint/parser": "^7.15.0",
+        "@vite-pwa/assets-generator": "^0.2.6",
         "@vitejs/plugin-react-swc": "^3.5.0",
         "bitecs": "^0.3.40",
         "cbor-x": "^1.6.0",
