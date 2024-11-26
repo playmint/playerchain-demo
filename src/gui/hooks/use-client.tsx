@@ -13,6 +13,9 @@ export interface ClientContextType {
     init(cfg: ClientUserConfig): Promise<void>;
     shutdown(): Promise<void>;
     sendChatMessage: Client['sendChatMessage'];
+    emitLookingForMatch: Client['emitLookingForMatch'];
+    getMatchSeekingPeers: Client['getMatchSeekingPeers'];
+    requestSetPublicChannel: Client['requestSetPublicChannel'];
 }
 
 export const ClientContext = createContext<ClientContextType>(

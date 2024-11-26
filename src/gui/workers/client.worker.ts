@@ -63,6 +63,18 @@ export async function shutdown() {
     await client!.shutdown();
 }
 
+export async function emitLookingForMatch(isLooking: boolean) {
+    await client!.emitLookingForMatch(isLooking);
+}
+
+export async function getMatchSeekingPeers() {
+    return await client!.getMatchSeekingPeers();
+}
+
+export async function requestSetPublicChannel(channelId: string) {
+    await client!.requestSetPublicChannel(channelId);
+}
+
 const exports = {
     init,
     commit,
@@ -72,5 +84,8 @@ const exports = {
     shutdown,
     enqueue,
     sendChatMessage,
+    emitLookingForMatch,
+    getMatchSeekingPeers,
+    requestSetPublicChannel,
 };
 Comlink.expose(exports);

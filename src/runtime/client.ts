@@ -24,9 +24,12 @@ import {
     SocketNetwork,
     SocketRPCGetMessagesByHeight,
     SocketRPCRequest,
+    SocketRPCSetLookingForMatch,
+    SocketRPCSetPublicChannel,
     createSocketCluster,
 } from './network';
 import { PeerConfig } from './network/Peer';
+import { Subcluster } from './network/Subcluster';
 import { Encryption } from './network/encryption';
 import { requiredConfirmationsFor } from './sequencer';
 
@@ -90,6 +93,10 @@ export class Client {
     messageQueue: QueuedMessage[] = [];
     commitQueue: [ChainMessage, string | null][] = [];
     messageCache: Map<string, StoredMessage> = new Map();
+    lobbySubcluster: Comlink.Remote<Subcluster & Comlink.ProxyMarked> | null =
+        null;
+    matchSeekingPeers: Map<string, number> = new Map();
+    publicChannels: Map<string, number> = new Map();
 
     constructor(config: ClientConfig) {
         this.id = config.keys.publicKey;
@@ -99,6 +106,11 @@ export class Client {
         this.db = database.open(config.dbname);
         this.enableSync = config.enableSync !== false;
         this._ready = this.init(config);
+
+        this.pruneOldPublicChannels();
+        setInterval(() => {
+            this.pruneOldPublicChannels();
+        }, DEFAULT_TTL / 2);
     }
 
     static async from(config: ClientConfig): Promise<Client> {
@@ -126,6 +138,9 @@ export class Client {
             config: config.config,
             // dgram: config.dgram,
         });
+
+        this.lobbySubcluster = await this.joinLobby();
+
         // load any existing channels we know about
         this.debug('load-channels');
         const channels = await this.db.channels.toArray();
@@ -336,7 +351,7 @@ export class Client {
             return;
         }
         if (this.channelPeerIds.length === 0) {
-            this.debug('not ready to process messages yet');
+            // this.debug('not ready to process messages yet');
             return;
         }
         const queue = [...this.messageQueue];
@@ -1011,6 +1026,16 @@ export class Client {
         return channelId;
     }
 
+    async joinLobby() {
+        console.log('join-lobby');
+        const sharedKey = await Encryption.createSharedKey('spaceshooterLobby');
+        const subcluster = await this.net.socket.join({
+            sharedKey,
+        });
+        await subcluster.set('onRPC', Comlink.proxy(this.onRPCRequest));
+        return subcluster;
+    }
+
     async setPeers(channelId: string, peers: string[], interlace: number) {
         const msg: SetPeersMessage = {
             type: MessageType.SET_PEERS,
@@ -1050,7 +1075,7 @@ export class Client {
     private rpc = async (
         req: Omit<SocketRPCRequest, 'sender'>,
     ): Promise<any> => {
-        const r: SocketRPCGetMessagesByHeight = {
+        const r: SocketRPCRequest = {
             ...req,
             sender: this.peerId,
         };
@@ -1090,15 +1115,25 @@ export class Client {
             this.debug('RPC: drop: no handler for name ', req.name);
             return;
         }
-        await handler(req.args as any);
+        await handler({
+            ...(req.args as any),
+            sender: req.sender,
+            timestamp: req.timestamp,
+        });
     };
 
     private getRequestHandler = (name: SocketRPCRequest['name']) => {
         switch (name) {
             case 'requestMessagesById':
                 return this.requestMessagesById;
-            default:
+            case 'setLookingForMatch':
+                return this.setLookingForMatch;
+            case 'setPublicChannel':
+                return this.setPublicChannel;
+            default: {
+                console.log('no handler for name', name);
                 return null;
+            }
         }
     };
 
@@ -1125,6 +1160,53 @@ export class Client {
         }
         this.send(fromStoredChainMessage(msg), { ttl: DEFAULT_TTL });
         return 1;
+    };
+
+    private setLookingForMatch = async ({
+        isLooking,
+        sender,
+        timestamp,
+    }: SocketRPCSetLookingForMatch['args'] & {
+        sender: string;
+        timestamp: number;
+    }) => {
+        if (isLooking) {
+            // console.log(`peer ${sender} is looking for a match`);
+            if (this.matchSeekingPeers.has(sender)) {
+                this.matchSeekingPeers.set(
+                    sender,
+                    Math.max(
+                        timestamp,
+                        this.matchSeekingPeers.get(sender) || 0,
+                    ),
+                );
+            } else {
+                this.matchSeekingPeers.set(sender, timestamp);
+            }
+        } else {
+            // console.log(`peer ${sender} no longer looking for a match`);
+            this.matchSeekingPeers.delete(sender);
+        }
+    };
+
+    private setPublicChannel = async ({
+        channelId,
+        timestamp,
+    }: SocketRPCSetPublicChannel['args'] & {
+        sender: string;
+        timestamp: number;
+    }) => {
+        if (!channelId) {
+            return;
+        }
+        if (this.publicChannels.has(channelId)) {
+            timestamp = Math.max(
+                timestamp,
+                this.publicChannels.get(channelId) || 0,
+            );
+        }
+        this.publicChannels.set(channelId, timestamp);
+        await this.db.publicChannels.put({ id: channelId });
     };
 
     send = (m: Message, opts?: EmitOpts) => {
@@ -1164,5 +1246,90 @@ export class Client {
             await Dexie.delete(this.db.name);
         }
         this.debug('destroyed');
+    }
+
+    async emitLookingForMatch(isLooking: boolean) {
+        if (!this.lobbySubcluster) {
+            console.warn('emitLookingForMatch: no lobbySubcluster');
+            return;
+        }
+        // console.log('attempting to send setLookingForMatch');
+        const r: SocketRPCSetLookingForMatch = {
+            name: 'setLookingForMatch',
+            timestamp: Date.now(),
+            sender: this.peerId,
+            args: {
+                isLooking,
+            },
+        };
+
+        await this.lobbySubcluster.stream(
+            'rpc',
+            Buffer.from(cbor.encode(r)) as unknown as Uint8Array,
+            {
+                ttl: DEFAULT_TTL,
+            },
+        );
+    }
+
+    async requestSetPublicChannel(channelId: string) {
+        if (!this.lobbySubcluster) {
+            console.warn('requestSetPublicChannel: no lobbySubcluster');
+            return;
+        }
+
+        if (!channelId) {
+            return;
+        }
+
+        // console.log('attempting to send setLookingForMatch');
+        const r: SocketRPCSetPublicChannel = {
+            name: 'setPublicChannel',
+            timestamp: Date.now(),
+            sender: this.peerId,
+            args: {
+                channelId,
+            },
+        };
+
+        await this.lobbySubcluster.stream(
+            'rpc',
+            Buffer.from(cbor.encode(r)) as unknown as Uint8Array,
+            {
+                ttl: DEFAULT_TTL,
+            },
+        );
+    }
+
+    async getMatchSeekingPeers() {
+        const peers: string[] = [];
+        const deadPeers: string[] = [];
+        for (const [peerId, timestamp] of this.matchSeekingPeers) {
+            if (Date.now() - timestamp < DEFAULT_TTL) {
+                peers.push(peerId);
+            } else {
+                deadPeers.push(peerId);
+            }
+        }
+
+        deadPeers.forEach((p) => this.matchSeekingPeers.delete(p));
+
+        return peers;
+    }
+
+    pruneOldPublicChannels() {
+        const deadChannels: string[] = [];
+        for (const [channelId, timestamp] of this.publicChannels) {
+            if (Date.now() - timestamp > DEFAULT_TTL) {
+                deadChannels.push(channelId);
+            }
+        }
+
+        deadChannels.forEach((p) => {
+            this.publicChannels.delete(p);
+        });
+        deadChannels.forEach((p) => {
+            this.db.publicChannels.delete(p).catch(this.err);
+        });
     }
 }

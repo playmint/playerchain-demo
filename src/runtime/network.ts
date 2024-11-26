@@ -2,7 +2,7 @@ import * as Comlink from 'comlink';
 import { Buffer } from 'socket:buffer';
 import { NETWORK_ID } from './config';
 import { DB, NetworkInfo } from './db';
-import Peer, { Keys, PeerConfig } from './network/Peer';
+import Peer, { Encryption, Keys, PeerConfig } from './network/Peer';
 import * as NAT from './network/nat';
 import { sleep } from './timers';
 
@@ -228,17 +228,36 @@ export interface SocketEmitOpts {
     ttl?: number;
 }
 
-export type SocketRPCGetMessagesByHeight = {
-    name: 'requestMessagesById';
+export type SocketRPC = {
+    name: string;
     timestamp: number;
     sender: string;
+    args: any;
+};
+
+export interface SocketRPCGetMessagesByHeight extends SocketRPC {
+    name: 'requestMessagesById';
     args: {
         id: string;
         gap: number;
     };
-};
+}
 
-export type SocketRPCRequest = SocketRPCGetMessagesByHeight;
+export interface SocketRPCSetLookingForMatch extends SocketRPC {
+    name: 'setLookingForMatch';
+    args: {
+        isLooking: boolean;
+    };
+}
+
+export interface SocketRPCSetPublicChannel extends SocketRPC {
+    name: 'setPublicChannel';
+    args: {
+        channelId: string;
+    };
+}
+
+export type SocketRPCRequest = SocketRPC;
 
 export type SocketRPCResponse = {
     err?: string;

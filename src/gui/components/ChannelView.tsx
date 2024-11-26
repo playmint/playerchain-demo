@@ -34,14 +34,20 @@ export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
+const AUTO_JOIN_TIMEOUT = 15000;
+
 export default memo(function ChannelView({
     channel,
     details,
     metrics,
+    matchPeers,
+    autoJoin,
 }: {
     channel: ChannelInfo;
     details: boolean;
     metrics: DefaultMetrics;
+    matchPeers: string[];
+    autoJoin: boolean;
 }) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const { peerId } = useCredentials();
@@ -127,23 +133,54 @@ export default memo(function ChannelView({
         });
     }, [client, channel.id, peerId, peers, channel?.creator]);
 
-    // const [hasAcceptedPeers, setHasAcceptedPeers] = useState(false);
+    // Auto accept peers
+    const [hasAcceptedPeers, setHasAcceptedPeers] = useState(false);
+    const [autoJoinTimedOut, setAutoJoinTimedOut] = useState(false);
+    useEffect(() => {
+        if (!autoJoin) {
+            return;
+        }
 
-    // useEffect(() => {
-    //     if (!isMobile) {
-    //         return;
-    //     }
+        if (channel.creator !== peerId) {
+            return;
+        }
 
-    //     if (hasAcceptedPeers) {
-    //         return;
-    //     }
+        if (hasAcceptedPeers) {
+            return;
+        }
 
-    //     if (potentialPeers.length < 1) {
-    //         return;
-    //     }
-    //     setHasAcceptedPeers(true);
-    //     acceptPeers();
-    // }, [acceptPeers, hasAcceptedPeers, potentialPeers]);
+        // Check if all peers have joined
+        if (
+            !matchPeers.every((p) => potentialPeers.includes(p)) &&
+            !autoJoinTimedOut
+        ) {
+            return;
+        }
+
+        setHasAcceptedPeers(true);
+        acceptPeers();
+    }, [
+        acceptPeers,
+        autoJoin,
+        autoJoinTimedOut,
+        channel.creator,
+        hasAcceptedPeers,
+        matchPeers,
+        peerId,
+        potentialPeers,
+    ]);
+
+    useEffect(() => {
+        if (!autoJoin) {
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            setAutoJoinTimedOut(true);
+        }, AUTO_JOIN_TIMEOUT);
+
+        return () => clearTimeout(timeout);
+    }, [autoJoin]);
 
     const peerNames = useLiveQuery(
         () => {
@@ -368,6 +405,31 @@ export default memo(function ChannelView({
         });
     }
 
+    const autoJoinTerminalFlow: Operation[] = [
+        {
+            text: (
+                <span className={termstyles.boldTextColor}>
+                    Playerchain initializing...
+                </span>
+            ),
+            promise: () =>
+                new Promise((resolve) => {
+                    setTimeout(() => resolve('OK'), 500);
+                }),
+        },
+        {
+            text: (
+                <span className={termstyles.boldTextColor}>
+                    Wating for peers to connect...
+                </span>
+            ),
+            promise: () =>
+                new Promise((resolve) => {
+                    setTimeout(resolve, 1000);
+                }),
+        },
+    ];
+
     return (
         <div
             style={{
@@ -389,7 +451,9 @@ export default memo(function ChannelView({
                 {channel.peers.length === 0 ? (
                     <>
                         <TerminalView
-                            flow={terminalFlow}
+                            flow={
+                                autoJoin ? autoJoinTerminalFlow : terminalFlow
+                            }
                             minWait={1000}
                             nextOpWait={500}
                             startIndex={0}
@@ -397,7 +461,7 @@ export default memo(function ChannelView({
                                 paddingRight: platform.isMobile ? '59pt' : '0',
                             }}
                         />
-                        {showConnectedPeers && (
+                        {(showConnectedPeers || autoJoin) && (
                             <div
                                 className={termstyles.terminal}
                                 style={{ minHeight: '10rem' }}
@@ -424,18 +488,20 @@ export default memo(function ChannelView({
                                 </ul>
                             </div>
                         )}
-                        <QRCodeSVG
-                            value={getChannelCode(channel.id)}
-                            marginSize={4}
-                            fgColor="#222"
-                            style={{
-                                position: 'absolute',
-                                bottom: '1rem',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                            }}
-                            onClick={copyKeyToClipboard}
-                        />
+                        {!autoJoin && (
+                            <QRCodeSVG
+                                value={getChannelCode(channel.id)}
+                                marginSize={4}
+                                fgColor="#222"
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '1rem',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                }}
+                                onClick={copyKeyToClipboard}
+                            />
+                        )}
                     </>
                 ) : !majorityReady || !selfIsInTheClub ? (
                     <TerminalView

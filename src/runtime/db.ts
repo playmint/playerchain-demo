@@ -129,6 +129,10 @@ export type StoredMessage = StoredChainMessage & {
     // confirmations: MessageConfirmationMatrix;
 };
 
+export type PublicChannel = {
+    id: string;
+};
+
 export function fromStoredChainMessage(m: StoredChainMessage): ChainMessage {
     const shared = {
         peer: Buffer.from(m.peer, 'hex'),
@@ -235,6 +239,7 @@ export type DB = Dexie & {
     peerNames: EntityTable<PeerNames, 'peerId'>;
     tapes: EntityTable<Tape>;
     chat: EntityTable<StoredChatMessage, 'id'>;
+    publicChannels: EntityTable<PublicChannel, 'id'>;
 };
 
 export function open(name: string): DB {
@@ -251,6 +256,7 @@ export function open(name: string): DB {
         peerNames: 'peerId',
         tapes: '[channel+round], [channel+updated]',
         chat: 'id, arrived',
+        publicChannels: 'id',
     });
 
     return db;
