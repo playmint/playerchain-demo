@@ -1,6 +1,6 @@
 import { Buffer } from 'socket:buffer';
-import { createDigest } from 'socket:crypto';
-import { isBufferLike, toBuffer } from 'socket:util';
+import { isBufferLike, toBuffer } from '../utils';
+import { createDigest } from './encryption';
 import { PACKET_BYTES, Packet, PacketPublish, sha256 } from './packets';
 
 /**
@@ -20,7 +20,7 @@ function toBufferMaybe(m) {
 /**
  * Default max size of a `Cache` instance.
  */
-export const DEFAULT_MAX_SIZE = Math.ceil(16_000_000 / PACKET_BYTES);
+export const DEFAULT_MAX_SIZE = () => Math.ceil(16_000_000 / PACKET_BYTES());
 
 /**
  * @typedef {Packet} CacheEntry
@@ -75,7 +75,7 @@ export function defaultSiblingResolver(a, b) {
  */
 export class Cache {
     data: Map<string, any>;
-    maxSize = DEFAULT_MAX_SIZE;
+    maxSize = DEFAULT_MAX_SIZE();
     siblingResolver = defaultSiblingResolver;
     onEjected?: (entry: any) => void;
     onInsert?: (key: string, entry: any) => void;
@@ -117,7 +117,7 @@ export class Cache {
      * @type {number}
      */
     get bytes() {
-        return this.data.size * PACKET_BYTES;
+        return this.data.size * PACKET_BYTES();
     }
 
     /**

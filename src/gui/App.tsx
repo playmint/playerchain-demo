@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import platform from 'runtime:platform';
 import { createDefaultMetrics } from '../runtime/metrics';
 import ChannelLayout from './components/ChannelLayout';
 import StatusBar from './components/StatusBar';
@@ -9,7 +10,6 @@ import { CredentialsProvider } from './providers/CredentialsProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
 import { SettingsProvider } from './providers/SettingsProvider';
 import { SocketProvider } from './providers/SocketProvider';
-import { isMobile } from './system/menu';
 
 function fallbackRender({ error }) {
     return (
@@ -21,7 +21,7 @@ function fallbackRender({ error }) {
 }
 
 export default function App(_props: { instance: number }) {
-    const [channelPanelOpen, setChannelPanelOpen] = useState(!isMobile);
+    const [channelPanelOpen, setChannelPanelOpen] = useState(false);
     const toggleChannelPanel = useCallback(() => {
         setChannelPanelOpen((prev) => !prev);
     }, []);
@@ -38,7 +38,9 @@ export default function App(_props: { instance: number }) {
                 height: '100vh',
             }}
         >
-            {!isMobile && <Titlebar toggleChannelPanel={toggleChannelPanel} />}
+            {!platform.isMobile && (
+                <Titlebar toggleChannelPanel={toggleChannelPanel} />
+            )}
 
             <ErrorBoundary fallbackRender={fallbackRender}>
                 <SocketProvider>
@@ -59,7 +61,7 @@ export default function App(_props: { instance: number }) {
                                             metrics={metrics}
                                         />
                                     </div>
-                                    {!isMobile && (
+                                    {!platform.isMobile && (
                                         <StatusBar metrics={metrics} />
                                     )}
                                 </SettingsProvider>

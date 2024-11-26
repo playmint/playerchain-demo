@@ -1,14 +1,6 @@
-import application from 'socket:application';
-import process from 'socket:process';
+import platform from 'runtime:platform';
 import { sleep } from '../../runtime/timers';
 import { hardReset } from '../../runtime/utils';
-
-export const isMobile = /android|ios/.test(process.platform);
-export const forceMenu = false;
-// export const isMobile = true;
-// export const forceMenu = true;
-export const isWindows = /win32/.test(process.platform);
-export const isProduction = import.meta.env.MODE === 'production';
 
 interface MenuItem {
     name: string;
@@ -23,14 +15,14 @@ interface Menu {
     items: Array<MenuItem>;
 }
 
-export const devMenu: Menu = {
+const devMenu: Menu = {
     name: 'Dev',
     visible: () => true,
     items: [
         {
             name: 'New Player',
             shortcut: 'p + CommandOrControl',
-            handler: newPlayerWindow,
+            handler: platform.newPlayerWindow,
         },
         {
             name: '---',
@@ -66,16 +58,16 @@ const sysMenu: Menu[] = [
             {
                 name: 'Hide',
                 shortcut: 'h + CommandOrControl',
-                visible: () => process.platform == 'darwin',
+                visible: () => platform.os == 'darwin',
             },
             {
                 name: 'Hide Others',
                 shortcut: 'h + Control + Meta',
-                visible: () => process.platform == 'darwin',
+                visible: () => platform.os == 'darwin',
             },
             {
                 name: '---',
-                visible: () => process.platform == 'darwin',
+                visible: () => platform.os == 'darwin',
             },
             {
                 name: 'Quit',
@@ -111,21 +103,6 @@ const sysMenu: Menu[] = [
     devMenu,
 ];
 
-export async function newPlayerWindow() {
-    const windows = await application.getWindows();
-    const maxIndex = Math.max(...windows.values().map((w) => w.index));
-    await application.createWindow({
-        index: maxIndex + 1,
-        closable: true,
-        titlebarStyle: 'hidden',
-        path: `${window.origin}/index.html`,
-        width: 1152,
-        height: 768,
-        minWidth: 640,
-        minHeight: 480,
-    });
-}
-
 async function handleMenuSelection(
     menu: Menu[],
     parent: string,
@@ -147,7 +124,7 @@ async function handleMenuSelection(
 }
 
 export async function setSystemMenu() {
-    if (isWindows) {
+    if (platform.isWindows) {
         // causes duplicate menus on windows
         // for now we are putting important items in the "menu" button top right
         // of the layout.
@@ -158,11 +135,11 @@ export async function setSystemMenu() {
     }
     globalThis.__hasSetSystemMenu = true;
     // setup menu
-    if (forceMenu || !isMobile) {
+    if (!platform.isMobile) {
         const menuString = toMenuString(sysMenu);
-        const win = await application.getCurrentWindow();
-        await application.setSystemMenu({
-            index: win.index,
+        const index = await platform.getCurrentWindowIndex();
+        await platform.setSystemMenu({
+            index,
             value: menuString,
         });
 
@@ -174,22 +151,6 @@ export async function setSystemMenu() {
             ).catch((err) => console.error(err));
         });
     }
-}
-
-export async function setContextMenu(menu: Menu[]) {
-    if (isMobile) {
-        return;
-    }
-    const menuString = toMenuString(menu, true);
-    const win = await application.getCurrentWindow();
-    await win
-        .setContextMenu({
-            index: win.index,
-            value: menuString,
-        })
-        .then((value) =>
-            handleMenuSelection(menu, '---', value as unknown as string, true),
-        );
 }
 
 function toMenuString(menu: Menu[], isContext?: boolean) {

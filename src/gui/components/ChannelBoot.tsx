@@ -1,4 +1,6 @@
 import { memo, useMemo } from 'react';
+import platform from 'runtime:platform';
+import { Buffer } from 'socket:buffer';
 import { BOOTSTRAP_PEERS } from '../../runtime/bootstrap';
 import { NETWORK_ID } from '../../runtime/config';
 import { DB } from '../../runtime/db';
@@ -14,7 +16,6 @@ import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSocket } from '../hooks/use-socket';
 import theme from '../styles/default.module.css';
-import { isMobile } from '../system/menu';
 import { TerminalView } from './Terminal';
 import termstyles from './Terminal.module.css';
 
@@ -332,14 +333,6 @@ const terminalFlow = ({
     ];
 };
 
-const openDiscord = async (socket: any) => {
-    try {
-        await socket.window.openExternal('https://discord.gg/xKFyu8JF2g');
-    } catch (error) {
-        console.error('Failed to open Discord link:', error);
-    }
-};
-
 export default memo(function ChannelBoot() {
     const socket = useSocket();
     const { peerId } = useCredentials();
@@ -351,8 +344,13 @@ export default memo(function ChannelBoot() {
                 db,
                 peerId,
                 client,
-                playerIndex: socket!.window.index,
-                openDiscord: () => openDiscord(socket),
+                playerIndex: socket!.windowIndex,
+                openDiscord: async () => {
+                    if (!socket) {
+                        return;
+                    }
+                    await socket.openExternal('https://discord.gg/xKFyu8JF2g');
+                },
             }),
         [client, db, peerId, socket],
     );
@@ -372,7 +370,7 @@ export default memo(function ChannelBoot() {
                 minWait={TERM_DELAY}
                 nextOpWait={TERM_DELAY}
                 startIndex={0}
-                style={{ paddingRight: isMobile ? '59pt' : '0' }}
+                style={{ paddingRight: platform.isMobile ? '59pt' : '0' }}
             />
         </div>
     );

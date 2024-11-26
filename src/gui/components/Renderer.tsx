@@ -1,6 +1,7 @@
 import * as Comlink from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FC, memo, useCallback, useEffect, useMemo } from 'react';
+import platform from 'runtime:platform';
 import crosshair from '../../assets/symbols/crosshair.svg';
 import turnArrow from '../../assets/symbols/redo_turn_right_arrow.svg';
 import forwardArrow from '../../assets/symbols/up_arrow.svg';
@@ -16,7 +17,6 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import { useSimulation } from '../hooks/use-simulation';
-import { isMobile } from '../system/menu';
 import Joystick from './Joystick';
 
 export default memo(function Renderer({
@@ -242,7 +242,7 @@ export default memo(function Renderer({
                 metrics={metrics}
             />
 
-            {isMobile && (
+            {platform.isMobile && (
                 <>
                     <Joystick
                         onKeyUpCallback={onKeyUp}
@@ -323,7 +323,7 @@ export default memo(function Renderer({
                     </span>
                 </>
             )}
-            {isMobile && (
+            {platform.isMobile && (
                 <span
                     style={{
                         touchAction: 'none',

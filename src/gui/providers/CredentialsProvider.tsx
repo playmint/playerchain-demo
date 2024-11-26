@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { useState } from 'react';
+import platform from 'runtime:platform';
 import { Buffer } from 'socket:buffer';
-import { randomBytes } from 'socket:crypto';
-import { Encryption } from 'socket:network';
+import { Encryption, randomBytes } from '../../runtime/network/encryption';
 import { hardReset } from '../../runtime/utils';
 import { Loading } from '../components/Loading';
 import { TerminalView } from '../components/Terminal';
@@ -12,7 +12,6 @@ import {
     CredentialsContextType,
 } from '../hooks/use-credentials';
 import { useSocket } from '../hooks/use-socket';
-import { isProduction } from '../system/menu';
 
 async function createCredentials(
     playerIndex: number,
@@ -20,7 +19,7 @@ async function createCredentials(
     let existing = true;
     const peerSecretKey = `peerSecret/${playerIndex}`;
     let peerSecretValue = localStorage.getItem(peerSecretKey);
-    if (isProduction && peerSecretValue) {
+    if (platform.isProduction && peerSecretValue) {
         const keys = await Encryption.createKeyPair(peerSecretValue);
         const peerId = Buffer.from(keys.publicKey).toString('hex');
         const shortId = peerId.slice(0, 8);
@@ -31,7 +30,7 @@ async function createCredentials(
     }
     if (peerSecretValue === null) {
         existing = false;
-        peerSecretValue = randomBytes(64).toString('base64');
+        peerSecretValue = Buffer.from(randomBytes(64)).toString('base64');
         if (peerSecretValue === null) {
             throw new Error('Failed to generate peer secret');
         }
@@ -66,7 +65,7 @@ export const CredentialsProvider = ({
         if (!socket) {
             return;
         }
-        createCredentials(socket.window.index)
+        createCredentials(socket.windowIndex)
             .then(setCredentials)
             .then(() => console.log('credentials-created'))
             .catch((err) => console.error('credentials-create-err:', err));

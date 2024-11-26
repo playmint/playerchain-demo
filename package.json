@@ -8,6 +8,8 @@
         "dev:watch:ssc": "ssc build -o --run --host=localhost --port=3344",
         "dev:watch": "run-p --race dev:watch:*",
         "dev": "run-s clean genconfig dev:watch",
+        "web:dev": "vite -c pwa.vite.ts --port=3345 --strictPort=true --clearScreen=false --mode=offline",
+        "web:build": "vite -c pwa.vite.ts --mode=offline build",
         "ios:install": "run-s release:ios && ssc install-app --platform=ios",
         "ios:sim": "run-s clean genconfig start:vite && ssc build --platform=ios-simulator --run",
         "android:install": "run-s release:android && ssc install-app --platform=android",
@@ -71,6 +73,7 @@
         "@types/react": "^18.3.3",
         "@types/react-dom": "^18.3.0",
         "@types/three": "^0.167.1",
+        "@types/ws": "^8.5.13",
         "@typescript-eslint/eslint-plugin": "^7.15.0",
         "@typescript-eslint/parser": "^7.15.0",
         "@vitejs/plugin-react-swc": "^3.5.0",
@@ -105,6 +108,9 @@
         "uuid": "^10.0.0",
         "vite": "^5.3.4",
         "vite-plugin-externalize-dependencies": "^1.0.1",
-        "vitest": "^2.0.5"
+        "vite-plugin-pwa": "^0.21.0",
+        "vitest": "^2.0.5",
+        "wgram": "^0.0.1",
+        "ws": "^8.18.0"
     }
 }

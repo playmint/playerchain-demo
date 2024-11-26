@@ -2,6 +2,7 @@ import * as Comlink from 'comlink';
 import { useLiveQuery } from 'dexie-react-hooks';
 import React, { useEffect } from 'react';
 import { NETWORK_ID } from '../../runtime/config';
+import { sleep } from '../../runtime/timers';
 import { Loading } from '../components/Loading';
 import { useAsyncMemo } from '../hooks/use-async';
 import { ClientContext, ClientContextType } from '../hooks/use-client';
@@ -43,6 +44,10 @@ export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
             });
             console.log(`${dbname} worker started`);
             const c: ClientContextType = Comlink.wrap<ClientContextType>(w);
+            console.log('initiniting client sleep');
+            await sleep(2500);
+            console.log('initiniting client resume');
+
             await c.init({ keys, dbname });
             console.log(`${dbname} worker init`);
             defer(async () => {
@@ -71,7 +76,8 @@ export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
     }, [client, isReady, network]);
 
     if (!client) {
-        return <Loading />;
+        // return <Loading />;
+        return <div>loading client</div>;
     }
 
     if (!network) {

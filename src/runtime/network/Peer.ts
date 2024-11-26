@@ -3,14 +3,14 @@
  */
 import * as Comlink from 'comlink';
 import { Buffer } from 'socket:buffer';
-import { randomBytes, sodium } from 'socket:crypto';
-import dgram from 'socket:dgram';
-import { isBufferLike } from 'socket:util';
+import { createSocket } from 'socket:dgram';
 import { BOOTSTRAP_PEERS } from '../bootstrap';
+import { isBufferLike } from '../utils';
 import { RemotePeer } from './RemotePeer';
 import { Subcluster, SubclusterConfig } from './Subcluster';
 import { Cache } from './cache';
 import type { defaultSiblingResolver } from './cache';
+import { randomBytes } from './encryption';
 import { Encryption } from './encryption';
 import * as NAT from './nat';
 import {
@@ -25,6 +25,8 @@ import {
     VERSION,
     sha256,
 } from './packets';
+
+const websocketUrl = 'ws://localhost:8080';
 
 export { Packet, sha256, Cache, Encryption, NAT };
 
@@ -169,7 +171,7 @@ export class Peer {
     keepalive: number;
     pendingPings: Map<string, number> = new Map();
 
-    dgram: typeof import('socket:dgram');
+    createSocket: typeof createSocket;
 
     onListening?: () => void;
     onDelete?: (packet: Packet) => void;
@@ -196,12 +198,7 @@ export class Peer {
     };
 
     constructor(config: PeerConfig, _dgramImpl?: typeof import('node:dgram')) {
-        // if (!dgram) {
-        //     throw new Error(
-        //         'dgram implementation required in constructor as second argument',
-        //     );
-        // }
-        this.dgram = dgram;
+        this.createSocket = createSocket;
 
         this.peerId = Buffer.from(config.signingKeys.publicKey).toString('hex');
         this.encryption = new Encryption();
@@ -244,8 +241,12 @@ export class Peer {
         this.natType = config.natType || null;
         this.address = config.address || null;
 
-        this.socket = this.dgram.createSocket({ type: 'udp4' });
-        this.probeSocket = this.dgram.createSocket({ type: 'udp4' }).unref();
+        this.socket = this.createSocket({ type: 'udp4', websocketUrl });
+        console.log('created socket with websocketUrl', websocketUrl);
+        this.probeSocket = this.createSocket({
+            type: 'udp4',
+            websocketUrl,
+        });
 
         const isRecoverable = (err) =>
             err.code === 'ECONNRESET' ||
@@ -278,8 +279,6 @@ export class Peer {
      * A method that encapsulates the listing procedure
      */
     async _listen() {
-        await sodium.ready;
-
         this.socket.removeAllListeners();
         this.probeSocket.removeAllListeners();
 
@@ -290,16 +289,46 @@ export class Peer {
         );
         this.probeSocket.on('error', (err) => this._onError(err));
 
-        this.socket.setMaxListeners(2048);
-        this.probeSocket.setMaxListeners(2048);
+        if (this.socket.setMaxListeners) {
+            this.socket.setMaxListeners(2048);
+            this.probeSocket.setMaxListeners(2048);
+        }
 
         const listening = Promise.all([
             new Promise((resolve) => this.socket.on('listening', resolve)),
             new Promise((resolve) => this.probeSocket.on('listening', resolve)),
         ]);
 
-        this.socket.bind(this.port || 0);
-        this.probeSocket.bind(this.probeInternalPort || 0);
+        await new Promise((resolve) => {
+            console.log('binding socket');
+            this.socket.bind(
+                websocketUrl ? undefined : this.port || 0,
+                undefined,
+                () => {
+                    console.log('socket bound');
+                    const { address, port } = this.socket.address();
+                    console.log('socket address', address, port);
+                    this.port = port;
+                    this.address = address;
+                    this.socket.emit('listening');
+                    resolve(true);
+                },
+            );
+        });
+        await new Promise((resolve) => {
+            this.probeSocket.bind(
+                websocketUrl ? undefined : this.probeInternalPort || 0,
+                undefined,
+                () => {
+                    console.log('probeSocket bound');
+                    const { port } = this.probeSocket.address();
+                    console.log('probe port', port);
+                    this.probeInternalPort = port;
+                    this.probeSocket.emit('listening');
+                    resolve(true);
+                },
+            );
+        });
 
         await listening;
 
@@ -322,7 +351,12 @@ export class Peer {
      */
     async init() {
         if (!this.isListening) {
-            await this._listen();
+            try {
+                await this._listen();
+            } catch (err) {
+                console.error('listen-err', err);
+                throw err;
+            }
         }
 
         await this._mainLoop(Date.now());
@@ -760,7 +794,7 @@ export class Peer {
         const requesterPeerId = this.peerId;
         const opts: any = { requesterPeerId, isReflection: true };
 
-        this.reflectionId = opts.reflectionId = randomBytes(6)
+        this.reflectionId = opts.reflectionId = Buffer.from(randomBytes(6))
             .toString('hex')
             .padStart(12, '0');
 
@@ -901,7 +935,7 @@ export class Peer {
         props.clusterId = this.clusterId;
 
         if (!props.message.pingId) {
-            props.message.pingId = randomBytes(6)
+            props.message.pingId = Buffer.from(randomBytes(6))
                 .toString('hex')
                 .padStart(12, '0');
         }
@@ -1666,7 +1700,9 @@ export class Peer {
                 ')',
         );
 
-        const pingId = randomBytes(6).toString('hex').padStart(12, '0');
+        const pingId = Buffer.from(randomBytes(6))
+            .toString('hex')
+            .padStart(12, '0');
         const { hash } = await this.cache.summarize('', this.cachePredicate());
 
         const props = {
@@ -1717,7 +1753,7 @@ export class Peer {
             let i = 0;
             if (!this.socketPool) {
                 this.socketPool = Array.from({ length: 256 }, (_, _index) => {
-                    return this.dgram.createSocket({ type: 'udp4' }).unref();
+                    return this.createSocket({ type: 'udp4' }).unref();
                 });
             }
 
@@ -1816,9 +1852,9 @@ export class Peer {
                     // create a new socket to replace it in the pool
                     const pool = this.socketPool || [];
                     const oldIndex = pool.findIndex((s) => s === pooledSocket);
-                    pool[oldIndex] = this.dgram
-                        .createSocket({ type: 'udp4' })
-                        .unref();
+                    pool[oldIndex] = this.createSocket({
+                        type: 'udp4',
+                    }).unref();
                     this.socketPool = pool;
 
                     this._onMessage(msg, rinfo).catch((err) =>
@@ -2398,9 +2434,9 @@ export class Peer {
             peer.lastSeen = Date.now();
         }
 
-        const packet = Packet.decode(data);
+        const packet = Packet.decode(Buffer.from(data));
         if (!packet) {
-            console.log(`XXX invalid packet failed decode`);
+            console.log(`XXX invalid packet failed decode`, data);
             return;
         }
         if (packet.version !== VERSION) {

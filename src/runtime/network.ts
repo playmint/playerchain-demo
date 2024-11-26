@@ -1,27 +1,15 @@
 import * as Comlink from 'comlink';
+import { Buffer } from 'socket:buffer';
 import { NETWORK_ID } from './config';
 import { DB, NetworkInfo } from './db';
 import Peer, { Keys, PeerConfig } from './network/Peer';
 import * as NAT from './network/nat';
+import { sleep } from './timers';
 
 export type Ports = {
     port?: number;
     probeInternalPort?: number;
 };
-
-// FIXME: remove this distinction between envs and make it configurable
-// async function getPorts(): Promise<Ports> {
-//     if (import.meta.env.MODE === 'hacky') {
-//         const application = await import('socket:application');
-//         const win = await application.getCurrentWindow();
-//         return {
-//             port: 9801 + win.index * 2,
-//             probeInternalPort: 9802 + win.index * 2,
-//         };
-//     } else {
-//         return {};
-//     }
-// }
 
 function getWorkerImplementation() {
     if (import.meta.env.MODE === 'cli') {
@@ -77,9 +65,13 @@ export async function createSocketCluster({
             name: `net-worker`,
         },
     );
+    console.log('sleeping net worker');
+    await sleep(2500);
+    console.log('resuming net worker');
 
     const PeerProxy = Comlink.wrap<typeof Peer>(w);
     const socket = await new PeerProxy(config);
+    console.log('initing net worker');
     await socket.init();
 
     console.log('started net');

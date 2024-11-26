@@ -1,7 +1,7 @@
 import { Buffer } from 'socket:buffer';
-import { Encryption } from 'socket:node/index';
 import { CLUSTER_ID } from '../runtime/config';
 import Peer from '../runtime/network/Peer';
+import { Encryption } from '../runtime/network/encryption';
 
 function env(name: string): string {
     const value = process.env[name];
