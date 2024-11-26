@@ -38,7 +38,7 @@ export default function App(_props: { instance: number }) {
                 height: '100vh',
             }}
         >
-            {!platform.isMobile && (
+            {!platform.isMobile && !platform.isBrowser && (
                 <Titlebar toggleChannelPanel={toggleChannelPanel} />
             )}
 

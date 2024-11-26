@@ -32,6 +32,16 @@ export default defineConfig({
                 ],
                 maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
             },
+            pwaAssets: {
+                disabled: false,
+                config: true,
+            },
+            manifest: {
+                name: 'Space Shooter',
+                short_name: 'SpaceShooter',
+                description: 'Space Shooter Game',
+                theme_color: '#555555',
+            },
         }),
     ],
     envPrefix: 'SS',

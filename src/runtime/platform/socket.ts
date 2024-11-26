@@ -18,6 +18,7 @@ const socketPlatform: Platform = {
     isMobile: /android|ios/.test(process.platform),
     isWindows: /win32/.test(process.platform),
     isProduction: import.meta.env.MODE === 'production',
+    isBrowser: false,
 
     newPlayerWindow: async () => {
         const windows = await application.getWindows();

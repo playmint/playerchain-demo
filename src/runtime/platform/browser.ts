@@ -15,6 +15,7 @@ const browserPlatform: Platform = {
     isMobile: false,
     isWindows: false,
     isProduction: import.meta.env.MODE === 'production',
+    isBrowser: true,
 
     newPlayerWindow: async () => {
         console.log('noop');

@@ -6,6 +6,7 @@ export type Platform = {
     isMobile: boolean;
     isWindows: boolean;
     isProduction: boolean;
+    isBrowser: boolean;
     newPlayerWindow(): Promise<void>;
     setSystemMenu(opts: { index: number; value: string }): Promise<void>;
 };
@@ -23,6 +24,7 @@ const stubPlatform: Platform = {
     isMobile: false,
     isWindows: false,
     isProduction: false,
+    isBrowser: false,
     newPlayerWindow: async () => {
         console.log('newPlayerWindow');
     },
