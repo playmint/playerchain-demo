@@ -214,7 +214,7 @@ jobs:
             - name: upload artifact
               uses: actions/upload-pages-artifact@v3
               with:
-                  path: './dist'
+                  path: './app/dist'
             - name: deploy pages
               id: deployment
               uses: actions/deploy-pages@v4
