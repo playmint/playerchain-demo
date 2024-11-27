@@ -32,7 +32,7 @@
         "release:linux": "run-s genconfig build pack:unsigned",
         "release:android": "run-s genconfig build pack:android",
         "release:androidprod": "BUILD_PROD=1 run-s genconfig build pack:androidprod",
-        "release:pwa": "vite -c pwa.vite.ts --mode=production build",
+        "release:pwa": "vite -c pwa.vite.ts --mode=production build --base=/playerchain-demo/",
         "test:lint": "eslint .",
         "test:typecheck": "tsc -b",
         "test:build": "vite build --mode=test",
