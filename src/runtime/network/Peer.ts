@@ -26,7 +26,7 @@ import {
     sha256,
 } from './packets';
 
-const websocketUrl = 'ws://localhost:8080';
+const websocketUrl = 'wss://bootstrap.dev.playmint.com';
 
 export { Packet, sha256, Cache, Encryption, NAT };
 
