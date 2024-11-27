@@ -76,8 +76,7 @@ export const ClientProvider = ({ children }: { children: React.ReactNode }) => {
     }, [client, isReady, network]);
 
     if (!client) {
-        // return <Loading />;
-        return <div>loading client</div>;
+        return <Loading />;
     }
 
     if (!network) {
