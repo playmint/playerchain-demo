@@ -1,5 +1,9 @@
 import type { Platform } from '../platform';
 
+function hasTouchSupport() {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 const browserPlatform: Platform = {
     name: 'browser',
     os: 'web',
@@ -12,7 +16,10 @@ const browserPlatform: Platform = {
         window.open(url, '_blank');
     },
 
-    isMobile: false,
+    isMobile:
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent,
+        ) || hasTouchSupport(),
     isWindows: false,
     isProduction: import.meta.env.MODE === 'production',
     isBrowser: true,
