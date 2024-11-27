@@ -200,6 +200,24 @@ jobs:
                   asset_path: './app/build/linux/${{ env.APP_NAME }}-linux-x64.deb'
                   asset_name: '${{ env.APP_NAME }}-linux-x64.deb'
                   asset_content_type: 'application/vnd.debian.binary-package'
+            # now deploy the pwa version to pages this is tacked on to the end
+            # of the linux build to share the ssc build which is still required
+            # during build
+            - name: build pwa
+              working-directory: './app'
+              env:
+                  SS_VERSION: '${{ github.ref_name }}'
+              run: |
+                  pnpm release:pwa
+            - name: setup pages
+              uses: actions/configure-pages@v4
+            - name: upload artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: './dist'
+            - name: deploy pages
+              id: deployment
+              uses: actions/deploy-pages@v4
 
     windows:
         name: windows
@@ -271,40 +289,3 @@ jobs:
             #       asset_path: './app/build/win/${{ env.APP_NAME }}.appx'
             #       asset_name: '${{ env.APP_NAME }}-win-x64.appx'
             #       asset_content_type: 'application/appx'
-    pwa:
-        name: pwa
-        environment:
-            name: github-pages
-            url: ${{ steps.deployment.outputs.page_url }}
-        timeout-minutes: 30
-        runs-on: ubuntu-22.04
-        steps:
-            - name: install node
-              uses: actions/setup-node@v3.6.0
-              with:
-                  node-version: 20.x
-            - name: install pnpm
-              uses: pnpm/action-setup@v4
-              with:
-                  version: 9
-            - name: checkout app
-              uses: actions/checkout@v3
-              with:
-                  ref: '${{ github.event.release.target_commitish }}'
-                  path: './app'
-            - name: build app
-              working-directory: './app'
-              env:
-                  SS_VERSION: '${{ github.ref_name }}'
-              run: |
-                  pnpm install
-                  pnpm release:pwa
-            - name: setup pages
-              uses: actions/configure-pages@v4
-            - name: upload artifact
-              uses: actions/upload-pages-artifact@v3
-              with:
-                  path: './dist'
-            - name: deploy pages
-              id: deployment
-              uses: actions/deploy-pages@v4
