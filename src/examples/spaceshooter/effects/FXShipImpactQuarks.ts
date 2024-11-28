@@ -18,20 +18,32 @@ export interface ShipImpactFXHandle {
 export const ShipImpactFX = forwardRef<ShipImpactFXHandle>((_props, ref) => {
     const batchRenderer = useMemo(() => new BatchedRenderer(), []);
     const [effect, setEffect] = useState<Object3D>();
+    const [activeImpacts, setActiveImpacts] = useState(0);
     const scene = useThree((state) => state.scene);
 
     useImperativeHandle(ref, () => ({
         triggerShipImpact(pos: Vector3) {
-            if (!effect) {
-                return;
-            }
+            if (!effect) {return;}
             effect.position.copy(pos);
             QuarksUtil.restart(effect);
+
+            setActiveImpacts((count) => count + 1);
+            setTimeout(() => setActiveImpacts((count) => Math.max(0, count - 1)), 500);
         },
     }));
 
-    useFrame((_state, delta) => {
-        batchRenderer.update(delta);
+    let lastUpdateTime = performance.now();
+    const fpsInterval = 1000 / 60;
+    
+    useFrame((_state, _) => {
+        if (activeImpacts > 0) {
+            const now = performance.now();
+            const elapsed = now - lastUpdateTime;
+            if (elapsed >= fpsInterval) {
+                batchRenderer.update(elapsed / 1000);
+                lastUpdateTime = now;
+            }
+        }
     });
 
     useEffect(() => {

@@ -18,21 +18,33 @@ export interface SpawnFXHandle {
 export const SpawnFX = forwardRef<SpawnFXHandle>((_props, ref) => {
     const batchRenderer = useMemo(() => new BatchedRenderer(), []);
     const [effect, setEffect] = useState<Object3D>();
+    const [activeSpawns, setActiveSpawns] = useState(0);
     const scene = useThree((state) => state.scene);
 
     useImperativeHandle(ref, () => ({
         triggerSpawn(pos: Vector3, parent: Object3D) {
-            if (!effect) {
-                return;
-            }
+            if (!effect) {return;}
             parent.add(effect);
             effect.position.copy(pos);
             QuarksUtil.restart(effect);
+
+            setActiveSpawns((count) => count + 1);
+            setTimeout(() => setActiveSpawns((count) => Math.max(0, count - 1)), 2000);
         },
     }));
 
-    useFrame((_state, delta) => {
-        batchRenderer.update(delta);
+    let lastUpdateTime = performance.now();
+    const fpsInterval = 1000 / 60;
+    
+    useFrame((_state, _) => {
+        if (activeSpawns > 0) {
+            const now = performance.now();
+            const elapsed = now - lastUpdateTime;
+            if (elapsed >= fpsInterval) {
+                batchRenderer.update(elapsed / 1000);
+                lastUpdateTime = now;
+            }
+        }
     });
 
     useEffect(() => {
