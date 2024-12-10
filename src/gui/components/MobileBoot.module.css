@@ -16,7 +16,7 @@
     z-index: -1;
 }
 
-.startBtn {
+.panelBtn {
     display: flex;
     justify-content: center;
     align-items: center;

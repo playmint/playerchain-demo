@@ -47,6 +47,8 @@
         "clean": "run-s clean:*"
     },
     "dependencies": {
+        "@atproto/api": "^0.13.19",
+        "@atproto/identity": "^0.4.3",
         "@react-three/postprocessing": "^2.16.3",
         "md5": "^2.3.0",
         "postprocessing": "^6.36.3",

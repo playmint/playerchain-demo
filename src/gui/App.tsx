@@ -5,6 +5,7 @@ import { createDefaultMetrics } from '../runtime/metrics';
 import ChannelLayout from './components/ChannelLayout';
 import StatusBar from './components/StatusBar';
 import { Titlebar } from './components/Titlebar';
+import { ATProtoProvider } from './providers/ATProtoProvider';
 import { ClientProvider } from './providers/ClientProvider';
 import { CredentialsProvider } from './providers/CredentialsProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
@@ -48,22 +49,26 @@ export default function App(_props: { instance: number }) {
                         <DatabaseProvider>
                             <ClientProvider>
                                 <SettingsProvider>
-                                    <div
-                                        style={{
-                                            flexGrow: 1,
-                                            flexShrink: 1,
-                                            display: 'flex',
-                                            overflow: 'hidden',
-                                        }}
-                                    >
-                                        <ChannelLayout
-                                            channelPanelOpen={channelPanelOpen}
-                                            metrics={metrics}
-                                        />
-                                    </div>
-                                    {!platform.isMobile && (
-                                        <StatusBar metrics={metrics} />
-                                    )}
+                                    <ATProtoProvider>
+                                        <div
+                                            style={{
+                                                flexGrow: 1,
+                                                flexShrink: 1,
+                                                display: 'flex',
+                                                overflow: 'hidden',
+                                            }}
+                                        >
+                                            <ChannelLayout
+                                                channelPanelOpen={
+                                                    channelPanelOpen
+                                                }
+                                                metrics={metrics}
+                                            />
+                                        </div>
+                                        {!platform.isMobile && (
+                                            <StatusBar metrics={metrics} />
+                                        )}
+                                    </ATProtoProvider>
                                 </SettingsProvider>
                             </ClientProvider>
                         </DatabaseProvider>

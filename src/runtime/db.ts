@@ -1,3 +1,4 @@
+import { AtpSessionData } from '@atproto/api';
 import Dexie, { type EntityTable } from 'dexie';
 import { Buffer } from 'socket:buffer';
 import { ChannelInfo } from './channels';
@@ -133,6 +134,12 @@ export type PublicChannel = {
     id: string;
 };
 
+export type BSkySession = {
+    id: 1;
+    session: AtpSessionData;
+    endpoint: string;
+};
+
 export function fromStoredChainMessage(m: StoredChainMessage): ChainMessage {
     const shared = {
         peer: Buffer.from(m.peer, 'hex'),
@@ -240,6 +247,7 @@ export type DB = Dexie & {
     tapes: EntityTable<Tape>;
     chat: EntityTable<StoredChatMessage, 'id'>;
     publicChannels: EntityTable<PublicChannel, 'id'>;
+    bskySession: EntityTable<BSkySession, 'id'>;
 };
 
 export function open(name: string): DB {
@@ -257,6 +265,7 @@ export function open(name: string): DB {
         tapes: '[channel+round], [channel+updated]',
         chat: 'id, arrived',
         publicChannels: 'id',
+        bskySession: 'id',
     });
 
     return db;

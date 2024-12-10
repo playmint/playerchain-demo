@@ -1,0 +1,38 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border: 1px solid rgb(92, 144, 255);
+    border-radius: 10px;
+    background-color: #111111d7;
+    width: 50%;
+    max-width: 600px;
+    height: 50%;
+    min-height: 300px;
+    text-align: center;
+}
+
+.titleText {
+    font-size: 1.5rem;
+    color: #ffffff;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+}
+
+.panelBtn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: white;
+    color: #bf6cff;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 0 #bf6cff;
+    cursor: pointer;
+    border: none;
+}
