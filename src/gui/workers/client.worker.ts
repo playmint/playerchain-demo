@@ -83,6 +83,10 @@ export async function getHasJoinedLobby() {
     return await client!.getHasJoinedLobby();
 }
 
+export async function exitLobby() {
+    return await client!.exitLobby();
+}
+
 const exports = {
     init,
     commit,
@@ -97,5 +101,6 @@ const exports = {
     requestSetPublicChannel,
     joinLobby,
     getHasJoinedLobby,
+    exitLobby,
 };
 Comlink.expose(exports);

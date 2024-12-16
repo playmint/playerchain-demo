@@ -1032,6 +1032,34 @@ export class Peer {
         return Comlink.proxy(subcluster);
     }
 
+    async leave(scid: string) {
+        const subcluster = this.subclusters.get(scid);
+        if (!subcluster) {
+            return;
+        }
+
+        // TODO: Send a packet announcing user has left the subcluster?
+
+        // this.clock += 1;
+        // const packet = new PacketLeave({
+        //     clock: this.clock,
+        //     clusterId: this.clusterId,
+        //     subclusterId: subcluster.subclusterId,
+        //     message: {
+        //         requesterPeerId: this.peerId,
+        //         natType: this.natType,
+        //         address: this.address,
+        //         port: this.port,
+        //         key: [this.cid, subcluster.scid].join(':'),
+        //     },
+        // });
+
+        // await this.mcast(packet);
+        // this.gate.set(packet.packetId.toString('hex'), 1);
+
+        this.subclusters.delete(scid);
+    }
+
     async _message2packets(T: any, message: any, args) {
         const {
             clusterId,

@@ -18,6 +18,7 @@ export interface ClientContextType {
     requestSetPublicChannel: Client['requestSetPublicChannel'];
     joinLobby: Client['joinLobby'];
     getHasJoinedLobby: Client['getHasJoinedLobby'];
+    exitLobby: Client['exitLobby'];
 }
 
 export const ClientContext = createContext<ClientContextType>(

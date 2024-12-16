@@ -2,6 +2,7 @@ import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/act
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useATProto } from '../../hooks/use-atproto';
 import { useClient } from '../../hooks/use-client';
+import { useProfile } from '../../providers/ProfileProvider';
 
 // export interface MenuScreenProps {
 // }
@@ -9,6 +10,7 @@ import { useClient } from '../../hooks/use-client';
 export const MenuScreen: FunctionComponent = () => {
     const { joinLobby } = useClient();
     const { agent, logout } = useATProto();
+    const { getProfile } = useProfile();
     const [bskyProfile, setBskyProfile] = useState<
         ProfileViewDetailed | undefined
     >();
@@ -22,24 +24,19 @@ export const MenuScreen: FunctionComponent = () => {
 
     useEffect(() => {
         if (!agent) {
-            setBskyProfile(undefined);
             return;
         }
 
-        // If not logged in
         if (!agent.did) {
             return;
         }
 
-        agent.app.bsky.actor
-            .getProfile({ actor: agent.did })
-            .then((profile) => {
-                setBskyProfile(profile.data);
-            })
+        getProfile(agent.did)
+            .then(setBskyProfile)
             .catch((err) => {
                 console.error('getProfile failed:', err);
             });
-    }, [agent]);
+    }, [agent, getProfile]);
 
     return (
         <>

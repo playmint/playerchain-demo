@@ -1043,12 +1043,18 @@ export class Client {
         }
     }
 
-    // async exitLobby() {
-    //     if (this.lobbySubcluster) {
-    //         await this.lobbySubcluster.exit();
-    //         this.lobbySubcluster = null;
-    //     }
-    // }
+    async exitLobby() {
+        if (!this.lobbySubcluster) {
+            return;
+        }
+        const scid = await this.lobbySubcluster.scid;
+        await this.net.socket.leave(scid);
+
+        await this.lobbySubcluster.set('onRPC', undefined);
+        await this.lobbySubcluster.set('onMsg', undefined);
+
+        this.lobbySubcluster = null;
+    }
 
     async setPeers(channelId: string, peers: string[], interlace: number) {
         const msg: SetPeersMessage = {

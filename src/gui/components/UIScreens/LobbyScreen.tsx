@@ -1,5 +1,5 @@
 import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useATProto } from '../../hooks/use-atproto';
 import { useClient } from '../../hooks/use-client';
 import { useCredentials } from '../../hooks/use-credentials';
@@ -7,9 +7,11 @@ import { useProfile } from '../../providers/ProfileProvider';
 
 export const LobbyScreen: FunctionComponent = () => {
     const { peerId } = useCredentials();
-    const { emitLookingForMatch, getMatchSeekingPeers } = useClient();
+    const { emitLookingForMatch, getMatchSeekingPeers, exitLobby } =
+        useClient();
     const { agent } = useATProto();
     const did = agent?.did;
+    const [exitingLobby, setExitingLobby] = useState(false);
     const [matchSeekingPeers, setMatchSeekingPeers] = useState<
         { peerId: string; did: string }[]
     >([]);
@@ -17,8 +19,43 @@ export const LobbyScreen: FunctionComponent = () => {
     const { getProfile } = useProfile();
     // const [matchPeers, setMatchPeers] = useState<string[]>([]);
 
+    const onExitLobbyClick = useCallback(() => {
+        if (!exitLobby) {
+            return;
+        }
+
+        if (!did) {
+            return;
+        }
+
+        setExitingLobby(true);
+
+        const doExitLobby = async () => {
+            // HACK: Not elegant but sending a few packets in the hope that the message that we are no longer
+            //       looking for a match is received. If received the other peers will see us leave the lobby.
+            //       If it's not received it's not a big deal because peers timeout after a minute.
+            try {
+                await emitLookingForMatch(false, did);
+                await emitLookingForMatch(false, did);
+                await emitLookingForMatch(false, did);
+            } catch (err) {
+                console.error('emitLookingForMatch failed:', err);
+            }
+
+            await exitLobby();
+        };
+
+        doExitLobby().catch((err) => {
+            console.error('exitLobby failed:', err);
+        });
+    }, [did, emitLookingForMatch, exitLobby]);
+
     // Announce looking for match
     useEffect(() => {
+        if (exitingLobby) {
+            return;
+        }
+
         if (!did) {
             return;
         }
@@ -37,7 +74,7 @@ export const LobbyScreen: FunctionComponent = () => {
         return () => {
             clearInterval(interval);
         };
-    }, [emitLookingForMatch, did]);
+    }, [emitLookingForMatch, did, exitingLobby]);
 
     useEffect(() => {
         if (!did) {
@@ -91,12 +128,14 @@ export const LobbyScreen: FunctionComponent = () => {
             <div>
                 {peerProfiles.map((profile) => (
                     <UserProfileFlare
-                        key={did}
+                        key={profile.did}
                         did={profile.did}
                         profile={profile}
                     />
                 ))}
             </div>
+            <button>Start Game</button>
+            <button onClick={onExitLobbyClick}>Exit Lobby</button>
         </div>
     );
 };
