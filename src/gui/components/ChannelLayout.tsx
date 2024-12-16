@@ -34,51 +34,7 @@ export default memo(function ChannelLayout({
         [],
     );
     const publicChannelId = publicChannels[0]?.id;
-    const isLookingForMatch = !channel;
-    const [matchSeekingPeers, setMatchSeekingPeers] = useState<string[]>([]);
     const [matchPeers, setMatchPeers] = useState<string[]>([]);
-
-    // Announce looking for match
-    useEffect(() => {
-        if (!autoJoin) {
-            autoJoin;
-        }
-
-        if (!client) {
-            return;
-        }
-
-        // call emitLookingForMatch every second
-        const interval = setInterval(() => {
-            client.emitLookingForMatch(isLookingForMatch).catch((err) => {
-                console.error('emitLookingForMatch failed:', err);
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [autoJoin, client, isLookingForMatch]);
-
-    // TODO: This could be a db live query
-    useEffect(() => {
-        if (!autoJoin) {
-            return;
-        }
-        if (!client) {
-            return;
-        }
-
-        // call emitLookingForMatch every second
-        const interval = setInterval(() => {
-            client
-                .getMatchSeekingPeers()
-                .then(setMatchSeekingPeers)
-                .catch((err) => {
-                    console.error('getMatchSeekingPeers failed:', err);
-                });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [autoJoin, client]);
 
     useEffect(() => {
         if (!autoJoin) {
@@ -146,9 +102,6 @@ export default memo(function ChannelLayout({
             autoJoin={autoJoin}
         />
     ) : (
-        <MobileBoot
-            matchSeekingPeers={matchSeekingPeers}
-            setMatchPeers={setMatchPeers}
-        />
+        <MobileBoot matchSeekingPeers={[]} setMatchPeers={setMatchPeers} />
     );
 });

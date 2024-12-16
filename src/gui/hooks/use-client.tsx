@@ -16,6 +16,8 @@ export interface ClientContextType {
     emitLookingForMatch: Client['emitLookingForMatch'];
     getMatchSeekingPeers: Client['getMatchSeekingPeers'];
     requestSetPublicChannel: Client['requestSetPublicChannel'];
+    joinLobby: Client['joinLobby'];
+    getHasJoinedLobby: Client['getHasJoinedLobby'];
 }
 
 export const ClientContext = createContext<ClientContextType>(

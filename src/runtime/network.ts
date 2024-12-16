@@ -247,6 +247,7 @@ export interface SocketRPCSetLookingForMatch extends SocketRPC {
     name: 'setLookingForMatch';
     args: {
         isLooking: boolean;
+        did: string;
     };
 }
 

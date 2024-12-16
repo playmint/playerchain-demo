@@ -63,8 +63,8 @@ export async function shutdown() {
     await client!.shutdown();
 }
 
-export async function emitLookingForMatch(isLooking: boolean) {
-    await client!.emitLookingForMatch(isLooking);
+export async function emitLookingForMatch(isLooking: boolean, did: string) {
+    await client!.emitLookingForMatch(isLooking, did);
 }
 
 export async function getMatchSeekingPeers() {
@@ -73,6 +73,14 @@ export async function getMatchSeekingPeers() {
 
 export async function requestSetPublicChannel(channelId: string) {
     await client!.requestSetPublicChannel(channelId);
+}
+
+export async function joinLobby(lobbyName: string) {
+    return await client!.joinLobby(lobbyName);
+}
+
+export async function getHasJoinedLobby() {
+    return await client!.getHasJoinedLobby();
 }
 
 const exports = {
@@ -87,5 +95,7 @@ const exports = {
     emitLookingForMatch,
     getMatchSeekingPeers,
     requestSetPublicChannel,
+    joinLobby,
+    getHasJoinedLobby,
 };
 Comlink.expose(exports);

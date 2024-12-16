@@ -95,7 +95,8 @@ export class Client {
     messageCache: Map<string, StoredMessage> = new Map();
     lobbySubcluster: Comlink.Remote<Subcluster & Comlink.ProxyMarked> | null =
         null;
-    matchSeekingPeers: Map<string, number> = new Map();
+    matchSeekingPeers: Map<string, { did: string; timestamp: number }> =
+        new Map();
     publicChannels: Map<string, number> = new Map();
 
     constructor(config: ClientConfig) {
@@ -138,8 +139,6 @@ export class Client {
             config: config.config,
             // dgram: config.dgram,
         });
-
-        this.lobbySubcluster = await this.joinLobby();
 
         // load any existing channels we know about
         this.debug('load-channels');
@@ -1026,15 +1025,30 @@ export class Client {
         return channelId;
     }
 
-    async joinLobby() {
-        console.log('join-lobby');
-        const sharedKey = await Encryption.createSharedKey('spaceshooterLobby');
+    async joinLobby(lobbyName: string) {
+        console.log('join-lobby: ', lobbyName);
+        if (!lobbyName) {
+            throw new Error('join-lobby-fail: err=lobby-name-missing');
+        }
+
+        const sharedKey = await Encryption.createSharedKey(lobbyName);
         const subcluster = await this.net.socket.join({
             sharedKey,
         });
         await subcluster.set('onRPC', Comlink.proxy(this.onRPCRequest));
-        return subcluster;
+        this.lobbySubcluster = subcluster;
+
+        if (this.lobbySubcluster) {
+            console.log('joined lobby');
+        }
     }
+
+    // async exitLobby() {
+    //     if (this.lobbySubcluster) {
+    //         await this.lobbySubcluster.exit();
+    //         this.lobbySubcluster = null;
+    //     }
+    // }
 
     async setPeers(channelId: string, peers: string[], interlace: number) {
         const msg: SetPeersMessage = {
@@ -1164,6 +1178,7 @@ export class Client {
 
     private setLookingForMatch = async ({
         isLooking,
+        did,
         sender,
         timestamp,
     }: SocketRPCSetLookingForMatch['args'] & {
@@ -1173,15 +1188,13 @@ export class Client {
         if (isLooking) {
             // console.log(`peer ${sender} is looking for a match`);
             if (this.matchSeekingPeers.has(sender)) {
-                this.matchSeekingPeers.set(
-                    sender,
-                    Math.max(
-                        timestamp,
-                        this.matchSeekingPeers.get(sender) || 0,
-                    ),
-                );
+                const matchSeekingPeer = this.matchSeekingPeers.get(sender)!;
+                this.matchSeekingPeers.set(sender, {
+                    did,
+                    timestamp: Math.max(matchSeekingPeer.timestamp, timestamp),
+                });
             } else {
-                this.matchSeekingPeers.set(sender, timestamp);
+                this.matchSeekingPeers.set(sender, { did, timestamp });
             }
         } else {
             // console.log(`peer ${sender} no longer looking for a match`);
@@ -1248,7 +1261,7 @@ export class Client {
         this.debug('destroyed');
     }
 
-    async emitLookingForMatch(isLooking: boolean) {
+    async emitLookingForMatch(isLooking: boolean, did: string) {
         if (!this.lobbySubcluster) {
             console.warn('emitLookingForMatch: no lobbySubcluster');
             return;
@@ -1260,6 +1273,7 @@ export class Client {
             sender: this.peerId,
             args: {
                 isLooking,
+                did,
             },
         };
 
@@ -1302,11 +1316,11 @@ export class Client {
     }
 
     async getMatchSeekingPeers() {
-        const peers: string[] = [];
+        const peers: { peerId: string; did: string }[] = [];
         const deadPeers: string[] = [];
-        for (const [peerId, timestamp] of this.matchSeekingPeers) {
+        for (const [peerId, { timestamp, did }] of this.matchSeekingPeers) {
             if (Date.now() - timestamp < DEFAULT_TTL) {
-                peers.push(peerId);
+                peers.push({ peerId, did });
             } else {
                 deadPeers.push(peerId);
             }
@@ -1315,6 +1329,10 @@ export class Client {
         deadPeers.forEach((p) => this.matchSeekingPeers.delete(p));
 
         return peers;
+    }
+
+    async getHasJoinedLobby() {
+        return !!this.lobbySubcluster;
     }
 
     pruneOldPublicChannels() {

@@ -3,12 +3,14 @@ import { ErrorBoundary } from 'react-error-boundary';
 import platform from 'runtime:platform';
 import { createDefaultMetrics } from '../runtime/metrics';
 import ChannelLayout from './components/ChannelLayout';
+import { IntroUI } from './components/IntroUI';
 import StatusBar from './components/StatusBar';
 import { Titlebar } from './components/Titlebar';
 import { ATProtoProvider } from './providers/ATProtoProvider';
 import { ClientProvider } from './providers/ClientProvider';
 import { CredentialsProvider } from './providers/CredentialsProvider';
 import { DatabaseProvider } from './providers/DatabaseProvider';
+import { ProfileProvider } from './providers/ProfileProvider';
 import { SettingsProvider } from './providers/SettingsProvider';
 import { SocketProvider } from './providers/SocketProvider';
 
@@ -50,24 +52,28 @@ export default function App(_props: { instance: number }) {
                             <ClientProvider>
                                 <SettingsProvider>
                                     <ATProtoProvider>
-                                        <div
-                                            style={{
-                                                flexGrow: 1,
-                                                flexShrink: 1,
-                                                display: 'flex',
-                                                overflow: 'hidden',
-                                            }}
-                                        >
-                                            <ChannelLayout
+                                        <ProfileProvider>
+                                            <div
+                                                style={{
+                                                    flexGrow: 1,
+                                                    flexShrink: 1,
+                                                    display: 'flex',
+                                                    overflow: 'hidden',
+                                                }}
+                                            >
+                                                <IntroUI />
+
+                                                {/* <ChannelLayout
                                                 channelPanelOpen={
                                                     channelPanelOpen
                                                 }
                                                 metrics={metrics}
-                                            />
-                                        </div>
-                                        {!platform.isMobile && (
-                                            <StatusBar metrics={metrics} />
-                                        )}
+                                            /> */}
+                                            </div>
+                                            {!platform.isMobile && (
+                                                <StatusBar metrics={metrics} />
+                                            )}
+                                        </ProfileProvider>
                                     </ATProtoProvider>
                                 </SettingsProvider>
                             </ClientProvider>
