@@ -48,6 +48,7 @@
     },
     "dependencies": {
         "@atproto/api": "^0.13.19",
+        "@atproto/common-web": "^0.3.1",
         "@atproto/identity": "^0.4.3",
         "@react-three/postprocessing": "^2.16.3",
         "md5": "^2.3.0",

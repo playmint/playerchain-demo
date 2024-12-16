@@ -1,4 +1,6 @@
 import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
+import { RecordNotFoundError } from '@atproto/api/dist/client/types/com/atproto/repo/getRecord';
+import { TID } from '@atproto/common-web';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import backgroundImage from '../../assets/img/start-background.png';
 import { useATProto } from '../hooks/use-atproto';
@@ -59,7 +61,7 @@ export const UserProfileFlare: FunctionComponent<UserProfileFlareProps> = ({
                     justifyContent: 'center',
                 }}
             >
-                {profile.handle}
+                {profile.displayName || profile.handle}
             </div>
         </div>
     );
@@ -81,6 +83,60 @@ export const MobileBoot: FunctionComponent<MobileBootProps> = ({
     const [bskyProfile, setBskyProfile] = useState<
         ProfileViewDetailed | undefined
     >();
+
+    const onPostClick = useCallback(() => {
+        if (!agent) {
+            return;
+        }
+        const recordType = 'com.playmint.dev.spaceshooter.profile';
+        const rkey = 'self'; //TID.nextStr();
+
+        const updateScore = async (score: number) => {
+            // Get record
+
+            let record: any;
+            try {
+                const recordRes = await agent.com.atproto.repo.getRecord({
+                    repo: agent.assertDid,
+                    collection: recordType,
+                    rkey,
+                });
+
+                console.log('recordRes:', recordRes);
+                record = recordRes.data.value;
+            } catch (e) {
+                if (!(e instanceof RecordNotFoundError)) {
+                    throw e;
+                }
+                console.log('record not found, defining new one');
+                record = {
+                    $type: recordType,
+                    score: 0,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                };
+            }
+
+            record.score = (record.score as number) + score;
+            record.updatedAt = new Date().toISOString();
+
+            await agent.com.atproto.repo.putRecord({
+                repo: agent.assertDid,
+                collection: recordType,
+                rkey,
+                record,
+                validate: false,
+            });
+        };
+
+        updateScore(1)
+            .then(() => {
+                console.log('post success');
+            })
+            .catch((err) => {
+                console.error('post failed:', err);
+            });
+    }, [agent]);
 
     const onLoginClick = useCallback(() => {
         setIsShowingLoginModal(true);
@@ -181,9 +237,17 @@ export const MobileBoot: FunctionComponent<MobileBootProps> = ({
                         </div>
                     )}
                     {isLoggedIn && (
-                        <div className={styles.panelBtn} onClick={logout}>
-                            Logout
-                        </div>
+                        <>
+                            <div
+                                className={styles.panelBtn}
+                                onClick={onPostClick}
+                            >
+                                Post something
+                            </div>
+                            <div className={styles.panelBtn} onClick={logout}>
+                                Logout
+                            </div>
+                        </>
                     )}
 
                     <div className={styles.infoText}>

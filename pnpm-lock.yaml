@@ -11,6 +11,9 @@ importers:
       '@atproto/api':
         specifier: ^0.13.19
         version: 0.13.19
+      '@atproto/common-web':
+        specifier: ^0.3.1
+        version: 0.3.1
       '@atproto/identity':
         specifier: ^0.4.3
         version: 0.4.3
