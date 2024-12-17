@@ -5,14 +5,15 @@ import { useClient } from '../hooks/use-client';
 import { useCredentials } from '../hooks/use-credentials';
 import { useDatabase } from '../hooks/use-database';
 import ChannelView from './ChannelView';
-import { MobileBoot } from './MobileBoot';
 
 export default memo(function ChannelLayout({
     channelPanelOpen,
     metrics,
+    matchPeers,
 }: {
     channelPanelOpen: boolean;
     metrics: DefaultMetrics;
+    matchPeers: string[];
 }) {
     const autoJoin = true; // this could become optional
     const { peerId } = useCredentials();
@@ -34,7 +35,6 @@ export default memo(function ChannelLayout({
         [],
     );
     const publicChannelId = publicChannels[0]?.id;
-    const [matchPeers, setMatchPeers] = useState<string[]>([]);
 
     useEffect(() => {
         if (!autoJoin) {
@@ -102,6 +102,6 @@ export default memo(function ChannelLayout({
             autoJoin={autoJoin}
         />
     ) : (
-        <MobileBoot matchSeekingPeers={[]} setMatchPeers={setMatchPeers} />
+        <div>Joining Channel</div>
     );
 });

@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import platform from 'runtime:platform';
 import { createDefaultMetrics } from '../runtime/metrics';
-import ChannelLayout from './components/ChannelLayout';
 import { IntroUI } from './components/IntroUI';
 import StatusBar from './components/StatusBar';
 import { Titlebar } from './components/Titlebar';
@@ -61,14 +60,12 @@ export default function App(_props: { instance: number }) {
                                                     overflow: 'hidden',
                                                 }}
                                             >
-                                                <IntroUI />
-
-                                                {/* <ChannelLayout
-                                                channelPanelOpen={
-                                                    channelPanelOpen
-                                                }
-                                                metrics={metrics}
-                                            /> */}
+                                                <IntroUI
+                                                    channelPanelOpen={
+                                                        channelPanelOpen
+                                                    }
+                                                    metrics={metrics}
+                                                />
                                             </div>
                                             {!platform.isMobile && (
                                                 <StatusBar metrics={metrics} />

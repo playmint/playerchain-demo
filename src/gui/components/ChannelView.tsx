@@ -42,8 +42,6 @@ export default memo(function ChannelView({
     const db = useDatabase();
     const client = useClient();
     const [showSettings, setShowSettings] = useState(false);
-    const [showConnectedPeers, setShowConnectedPeers] = useState(false);
-
     const socket = useSocket();
 
     const peerNames = useLiveQuery(

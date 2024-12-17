@@ -5,10 +5,19 @@ import { useClient } from '../../hooks/use-client';
 import { useCredentials } from '../../hooks/use-credentials';
 import { useProfile } from '../../providers/ProfileProvider';
 
-export const LobbyScreen: FunctionComponent = () => {
+export interface LobbyScreenProps {
+    setMatchPeers: (peers: string[]) => void;
+}
+
+export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
+    setMatchPeers,
+}) => {
     const { peerId } = useCredentials();
-    const { emitLookingForMatch, getMatchSeekingPeers, exitLobby } =
-        useClient();
+    const {
+        emitLookingForMatch,
+        getMatchSeekingPeers,
+        exitLobby: clientExitLobby,
+    } = useClient();
     const { agent } = useATProto();
     const did = agent?.did;
     const [exitingLobby, setExitingLobby] = useState(false);
@@ -17,20 +26,15 @@ export const LobbyScreen: FunctionComponent = () => {
     >([]);
     const [peerProfiles, setPeerProfiles] = useState<ProfileViewDetailed[]>([]);
     const { getProfile } = useProfile();
-    // const [matchPeers, setMatchPeers] = useState<string[]>([]);
 
-    const onExitLobbyClick = useCallback(() => {
-        if (!exitLobby) {
-            return;
-        }
-
+    const exitLobby = useCallback(() => {
         if (!did) {
             return;
         }
 
         setExitingLobby(true);
 
-        const doExitLobby = async () => {
+        const exitAsync = async () => {
             // HACK: Not elegant but sending a few packets in the hope that the message that we are no longer
             //       looking for a match is received. If received the other peers will see us leave the lobby.
             //       If it's not received it's not a big deal because peers timeout after a minute.
@@ -42,13 +46,35 @@ export const LobbyScreen: FunctionComponent = () => {
                 console.error('emitLookingForMatch failed:', err);
             }
 
-            await exitLobby();
+            await clientExitLobby();
         };
 
-        doExitLobby().catch((err) => {
+        exitAsync().catch((err) => {
             console.error('exitLobby failed:', err);
         });
-    }, [did, emitLookingForMatch, exitLobby]);
+    }, [did, emitLookingForMatch, clientExitLobby]);
+
+    const onStartGameClick = useCallback(async () => {
+        if (!did) {
+            return;
+        }
+        // Select up to 4 peers (includong self) to start the game with
+        const selfPeer = { peerId, did };
+        const selectedPeersIds = [
+            selfPeer,
+            ...matchSeekingPeers
+                .sort(() => 0.5 - Math.random())
+                .slice(0, Math.min(3, matchSeekingPeers.length)),
+        ].map(({ peerId }) => peerId);
+
+        if (selectedPeersIds.length < 2) {
+            console.log('Not enough players to start the game');
+            return;
+        }
+
+        console.log('Starting game with:', selectedPeersIds);
+        setMatchPeers(selectedPeersIds);
+    }, [did, matchSeekingPeers, peerId, setMatchPeers]);
 
     // Announce looking for match
     useEffect(() => {
@@ -77,10 +103,6 @@ export const LobbyScreen: FunctionComponent = () => {
     }, [emitLookingForMatch, did, exitingLobby]);
 
     useEffect(() => {
-        if (!did) {
-            return;
-        }
-
         if (!getMatchSeekingPeers) {
             return;
         }
@@ -89,8 +111,7 @@ export const LobbyScreen: FunctionComponent = () => {
         const interval = setInterval(() => {
             getMatchSeekingPeers()
                 .then((matchSeekingPeers) => {
-                    const selfPeer = { peerId, did };
-                    setMatchSeekingPeers([selfPeer, ...matchSeekingPeers]);
+                    setMatchSeekingPeers(matchSeekingPeers);
                 })
                 .catch((err) => {
                     console.error('getMatchSeekingPeers failed:', err);
@@ -98,12 +119,17 @@ export const LobbyScreen: FunctionComponent = () => {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [did, getMatchSeekingPeers, peerId]);
+    }, [getMatchSeekingPeers, peerId]);
 
     useEffect(() => {
+        if (!did) {
+            return;
+        }
+
         const getProfiles = async () => {
+            const selfPeer = { peerId, did };
             const profiles = await Promise.all(
-                matchSeekingPeers.map(({ did }) => {
+                [selfPeer, ...matchSeekingPeers].map(({ did }) => {
                     return getProfile(did);
                 }),
             );
@@ -120,7 +146,7 @@ export const LobbyScreen: FunctionComponent = () => {
         getProfiles().catch((err) => {
             console.error('getProfiles failed:', err);
         });
-    }, [getProfile, matchSeekingPeers]);
+    }, [did, getProfile, matchSeekingPeers, peerId]);
 
     return (
         <div>
@@ -134,8 +160,8 @@ export const LobbyScreen: FunctionComponent = () => {
                     />
                 ))}
             </div>
-            <button>Start Game</button>
-            <button onClick={onExitLobbyClick}>Exit Lobby</button>
+            <button onClick={onStartGameClick}>Start Game</button>
+            <button onClick={exitLobby}>Exit Lobby</button>
         </div>
     );
 };
