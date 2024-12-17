@@ -22,27 +22,25 @@ export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
-const AUTO_JOIN_TIMEOUT = 15000;
+const AUTO_JOIN_TIMEOUT = 15000 * 1000;
 
 export default memo(function ChannelView({
     channel,
     details,
     metrics,
     matchPeers,
-    autoJoin,
 }: {
     channel: ChannelInfo;
     details: boolean;
     metrics: DefaultMetrics;
     matchPeers: string[];
-    autoJoin: boolean;
 }) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const { peerId } = useCredentials();
     const db = useDatabase();
     const client = useClient();
     const [showSettings, setShowSettings] = useState(false);
-    const socket = useSocket();
+    // const socket = useSocket();
 
     const peerNames = useLiveQuery(
         () => {
@@ -113,10 +111,6 @@ export default memo(function ChannelView({
     const [hasAcceptedPeers, setHasAcceptedPeers] = useState(false);
     const [autoJoinTimedOut, setAutoJoinTimedOut] = useState(false);
     useEffect(() => {
-        if (!autoJoin) {
-            return;
-        }
-
         if (channel.creator !== peerId) {
             return;
         }
@@ -137,7 +131,6 @@ export default memo(function ChannelView({
         acceptPeers();
     }, [
         acceptPeers,
-        autoJoin,
         autoJoinTimedOut,
         channel.creator,
         hasAcceptedPeers,
@@ -147,16 +140,12 @@ export default memo(function ChannelView({
     ]);
 
     useEffect(() => {
-        if (!autoJoin) {
-            return;
-        }
-
         const timeout = setTimeout(() => {
             setAutoJoinTimedOut(true);
         }, AUTO_JOIN_TIMEOUT);
 
         return () => clearTimeout(timeout);
-    }, [autoJoin]);
+    }, []);
 
     // a peer is "ready" if it can see all other peers
     // eslint-disable-next-line react-hooks/rules-of-hooks

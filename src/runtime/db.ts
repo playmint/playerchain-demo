@@ -132,6 +132,7 @@ export type StoredMessage = StoredChainMessage & {
 
 export type PublicChannel = {
     id: string;
+    // TODO: Add match peers onto this so the 4 selected players auto join instead of everyone in the lobby
 };
 
 export type BSkySession = {

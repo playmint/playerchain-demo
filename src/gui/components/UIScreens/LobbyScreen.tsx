@@ -1,8 +1,10 @@
 import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import { useATProto } from '../../hooks/use-atproto';
 import { useClient } from '../../hooks/use-client';
 import { useCredentials } from '../../hooks/use-credentials';
+import { useDatabase } from '../../hooks/use-database';
 import { useProfile } from '../../providers/ProfileProvider';
 
 export interface LobbyScreenProps {
@@ -17,6 +19,8 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
         emitLookingForMatch,
         getMatchSeekingPeers,
         exitLobby: clientExitLobby,
+        createChannel,
+        joinChannel,
     } = useClient();
     const { agent } = useATProto();
     const did = agent?.did;
@@ -25,7 +29,18 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
         { peerId: string; did: string }[]
     >([]);
     const [peerProfiles, setPeerProfiles] = useState<ProfileViewDetailed[]>([]);
+    const [startingGame, setStartingGame] = useState(false);
     const { getProfile } = useProfile();
+
+    const db = useDatabase();
+    const publicChannels = useLiveQuery(
+        async () => {
+            return db.publicChannels.toArray();
+        },
+        [],
+        [],
+    );
+    const publicChannelId = publicChannels[0]?.id;
 
     const exitLobby = useCallback(() => {
         if (!did) {
@@ -72,9 +87,47 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
             return;
         }
 
-        console.log('Starting game with:', selectedPeersIds);
         setMatchPeers(selectedPeersIds);
-    }, [did, matchSeekingPeers, peerId, setMatchPeers]);
+        setStartingGame(true);
+
+        // Will remove our name from the lobby although we are technically still there so we can broadcast the channel id
+        emitLookingForMatch(false, did).catch((err) => {
+            console.error('emitLookingForMatch failed:', err);
+        });
+        emitLookingForMatch(false, did).catch((err) => {
+            console.error('emitLookingForMatch failed:', err);
+        });
+
+        const rnd = (Math.random() + 1).toString(36).substring(7);
+        createChannel(rnd).catch((err) => {
+            console.error('newChannel failed:', err);
+            setStartingGame(false);
+        });
+    }, [
+        did,
+        peerId,
+        matchSeekingPeers,
+        setMatchPeers,
+        emitLookingForMatch,
+        createChannel,
+    ]);
+
+    // Auto join channel
+    useEffect(() => {
+        if (!joinChannel) {
+            return;
+        }
+
+        if (!publicChannelId) {
+            return;
+        }
+
+        console.log('auto joinChannel:', publicChannelId);
+
+        joinChannel(publicChannelId).catch((err) => {
+            console.error('auto joinChannel failed:', err);
+        });
+    }, [joinChannel, publicChannelId]);
 
     // Announce looking for match
     useEffect(() => {
@@ -92,7 +145,7 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
 
         // call emitLookingForMatch every second
         const interval = setInterval(() => {
-            emitLookingForMatch(true, did).catch((err) => {
+            emitLookingForMatch(!startingGame, did).catch((err) => {
                 console.error('emitLookingForMatch failed:', err);
             });
         }, 1000);
@@ -100,7 +153,7 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
         return () => {
             clearInterval(interval);
         };
-    }, [emitLookingForMatch, did, exitingLobby]);
+    }, [emitLookingForMatch, did, exitingLobby, startingGame]);
 
     useEffect(() => {
         if (!getMatchSeekingPeers) {

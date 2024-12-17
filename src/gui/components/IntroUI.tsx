@@ -1,7 +1,9 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import { FunctionComponent, useEffect, useState } from 'react';
 import { createDefaultMetrics as _createDefaultMetrics } from '../../runtime/metrics';
 import { useATProto } from '../hooks/use-atproto';
 import { useClient } from '../hooks/use-client';
+import { useDatabase } from '../hooks/use-database';
 import ChannelLayout from './ChannelLayout';
 import { LobbyScreen } from './UIScreens/LobbyScreen';
 import { LoginScreen } from './UIScreens/LoginScreen';
@@ -18,6 +20,16 @@ export const IntroUI: FunctionComponent<IntroUIProps> = ({
 }) => {
     const { isLoggedIn } = useATProto();
     const { getHasJoinedLobby } = useClient();
+    const db = useDatabase();
+    const channels = useLiveQuery(
+        async () => {
+            return db.channels.toArray();
+        },
+        [],
+        [],
+    );
+    const channel = channels[0];
+
     const [hasJoinedLobby, setHasJoinedLobby] = useState(false);
     const [matchPeers, setMatchPeers] = useState<string[]>([]);
 
@@ -38,12 +50,13 @@ export const IntroUI: FunctionComponent<IntroUIProps> = ({
         return <LoginScreen />;
     }
 
-    if (matchPeers.length > 0) {
+    if (channel) {
         return (
             <ChannelLayout
                 channelPanelOpen={channelPanelOpen}
                 metrics={metrics}
                 matchPeers={matchPeers}
+                channel={channel}
             />
         );
     }
