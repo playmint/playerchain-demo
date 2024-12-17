@@ -182,9 +182,22 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
         const getProfiles = async () => {
             const selfPeer = { peerId, did };
             const profiles = await Promise.all(
-                [selfPeer, ...matchSeekingPeers].map(({ did }) => {
-                    return getProfile(did);
-                }),
+                [selfPeer, ...matchSeekingPeers].map(
+                    async ({ peerId, did }) => {
+                        const profile = await getProfile(did);
+                        if (!profile) {
+                            return;
+                        }
+
+                        // Save the names as we get the profiles. A bit rough but it works.
+                        await db.peerNames.put({
+                            peerId,
+                            name:
+                                profile.displayName || profile.handle || peerId,
+                        });
+                        return profile;
+                    },
+                ),
             );
 
             setPeerProfiles(
@@ -199,7 +212,7 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
         getProfiles().catch((err) => {
             console.error('getProfiles failed:', err);
         });
-    }, [did, getProfile, matchSeekingPeers, peerId]);
+    }, [db.peerNames, did, getProfile, matchSeekingPeers, peerId]);
 
     return (
         <div>

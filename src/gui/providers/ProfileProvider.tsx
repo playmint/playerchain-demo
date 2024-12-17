@@ -1,6 +1,7 @@
 import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import { createContext, useCallback, useContext, useState } from 'react';
 import { useATProto } from '../hooks/use-atproto';
+import { useDatabase } from '../hooks/use-database';
 
 export interface ProfileContextType {
     getProfile: (did: string) => Promise<ProfileViewDetailed | undefined>;
@@ -46,6 +47,7 @@ export const ProfileProvider = ({
             // setProfileCache((prev) => new Map(prev.set(did, profile.data)));
             setProfileCache((prev) => prev.set(did, profile.data));
             // db.bskyProfile.put(profile.data);
+
             return profile.data;
         },
         [agent, profileCache],
