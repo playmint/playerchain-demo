@@ -221,17 +221,25 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
         <Screen style={{ display: 'flex', flexDirection: 'column' }}>
             <GameTitle>QUICK MATCH</GameTitle>
             <div
-                style={{ display: 'flex', flexDirection: 'row', flexGrow: '1' }}
+                style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    flexGrow: '1',
+                    overflow: 'hidden',
+                }}
             >
                 <div
                     style={{
-                        width: '50%',
                         marginRight: '40px',
+                        flexGrow: 1,
+                        overflow: 'hidden',
                     }}
                 >
                     <Panel
                         style={{
-                            overflow: 'hidden',
+                            flexGrow: 0,
+                            flexShrink: 0,
+                            overflow: 'auto',
                             height: '100%',
                         }}
                     >
@@ -247,7 +255,7 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
 
                 <Panel
                     style={{
-                        width: '50%',
+                        width: '30%',
                         background: 'none',
                         border: 'none',
                         justifyContent: 'center',
@@ -293,8 +301,13 @@ const StyledPlayerProfile = styled.div`
             text-overflow: ellipsis;
         }
 
+        > .statLabelTotalWins {
+            flex-shrink: 0;
+        }
         > .statTotalWins {
             flex-shrink: 0;
+            width: 2.5rem;
+            text-align: right;
         }
     }
 
@@ -314,9 +327,8 @@ export const PlayerProfile: FunctionComponent<PlayerProfileProps> = ({
                 <div className="playerName">
                     {bskyProfile.displayName || bskyProfile.handle}
                 </div>
-                <div className="statTotalWins">
-                    Wins: {playerStats.totalWins}
-                </div>
+                <div className="statLabelTotalWins">Wins:&nbsp;</div>
+                <div className="statTotalWins">{playerStats.totalWins}</div>
             </div>
         </StyledPlayerProfile>
     );
