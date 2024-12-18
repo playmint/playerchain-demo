@@ -1,11 +1,14 @@
 import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { useATProto } from '../../hooks/use-atproto';
 import { useClient } from '../../hooks/use-client';
 import { useCredentials } from '../../hooks/use-credentials';
 import { useDatabase } from '../../hooks/use-database';
 import { useProfile } from '../../providers/ProfileProvider';
+import { PlayerProfileProps, nullPlayerStats } from './MenuScreen';
+import { GameTitle, Panel, PanelButton, Screen, ScreenButton } from './Screen';
 
 export interface LobbyScreenProps {
     setMatchPeers: (peers: string[]) => void;
@@ -215,20 +218,48 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
     }, [db.peerNames, did, getProfile, matchSeekingPeers, peerId]);
 
     return (
-        <div>
-            <h1>Lobby</h1>
-            <div>
-                {peerProfiles.map((profile) => (
-                    <UserProfileFlare
-                        key={profile.did}
-                        did={profile.did}
-                        profile={profile}
-                    />
-                ))}
+        <Screen style={{ display: 'flex', flexDirection: 'column' }}>
+            <GameTitle>QUICK MATCH</GameTitle>
+            <div
+                style={{ display: 'flex', flexDirection: 'row', flexGrow: '1' }}
+            >
+                <div
+                    style={{
+                        width: '50%',
+                        marginRight: '40px',
+                    }}
+                >
+                    <Panel
+                        style={{
+                            overflow: 'hidden',
+                            height: '100%',
+                        }}
+                    >
+                        {peerProfiles.map((profile) => (
+                            <PlayerProfile
+                                key={profile.did}
+                                bskyProfile={profile}
+                                playerStats={nullPlayerStats}
+                            />
+                        ))}
+                    </Panel>
+                </div>
+
+                <Panel
+                    style={{
+                        width: '50%',
+                        background: 'none',
+                        border: 'none',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <PanelButton onClick={onStartGameClick}>
+                        Start Game
+                    </PanelButton>
+                    <PanelButton onClick={exitLobby}>Exit Lobby</PanelButton>
+                </Panel>
             </div>
-            <button onClick={onStartGameClick}>Start Game</button>
-            <button onClick={exitLobby}>Exit Lobby</button>
-        </div>
+        </Screen>
     );
 };
 
@@ -238,35 +269,55 @@ export interface UserProfileFlareProps {
     style?: React.CSSProperties;
 }
 
-export const UserProfileFlare: FunctionComponent<UserProfileFlareProps> = ({
-    did,
-    profile,
-    style,
+const StyledPlayerProfile = styled.div`
+    margin-bottom: 10px;
+
+    > .header {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        font-size: 1.2rem;
+
+        > img {
+            flex-shrink: 0;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        > .playerName {
+            flex-grow: 1;
+            margin-left: 20px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        > .statTotalWins {
+            flex-shrink: 0;
+        }
+    }
+
+    > .stats {
+        margin-top: 40px;
+    }
+`;
+
+export const PlayerProfile: FunctionComponent<PlayerProfileProps> = ({
+    bskyProfile,
+    playerStats,
 }) => {
     return (
-        <div
-            style={{
-                ...style,
-                background: '#111111d7',
-                display: 'flex',
-            }}
-        >
-            {profile?.avatar ? (
-                <img src={profile.avatar} style={{ width: '50px' }} />
-            ) : (
-                <div style={{ width: '50px', backgroundColor: 'red' }} />
-            )}
-            <div
-                style={{
-                    padding: '10px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignContent: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                {profile?.displayName || profile?.handle || did}
+        <StyledPlayerProfile>
+            <div className="header">
+                <img src={bskyProfile.avatar} />
+                <div className="playerName">
+                    {bskyProfile.displayName || bskyProfile.handle}
+                </div>
+                <div className="statTotalWins">
+                    Wins: {playerStats.totalWins}
+                </div>
             </div>
-        </div>
+        </StyledPlayerProfile>
     );
 };

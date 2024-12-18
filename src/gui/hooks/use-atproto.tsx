@@ -7,7 +7,7 @@ export interface ATProtoContextType {
     isLoggedIn: boolean;
     handle?: string;
     did?: string;
-    login: (handle: string, password: string) => void;
+    login: (handle: string, password: string) => Promise<void>;
     logout: () => void;
 }
 

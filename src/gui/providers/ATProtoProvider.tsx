@@ -29,7 +29,7 @@ export const ATProtoProvider = ({
                     evt: AtpSessionEvent,
                     sess?: AtpSessionData,
                 ) => {
-                    console.log('persistSession', evt, sess);
+                    // console.log('persistSession', evt, sess);
                     // store the session-data for reuse
                 },
             }),
@@ -54,10 +54,10 @@ export const ATProtoProvider = ({
         const agent = new AtpAgent({
             service: endpoint,
             persistSession: (
-                evt: AtpSessionEvent,
+                _evt: AtpSessionEvent,
                 session?: AtpSessionData,
             ) => {
-                console.log('persistSession: ', evt, session);
+                // console.log('persistSession: ', evt, session);
                 if (!session) {
                     console.error('persistSession: no session data');
                     return;
@@ -82,7 +82,7 @@ export const ATProtoProvider = ({
             });
     }, [db, isLoggedIn, storedSession]);
 
-    const login = useCallback(
+    const loginx = useCallback(
         (handle: string, password: string) => {
             const initAgent = async () => {
                 console.log(`Initialising agent for handle: ${handle}`);
@@ -167,6 +167,80 @@ export const ATProtoProvider = ({
                         });
                 })
                 .catch((e) => console.error(e));
+        },
+        [db],
+    );
+
+    const login = useCallback(
+        async (handle: string, password: string) => {
+            console.log(`Initialising agent for handle: ${handle}`);
+
+            const did = await hdlres.resolve(handle);
+            if (did == undefined) {
+                throw new Error(`handle: ${handle} did not resolve to DID`);
+            }
+
+            console.log(`Resolved handle: ${handle} to DID: ${did}`);
+
+            const doc = await didres.resolve(did);
+            if (doc == undefined) {
+                throw new Error(`did: ${did} did not resolve to document`);
+            }
+
+            if (!doc.service) {
+                throw new Error(`did: ${did} document has no service`);
+            }
+
+            const service = doc.service.find(
+                (service) => service.type == 'AtprotoPersonalDataServer',
+            );
+            if (!service) {
+                throw new Error(
+                    `did: ${did} no serviced found of type AtprotoPersonalDataServer`,
+                );
+            }
+
+            if (!service.serviceEndpoint) {
+                throw new Error(`did: ${did} service has no serviceEndpoint`);
+            }
+
+            if (typeof service.serviceEndpoint !== 'string') {
+                throw new Error(`did: ${did} serviceEndpoint is not a string`);
+            }
+
+            const endpoint = service.serviceEndpoint as string;
+
+            console.log(
+                `Creating agent for service: ${service.serviceEndpoint}`,
+            );
+
+            const agent = new AtpAgent({
+                service: endpoint,
+                persistSession: (
+                    _evt: AtpSessionEvent,
+                    session?: AtpSessionData,
+                ) => {
+                    // console.log('persistSession: ', evt, session);
+                    if (!session) {
+                        console.error('persistSession: no session data');
+                        return;
+                    }
+                    db.bskySession
+                        .put({ id: 1, endpoint, session })
+                        .catch((err) => {
+                            console.error('persistSession failed:', err);
+                        });
+                },
+            });
+
+            await agent.login({
+                identifier: handle,
+                password: password,
+            });
+
+            console.log('login success');
+            setAgent(agent);
+            setIsLoggedIn(!!agent.did);
         },
         [db],
     );

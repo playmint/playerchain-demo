@@ -1,14 +1,38 @@
-import { FunctionComponent, useRef } from 'react';
-import backgroundImage from '../../../assets/img/start-background.png';
+import {
+    FunctionComponent,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+import styled from 'styled-components';
 import { useATProto } from '../../hooks/use-atproto';
-import styles from '../../styles/UIScreen.module.css';
+import { GameTitle, Panel, Screen, ScreenButton } from './Screen';
+
+const LoginForm = styled.div`
+    padding: 20px;
+
+    > input {
+        width: 100%;
+        margin-bottom: 20px;
+        background: #272727;
+        color: white;
+
+        &::placeholder {
+            color: darkgray;
+        }
+    }
+`;
 
 export const LoginScreen: FunctionComponent = () => {
     const handleRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
     const { login } = useATProto();
+    const [errorText, setErrorText] = useState<string | undefined>();
+    const [hasValidInput, setHasValidInput] = useState<boolean>(false);
+    const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
-    const onLoginClick = () => {
+    const onLoginClick = useCallback(async () => {
         if (!handleRef.current || !passwordRef.current) {
             return;
         }
@@ -16,31 +40,100 @@ export const LoginScreen: FunctionComponent = () => {
         const handle = handleRef.current.value;
         const password = passwordRef.current.value;
 
-        login(handle, password);
-    };
+        try {
+            setIsLoggingIn(true);
+            await login(handle, password);
+        } catch (e) {
+            console.log(e);
+            setErrorText('Login Error!');
+        } finally {
+            setIsLoggingIn(false);
+        }
+    }, [login]);
+
+    const onTextChange = useCallback(() => {
+        if (!handleRef.current || !passwordRef.current) {
+            return;
+        }
+
+        setHasValidInput(
+            handleRef.current.value.length > 0 &&
+                passwordRef.current.value.length > 0,
+        );
+    }, []);
+
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if (e.key === 'Enter' && hasValidInput && !isLoggingIn) {
+                onLoginClick().catch((e) => {
+                    console.error(e);
+                });
+            }
+        };
+
+        document.addEventListener('keypress', handleKeyPress);
+
+        return () => {
+            document.removeEventListener('keypress', handleKeyPress);
+        };
+    }, [hasValidInput, isLoggingIn, onLoginClick]);
 
     return (
-        <div className={styles.mainContainer}>
-            <img src={backgroundImage} className={styles.backgroundImage} />
-            <div className={styles.container}>
-                <h1>Bluesky Login</h1>
-                <h2>Enter your bluesky login credentials</h2>
-                <input
-                    ref={handleRef}
-                    type="text"
-                    placeholder="Handle"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                />
-                <input
-                    ref={passwordRef}
-                    type="password"
-                    placeholder="Password"
-                />
-                <div className={styles.panelBtn} onClick={onLoginClick}>
-                    Login
-                </div>
+        <Screen
+            style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+        >
+            <GameTitle>SPACE SHOOTER</GameTitle>
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flexGrow: '1',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                }}
+            >
+                <Panel
+                    style={{
+                        alignItems: 'center',
+                        width: '50%',
+                        textAlign: 'center',
+                    }}
+                >
+                    <h1>Login</h1>
+                    <p>Please enter your bluesky login credentials</p>
+
+                    <LoginForm>
+                        <input
+                            ref={handleRef}
+                            type="text"
+                            placeholder="Handle"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                            onChange={onTextChange}
+                        />
+                        <input
+                            ref={passwordRef}
+                            type="password"
+                            placeholder="Password"
+                            onChange={onTextChange}
+                        />
+                    </LoginForm>
+
+                    <ScreenButton
+                        onClick={onLoginClick}
+                        disabled={!hasValidInput || isLoggingIn}
+                    >
+                        Login
+                    </ScreenButton>
+                    {errorText && (
+                        <p style={{ marginTop: '20px' }}>{errorText}</p>
+                    )}
+                </Panel>
             </div>
-        </div>
+        </Screen>
     );
 };
