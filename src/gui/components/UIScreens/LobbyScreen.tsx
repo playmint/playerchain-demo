@@ -2,12 +2,14 @@ import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/act
 import { useLiveQuery } from 'dexie-react-hooks';
 import { FunctionComponent, useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
+import * as SpaceshooterStats from '../../../lexicon/types/com/playmint/dev/spaceshooter/stats';
+import { nullPlayerStats } from '../../fixtures/player-stats';
 import { useATProto } from '../../hooks/use-atproto';
 import { useClient } from '../../hooks/use-client';
 import { useCredentials } from '../../hooks/use-credentials';
 import { useDatabase } from '../../hooks/use-database';
 import { useProfile } from '../../providers/ProfileProvider';
-import { PlayerProfileProps, nullPlayerStats } from './MenuScreen';
+import { PlayerProfileProps } from './MenuScreen';
 import { GameTitle, Panel, PanelButton, Screen, ScreenButton } from './Screen';
 
 export interface LobbyScreenProps {
@@ -32,8 +34,11 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
         { peerId: string; did: string }[]
     >([]);
     const [peerProfiles, setPeerProfiles] = useState<ProfileViewDetailed[]>([]);
+    const [peerStats, setPeerStats] = useState<
+        Map<string, SpaceshooterStats.Record>
+    >(new Map());
     const [startingGame, setStartingGame] = useState(false);
-    const { getProfile } = useProfile();
+    const { getProfile, getStats } = useProfile();
 
     const db = useDatabase();
     const publicChannels = useLiveQuery(
@@ -212,10 +217,26 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
             );
         };
 
+        const getAllStats = async () => {
+            const selfPeer = { peerId, did };
+            await Promise.all(
+                [selfPeer, ...matchSeekingPeers].map(async ({ did }) => {
+                    const stats = await getStats(did);
+                    if (!stats) {
+                        return;
+                    }
+                    setPeerStats((prev) => new Map(prev.set(did, stats)));
+                }),
+            );
+        };
+
         getProfiles().catch((err) => {
             console.error('getProfiles failed:', err);
         });
-    }, [db.peerNames, did, getProfile, matchSeekingPeers, peerId]);
+        getAllStats().catch((err) => {
+            console.error('getAllStats failed:', err);
+        });
+    }, [db.peerNames, did, getProfile, getStats, matchSeekingPeers, peerId]);
 
     return (
         <Screen style={{ display: 'flex', flexDirection: 'column' }}>
@@ -243,13 +264,17 @@ export const LobbyScreen: FunctionComponent<LobbyScreenProps> = ({
                             height: '100%',
                         }}
                     >
-                        {peerProfiles.map((profile) => (
-                            <PlayerProfile
-                                key={profile.did}
-                                bskyProfile={profile}
-                                playerStats={nullPlayerStats}
-                            />
-                        ))}
+                        {peerProfiles.map((profile) => {
+                            const playerStats =
+                                peerStats.get(profile.did) || nullPlayerStats;
+                            return (
+                                <PlayerProfile
+                                    key={profile.did}
+                                    bskyProfile={profile}
+                                    playerStats={playerStats}
+                                />
+                            );
+                        })}
                     </Panel>
                 </div>
 

@@ -22,7 +22,7 @@ export const SIM_END = SESSION_TIME_SECONDS / (FIXED_UPDATE_RATE / 1000);
 
 const src = '/examples/spaceshooter.js'; // not a real src yet see runtime/game.ts
 
-const AUTO_JOIN_TIMEOUT = 15000 * 1000;
+const AUTO_JOIN_TIMEOUT = 15000;
 
 export default memo(function ChannelView({
     channel,

@@ -25,6 +25,7 @@
         "pack:android": "ssc build --platform=android -p",
         "pack:androidprod": "ssc build --prod --platform=android -p",
         "genconfig": "ejs socket.template.ini -o socket.ini",
+        "lexgen": "lex gen-server ./src/lexicon ./lexicons/*",
         "release:ios": "run-s genconfig build:vite pack:ios",
         "release:iosprod": "BUILD_PROD=1 run-s genconfig build:vite pack:iosprod",
         "release:macos": "run-s genconfig build pack:signed",
@@ -50,8 +51,10 @@
         "@atproto/api": "^0.13.19",
         "@atproto/common-web": "^0.3.1",
         "@atproto/identity": "^0.4.3",
+        "@atproto/lexicon": "^0.4.4",
         "@react-three/postprocessing": "^2.16.3",
         "md5": "^2.3.0",
+        "multiformats": "^13.3.1",
         "postprocessing": "^6.36.3",
         "qrcode.react": "^4.1.0",
         "react": "^18.3.1",
@@ -60,6 +63,7 @@
         "three.quarks": "^0.15.5"
     },
     "devDependencies": {
+        "@atproto/lex-cli": "^0.5.3",
         "@eslint/js": "^9.8.0",
         "@fontsource-variable/material-symbols-outlined": "^5.0.37",
         "@fontsource-variable/recursive": "^5.0.18",

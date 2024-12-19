@@ -1,0 +1,37 @@
+{
+    "lexicon": 1,
+    "id": "com.playmint.dev.spaceshooter.stats",
+    "defs": {
+        "main": {
+            "type": "record",
+            "key": "literal:self",
+            "record": {
+                "type": "object",
+                "required": [
+                    "totalWins",
+                    "totalGames",
+                    "totalKills",
+                    "totalDeaths",
+                    "highestScore"
+                ],
+                "properties": {
+                    "totalWins": {
+                        "type": "integer"
+                    },
+                    "totalGames": {
+                        "type": "integer"
+                    },
+                    "totalKills": {
+                        "type": "integer"
+                    },
+                    "totalDeaths": {
+                        "type": "integer"
+                    },
+                    "highestScore": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+    }
+}
