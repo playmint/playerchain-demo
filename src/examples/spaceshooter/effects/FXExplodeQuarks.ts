@@ -19,27 +19,44 @@ export interface ExplodeFXHandle {
 export const ExplodeFX = forwardRef<ExplodeFXHandle>((_props, ref) => {
     const batchRenderer = useMemo(() => new BatchedRenderer(), []);
     const [effect, setEffect] = useState<Object3D>();
+    const [activeExplosions, setActiveExplosions] = useState(0);
     const scene = useThree((state) => state.scene);
 
     useImperativeHandle(ref, () => ({
         triggerExplosion(pos: Vector3) {
-            if (!effect) {
-                return;
-            }
+            if (!effect) {return;}
+
             effect.position.copy(pos);
             QuarksUtil.restart(effect);
+
+            setActiveExplosions((count) => count + 1);
+
+            setTimeout(() => {
+                setActiveExplosions((count) => Math.max(0, count - 1));
+            }, 3500); // match or greater than particle effect duration
+
             addShake({
-                intensity: 300, // Adjust as needed
+                intensity: 300,
                 frequency: 40,
                 position: pos,
-                decay: 700, // Rate at which the shake reduces
-                duration: 1, // How long the shake lasts
+                decay: 700,
+                duration: 1,
             });
         },
     }));
 
-    useFrame((_state, delta) => {
-        batchRenderer.update(delta);
+    let lastUpdateTime = performance.now();
+    const fpsInterval = 1000 / 60;
+    
+    useFrame((_state, _) => {
+        if (activeExplosions > 0) {
+            const now = performance.now();
+            const elapsed = now - lastUpdateTime;
+            if (elapsed >= fpsInterval) {
+                batchRenderer.update(elapsed / 1000);
+                lastUpdateTime = now;
+            }
+        }
     });
 
     useEffect(() => {
